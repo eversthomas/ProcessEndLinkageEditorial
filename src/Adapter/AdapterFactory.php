@@ -3,7 +3,8 @@
 use ProcessWire\BsProcessEditorial;
 
 /**
- * Wählt Mock- oder ProcessWire-Adapter (auto: PW wenn Template existiert).
+ * Wählt Mock- oder ProcessWire-Adapter.
+ * auto = PW, sobald mindestens ein konfigurierter Inhaltstyp als Template existiert.
  */
 class AdapterFactory {
 
@@ -11,7 +12,7 @@ class AdapterFactory {
 		$mode = (string) ($module->get('data_source') ?: 'auto');
 
 		if ($mode === 'mock') {
-			return new MockAdapter();
+			return new MockAdapter($module);
 		}
 
 		$pw = new ProcessWireAdapter($module);
@@ -19,10 +20,11 @@ class AdapterFactory {
 			return $pw;
 		}
 
-		// auto
-		if ($pw->supportsTemplate('einrichtung')) {
-			return $pw;
+		foreach ($module->editorialTemplateNames() as $name) {
+			if ($pw->supportsTemplate($name)) {
+				return $pw;
+			}
 		}
-		return new MockAdapter();
+		return new MockAdapter($module);
 	}
 }

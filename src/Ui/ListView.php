@@ -1,7 +1,7 @@
 <?php namespace ProcessWire\BsProcessEditorial\Ui;
 
 /**
- * Einfache Listenansicht — 3–5 Spalten, „Neu“ prominent, leerer Zustand.
+ * Listenansicht — Spalten aus Schema (3–5), „Neu“ prominent, leerer Zustand.
  */
 class ListView {
 
@@ -9,7 +9,7 @@ class ListView {
 		$label = $schema['label'] ?? $schema['template'];
 		$newUrl = $options['newUrl'] ?? '#';
 		$editUrl = $options['editUrl'] ?? fn($id) => '#';
-		$categoryLabels = $this->optionMap($schema, 'kategorie');
+		$columns = $this->listColumns($schema);
 
 		$html = '<div class="bpe-list">';
 		$html .= '<header class="bpe-list__header">';
@@ -20,7 +20,7 @@ class ListView {
 		if (empty($records)) {
 			$html .= '<div class="bpe-empty">';
 			$html .= '<p class="bpe-empty__text">Noch keine Einträge vorhanden.</p>';
-			$html .= '<a class="bpe-btn bpe-btn--primary" href="' . $this->e($newUrl) . '">Erste Einrichtung anlegen</a>';
+			$html .= '<a class="bpe-btn bpe-btn--primary" href="' . $this->e($newUrl) . '">Ersten Eintrag anlegen</a>';
 			$html .= '</div>';
 			$html .= '</div>';
 			return $html;
@@ -29,21 +29,27 @@ class ListView {
 		$html .= '<div class="bpe-table-wrap">';
 		$html .= '<table class="bpe-table">';
 		$html .= '<thead><tr>';
-		$html .= '<th>Name</th><th>Kategorie</th><th>Aktiv</th><th></th>';
-		$html .= '</tr></thead><tbody>';
+		foreach ($columns as $col) {
+			$html .= '<th>' . $this->e($col['label'] ?? $col['name']) . '</th>';
+		}
+		$html .= '<th></th></tr></thead><tbody>';
 
 		foreach ($records as $record) {
 			$id = (string) ($record['id'] ?? '');
 			$url = is_callable($editUrl) ? $editUrl($id) : str_replace('{id}', $id, (string) $editUrl);
-			$kat = $categoryLabels[(string) ($record['kategorie'] ?? '')] ?? ($record['kategorie'] ?? '—');
-			$aktiv = !empty($record['aktiv']) ? 'Ja' : 'Nein';
-			$aktivClass = !empty($record['aktiv']) ? 'bpe-badge bpe-badge--ok' : 'bpe-badge bpe-badge--muted';
 
 			$html .= '<tr>';
-			$html .= '<td><a class="bpe-table__link" href="' . $this->e($url) . '">' . $this->e($record['title'] ?? 'Ohne Titel') . '</a></td>';
-			$html .= '<td>' . $this->e($kat) . '</td>';
-			$html .= '<td><span class="' . $aktivClass . '">' . $this->e($aktiv) . '</span></td>';
-			$html .= '<td class="bpe-table__actions"><a class="bpe-btn bpe-btn--ghost bpe-btn--small" href="' . $this->e($url) . '">Bearbeiten</a></td>';
+			foreach ($columns as $i => $col) {
+				$name = $col['name'];
+				$cell = $this->formatCell($col, $record[$name] ?? null, $schema);
+				if ($i === 0) {
+					$html .= '<td><a class="bpe-table__link" href="' . $this->e($url) . '">' . $this->e($cell) . '</a></td>';
+				} else {
+					$html .= '<td>' . $cell . '</td>';
+				}
+			}
+			$html .= '<td class="bpe-table__actions"><a class="bpe-btn bpe-btn--ghost bpe-btn--small" href="'
+				. $this->e($url) . '">Bearbeiten</a></td>';
 			$html .= '</tr>';
 		}
 
@@ -51,17 +57,56 @@ class ListView {
 		return $html;
 	}
 
-	protected function optionMap(array $schema, string $fieldName): array {
-		foreach ($schema['fields'] as $field) {
-			if (($field['name'] ?? '') === $fieldName) {
-				$map = [];
-				foreach ($field['options'] ?? [] as $opt) {
-					$map[(string) $opt['value']] = $opt['label'];
-				}
-				return $map;
+	/**
+	 * Bis zu 4 Listenspalten: title zuerst, dann kompakte Feldtypen.
+	 */
+	protected function listColumns(array $schema): array {
+		$title = null;
+		$rest = [];
+		foreach ($schema['fields'] ?? [] as $field) {
+			$type = $field['type'] ?? '';
+			$name = $field['name'] ?? '';
+			if ($name === '' || in_array($type, ['image', 'pageReference', 'textarea'], true)) {
+				continue;
+			}
+			if ($name === 'title') {
+				$title = $field;
+			} else {
+				$rest[] = $field;
 			}
 		}
-		return [];
+		$cols = [];
+		if ($title) {
+			$cols[] = $title;
+		} elseif ($rest) {
+			$cols[] = array_shift($rest);
+		}
+		foreach ($rest as $field) {
+			if (count($cols) >= 4) {
+				break;
+			}
+			$cols[] = $field;
+		}
+		return $cols;
+	}
+
+	protected function formatCell(array $field, mixed $value, array $schema): string {
+		$type = $field['type'] ?? 'text';
+		if ($type === 'checkbox') {
+			$on = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+			$class = $on ? 'bpe-badge bpe-badge--ok' : 'bpe-badge bpe-badge--muted';
+			return '<span class="' . $class . '">' . ($on ? 'Ja' : 'Nein') . '</span>';
+		}
+		if ($type === 'select') {
+			$map = [];
+			foreach ($field['options'] ?? [] as $opt) {
+				$map[(string) ($opt['value'] ?? '')] = $opt['label'] ?? $opt['value'];
+			}
+			$key = (string) ($value ?? '');
+			return $this->e($map[$key] ?? ($key !== '' ? $key : '—'));
+		}
+		$text = trim((string) ($value ?? ''));
+		return $text !== '' ? $this->e($text) : '—';
 	}
 
 	protected function e(mixed $value): string {

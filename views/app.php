@@ -6,6 +6,9 @@
 /** @var string|null $userName */
 /** @var string|null $flash */
 /** @var string|null $navActive */
+/** @var array $navItems */
+/** @var string|null $dataSource */
+$navItems = $navItems ?? [];
 ?><!DOCTYPE html>
 <html lang="de">
 <head>
@@ -21,10 +24,17 @@
 				<a href="<?= htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8') ?>">Redaktion</a>
 			</div>
 			<nav class="bpe-nav__list">
-				<a class="bpe-nav__item<?= $navActive === 'einrichtung' ? ' is-active' : '' ?>"
-				   href="<?= htmlspecialchars($baseUrl . 'einrichtung/', ENT_QUOTES, 'UTF-8') ?>">
-					Einrichtungen
-				</a>
+				<?php foreach ($navItems as $item): ?>
+					<?php
+					$name = $item['name'] ?? '';
+					$label = $item['label'] ?? $name;
+					$href = $baseUrl . rawurlencode($name) . '/';
+					?>
+					<a class="bpe-nav__item<?= $navActive === $name ? ' is-active' : '' ?>"
+					   href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>">
+						<?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
+					</a>
+				<?php endforeach; ?>
 			</nav>
 			<div class="bpe-nav__footer">
 				<?php if (!empty($dataSource)): ?>

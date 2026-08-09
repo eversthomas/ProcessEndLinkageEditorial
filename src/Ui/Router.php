@@ -7,7 +7,7 @@ use ProcessWire\BsProcessEditorial\FormEngine\FormRenderer;
 use ProcessWire\HookEvent;
 
 /**
- * Routing der Editorial-App unter /editorial/…
+ * Routing der Editorial-App — Inhaltstypen dynamisch aus dem Adapter.
  */
 class Router {
 
@@ -15,10 +15,14 @@ class Router {
 	protected EditorialAuth $auth;
 	protected AdapterInterface $adapter;
 
+	/** @var array<int, array{name: string, label: string}> */
+	protected array $contentTypes;
+
 	public function __construct(BsProcessEditorial $module) {
 		$this->module = $module;
 		$this->auth = new EditorialAuth($module);
 		$this->adapter = $module->adapter();
+		$this->contentTypes = $this->adapter->listContentTypes();
 	}
 
 	public function dispatch(HookEvent $event): string {
@@ -37,14 +41,18 @@ class Router {
 			return $this->redirect($this->url('login'));
 		}
 
+		if ($this->contentTypes === []) {
+			return $this->renderError(503, 'Keine Inhaltstypen konfiguriert oder gefunden. Bitte in den Moduleinstellungen „Redaktionelle Templates“ setzen.');
+		}
+
 		if ($segments === [] || $segments === ['']) {
-			return $this->redirect($this->url('einrichtung'));
+			return $this->redirect($this->url($this->contentTypes[0]['name']));
 		}
 
 		$template = $segments[0];
 		$action = $segments[1] ?? null;
 
-		if ($template !== 'einrichtung') {
+		if (!$this->isAllowedTemplate($template)) {
 			return $this->renderError(404, 'Unbekannter Inhaltstyp.');
 		}
 
@@ -65,6 +73,15 @@ class Router {
 		return $this->module->wire();
 	}
 
+	protected function isAllowedTemplate(string $template): bool {
+		foreach ($this->contentTypes as $type) {
+			if ($type['name'] === $template) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	protected function getLogin(string $error = ''): string {
 		return $this->view('login', [
 			'title' => 'Anmelden',
@@ -72,6 +89,7 @@ class Router {
 			'action' => $this->url('login'),
 			'csrf' => $this->csrfField(),
 			'userName' => null,
+			'navItems' => [],
 		]);
 	}
 
@@ -84,7 +102,8 @@ class Router {
 		$user = (string) $input->post('username');
 		$pass = (string) $input->post('password');
 		if ($this->auth->attempt($user, $pass)) {
-			return $this->redirect($this->url('einrichtung'));
+			$first = $this->contentTypes[0]['name'] ?? '';
+			return $this->redirect($first !== '' ? $this->url($first) : $this->module->baseUrl());
 		}
 		return $this->getLogin('Benutzername oder Passwort ungültig.');
 	}
@@ -201,7 +220,6 @@ class Router {
 				$data[$name . '_clear'] = (string) $input->post($name . '_clear') === '1';
 				$existing = $input->post($name . '_existing');
 				$data[$name . '_existing'] = $existing ? (string) $existing : null;
-				// Für MockAdapter weiterhin einfacher Dateiname
 				if ($data[$name . '_clear']) {
 					$data[$name] = null;
 				} elseif (!empty($_FILES[$name]['name'])) {
@@ -218,8 +236,7 @@ class Router {
 	}
 
 	protected function dataSourceLabel(): string {
-		$adapter = $this->adapter;
-		if ($adapter instanceof \ProcessWire\BsProcessEditorial\Adapter\ProcessWireAdapter) {
+		if ($this->adapter instanceof \ProcessWire\BsProcessEditorial\Adapter\ProcessWireAdapter) {
 			return 'ProcessWire';
 		}
 		return 'Mock';
@@ -232,6 +249,7 @@ class Router {
 		$vars['userName'] = $vars['userName'] ?? $this->auth->userName();
 		$vars['flash'] = $vars['flash'] ?? null;
 		$vars['navActive'] = $vars['navActive'] ?? null;
+		$vars['navItems'] = $vars['navItems'] ?? $this->contentTypes;
 		$vars['dataSource'] = $vars['dataSource'] ?? $this->dataSourceLabel();
 
 		$file = $this->module->modulePath() . '/views/' . $name . '.php';
@@ -246,11 +264,13 @@ class Router {
 
 	protected function renderError(int $code, string $message): string {
 		http_response_code($code);
+		$home = $this->contentTypes[0]['name'] ?? '';
+		$homeUrl = $home !== '' ? $this->url($home) : $this->module->baseUrl();
 		return $this->view('app', [
 			'title' => 'Fehler',
 			'content' => '<div class="bpe-empty"><p class="bpe-empty__text">' .
 				htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>' .
-				'<a class="bpe-btn bpe-btn--primary" href="' . htmlspecialchars($this->url('einrichtung'), ENT_QUOTES, 'UTF-8') .
+				'<a class="bpe-btn bpe-btn--primary" href="' . htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') .
 				'">Zur Übersicht</a></div>',
 			'navActive' => null,
 			'userName' => $this->auth->userName(),

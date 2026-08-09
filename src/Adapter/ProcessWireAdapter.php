@@ -8,9 +8,9 @@ use ProcessWire\BsProcessEditorial\Adapter\Fields\PageReferenceFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\SelectFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\TextareaFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\TextFieldAdapter;
-use ProcessWire\BsProcessEditorial\Setup\MvpInstaller;
 use ProcessWire\Field;
 use ProcessWire\Page;
+use ProcessWire\Template;
 use ProcessWire\WireException;
 
 /**
@@ -26,7 +26,7 @@ class ProcessWireAdapter implements AdapterInterface {
 	public function __construct(BsProcessEditorial $module, ?array $fieldAdapters = null) {
 		$this->module = $module;
 		$this->fieldAdapters = $fieldAdapters ?? [
-			new TextareaFieldAdapter(), // vor Text (Textarea erbt von Text)
+			new TextareaFieldAdapter(),
 			new TextFieldAdapter(),
 			new CheckboxFieldAdapter(),
 			new SelectFieldAdapter(),
@@ -35,31 +35,46 @@ class ProcessWireAdapter implements AdapterInterface {
 		];
 	}
 
+	public function listContentTypes(): array {
+		$types = [];
+		foreach ($this->module->editorialTemplateNames() as $name) {
+			$tpl = $this->module->wire()->templates->get($name);
+			if (!$tpl || !$tpl->id) {
+				continue;
+			}
+			$types[] = [
+				'name' => $tpl->name,
+				'label' => $this->templateLabel($tpl),
+			];
+		}
+		return $types;
+	}
+
 	public function supportsTemplate(string $template): bool {
 		$tpl = $this->module->wire()->templates->get($template);
-		return $tpl && $tpl->id;
+		return (bool) ($tpl && $tpl->id);
 	}
 
 	public function readSchema(string $template): array {
-		$tpl = $this->requireTemplate($template);
+		$tpl = $this->requireEditorialTemplate($template);
 		$contextPage = $this->contextPage($tpl->name);
 		$fields = [];
 		foreach ($tpl->fields as $field) {
 			$adapter = $this->adapterFor($field);
 			if (!$adapter) {
-				continue; // unbekannte Typen im MVP überspringen
+				continue;
 			}
 			$fields[] = $adapter->readSchema($field, $contextPage);
 		}
 		return [
 			'template' => $tpl->name,
-			'label' => $tpl->get('label') ?: ucfirst($tpl->name),
+			'label' => $this->templateLabel($tpl),
 			'fields' => $fields,
 		];
 	}
 
 	public function listRecords(string $template): array {
-		$this->requireTemplate($template);
+		$this->requireEditorialTemplate($template);
 		$pages = $this->module->wire()->pages->find("template={$template}, include=all, sort=-modified");
 		$records = [];
 		foreach ($pages as $page) {
@@ -69,6 +84,7 @@ class ProcessWireAdapter implements AdapterInterface {
 	}
 
 	public function getRecord(string $template, string $id): ?array {
+		$this->requireEditorialTemplate($template);
 		$page = $this->module->wire()->pages->get((int) $id);
 		if (!$page->id || $page->template->name !== $template) {
 			return null;
@@ -77,7 +93,7 @@ class ProcessWireAdapter implements AdapterInterface {
 	}
 
 	public function saveRecord(string $template, array $data): array {
-		$tpl = $this->requireTemplate($template);
+		$tpl = $this->requireEditorialTemplate($template);
 		$pages = $this->module->wire()->pages;
 		$sanitizer = $this->module->wire()->sanitizer;
 		$id = isset($data['id']) ? (int) $data['id'] : 0;
@@ -88,9 +104,11 @@ class ProcessWireAdapter implements AdapterInterface {
 				return ['record' => null, 'errors' => ['_form' => 'Eintrag nicht gefunden.']];
 			}
 		} else {
-			$parent = $pages->get(MvpInstaller::PARENT_PATH);
-			if (!$parent->id) {
-				return ['record' => null, 'errors' => ['_form' => 'Elternseite /einrichtungen/ fehlt. Bitte Testdatenmodell anlegen.']];
+			$parent = $this->resolveParent($template);
+			if (!$parent || !$parent->id) {
+				return ['record' => null, 'errors' => [
+					'_form' => "Keine Elternseite für „{$template}“ gefunden. Lege z. B. /{$template}/ an oder pflege bestehende Einträge.",
+				]];
 			}
 			$page = new Page();
 			$page->template = $tpl;
@@ -99,17 +117,20 @@ class ProcessWireAdapter implements AdapterInterface {
 
 		$page->of(false);
 
-		// 1) Seite anlegen falls neu (für Bild-Upload brauchen wir eine ID)
+		$titleField = $tpl->fields->get('title');
 		$titleRaw = $data['title'] ?? '';
-		$titleCheck = $this->adapterFor($tpl->fields->get('title'))
-			?->sanitizeAndValidate($tpl->fields->get('title'), $page, $titleRaw);
-		if ($titleCheck && $titleCheck['errors']) {
+		$titleCheck = $titleField && $this->adapterFor($titleField)
+			? $this->adapterFor($titleField)->sanitizeAndValidate($titleField, $page, $titleRaw)
+			: ['value' => $sanitizer->text((string) $titleRaw), 'errors' => []];
+
+		if (!empty($titleCheck['errors'])) {
 			return ['record' => null, 'errors' => ['title' => $titleCheck['errors'][0]]];
 		}
+
 		if (!$page->id) {
-			$page->title = $titleCheck['value'] ?? $sanitizer->text((string) $titleRaw);
-			$page->name = $sanitizer->pageName($page->title, true);
-			if ($page->parent->child("name=" . $sanitizer->selectorValue($page->name))->id) {
+			$page->title = $titleCheck['value'] !== '' ? $titleCheck['value'] : 'Ohne Titel';
+			$page->name = $sanitizer->pageName($page->title, true) ?: 'eintrag';
+			if ($page->parent->child('name=' . $sanitizer->selectorValue($page->name))->id) {
 				$page->name .= '-' . time();
 			}
 			$page->save();
@@ -134,8 +155,6 @@ class ProcessWireAdapter implements AdapterInterface {
 		}
 
 		if ($errors) {
-			// Neu angelegte leere Seite bei Validierungsfehler wieder entfernen?
-			// Behalten — Redakteur kann korrigieren. Optional trash wenn brand new & failed hard.
 			return ['record' => null, 'errors' => $errors];
 		}
 
@@ -145,6 +164,33 @@ class ProcessWireAdapter implements AdapterInterface {
 		$page->save();
 
 		return ['record' => $this->pageToRecord($page), 'errors' => []];
+	}
+
+	/**
+	 * Elternseite für neue Einträge:
+	 * 1) Parent bestehender Seiten dieses Templates
+	 * 2) Seite /$template/
+	 * 3) Kind von Home mit name=$template
+	 */
+	public function resolveParent(string $template): ?Page {
+		$pages = $this->module->wire()->pages;
+		$existing = $pages->get("template={$template}, include=all");
+		if ($existing->id && $existing->parent->id) {
+			return $existing->parent;
+		}
+
+		$byPath = $pages->get('/' . trim($template, '/') . '/');
+		if ($byPath->id) {
+			return $byPath;
+		}
+
+		$home = $pages->get(1);
+		$child = $home->child('name=' . $this->module->wire()->sanitizer->selectorValue($template) . ', include=all');
+		if ($child->id) {
+			return $child;
+		}
+
+		return null;
 	}
 
 	protected function pageToRecord(Page $page): array {
@@ -186,6 +232,14 @@ class ProcessWireAdapter implements AdapterInterface {
 		return null;
 	}
 
+	protected function requireEditorialTemplate(string $template) {
+		$allowed = $this->module->editorialTemplateNames();
+		if (!in_array($template, $allowed, true)) {
+			throw new WireException("Inhaltstyp „{$template}“ ist nicht für die Redaktion freigegeben.");
+		}
+		return $this->requireTemplate($template);
+	}
+
 	protected function requireTemplate(string $template) {
 		$tpl = $this->module->wire()->templates->get($template);
 		if (!$tpl || !$tpl->id) {
@@ -194,16 +248,21 @@ class ProcessWireAdapter implements AdapterInterface {
 		return $tpl;
 	}
 
+	protected function templateLabel(Template $tpl): string {
+		$label = trim((string) $tpl->get('label'));
+		return $label !== '' ? $label : ucfirst($tpl->name);
+	}
+
 	protected function contextPage(string $templateName): Page {
 		$pages = $this->module->wire()->pages;
 		$existing = $pages->get("template={$templateName}, include=all");
 		if ($existing->id) {
 			return $existing;
 		}
-		$parent = $pages->get(MvpInstaller::PARENT_PATH);
+		$parent = $this->resolveParent($templateName);
 		$page = new Page();
 		$page->template = $templateName;
-		$page->parent = $parent->id ? $parent : $pages->get(1);
+		$page->parent = $parent && $parent->id ? $parent : $pages->get(1);
 		return $page;
 	}
 }

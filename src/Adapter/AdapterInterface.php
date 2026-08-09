@@ -1,10 +1,19 @@
 <?php namespace ProcessWire\BsProcessEditorial\Adapter;
 
 /**
- * Vertrag für den späteren ProcessWire-Adapter.
- * UI/Form-Engine kennt nur dieses Schema — nie PW-Objekte.
+ * Vertrag zwischen Editorial-UI und Datenquelle.
+ * UI kennt nur Schema-/Record-Arrays — nie PW-Objekte.
  */
 interface AdapterInterface {
+
+	/**
+	 * Redaktionelle Inhaltstypen für Navigation.
+	 * @return array<int, array{name: string, label: string}>
+	 */
+	public function listContentTypes(): array;
+
+	/** Ob dieser Adapter den Inhaltstyp bedienen kann */
+	public function supportsTemplate(string $template): bool;
 
 	/** Schema im Format von schema-mock.json */
 	public function readSchema(string $template): array;
@@ -16,7 +25,7 @@ interface AdapterInterface {
 	public function getRecord(string $template, string $id): ?array;
 
 	/**
-	 * Speichern. Rückgabe: ['record' => array, 'errors' => string[]]
+	 * Speichern. Rückgabe: ['record' => array|null, 'errors' => array]
 	 * errors keyed by field name where possible.
 	 */
 	public function saveRecord(string $template, array $data): array;

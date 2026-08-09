@@ -1,20 +1,45 @@
 <?php namespace ProcessWire\BsProcessEditorial\Adapter;
 
+use ProcessWire\BsProcessEditorial;
 use ProcessWire\BsProcessEditorial\Mock\MockStore;
 use ProcessWire\BsProcessEditorial\Schema\SchemaLoader;
 
 /**
- * Mock-Adapter: bedient die UI aus schema-mock.json + MockStore.
- * Später 1:1 durch den echten PW-Adapter ersetzbar.
+ * Mock-Adapter: schema-mock.json + MockStore (UX ohne PW-Template).
  */
 class MockAdapter implements AdapterInterface {
 
+	protected ?BsProcessEditorial $module;
 	protected SchemaLoader $schemaLoader;
 	protected MockStore $store;
 
-	public function __construct(?SchemaLoader $schemaLoader = null, ?MockStore $store = null) {
+	public function __construct(?BsProcessEditorial $module = null, ?SchemaLoader $schemaLoader = null, ?MockStore $store = null) {
+		$this->module = $module;
 		$this->schemaLoader = $schemaLoader ?? new SchemaLoader();
 		$this->store = $store ?? new MockStore();
+	}
+
+	public function listContentTypes(): array {
+		$schema = $this->schemaLoader->load();
+		$name = $schema['template'];
+		$configured = $this->module ? $this->module->editorialTemplateNames() : [$name];
+		if (!in_array($name, $configured, true) && $configured !== []) {
+			// Config zeigt z. B. ansprechpartner, Mock hat nur einrichtung → leere Nav
+			return [];
+		}
+		return [[
+			'name' => $name,
+			'label' => $schema['label'] ?? ucfirst($name),
+		]];
+	}
+
+	public function supportsTemplate(string $template): bool {
+		try {
+			$this->assertTemplate($template);
+			return true;
+		} catch (\InvalidArgumentException) {
+			return false;
+		}
 	}
 
 	public function readSchema(string $template): array {

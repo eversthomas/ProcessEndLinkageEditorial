@@ -13,7 +13,7 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'bs-processEditorial',
-			'version' => 2,
+			'version' => 3,
 			'summary' => 'Redaktionsoberfläche mit eigenem Login — baut sich aus dem Datenmodell auf.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
@@ -29,6 +29,7 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 		$this->set('login_pass', 'redaktion');
 		$this->set('base_path', self::BASE_PATH);
 		$this->set('data_source', 'auto');
+		$this->set('editorial_templates', ['ansprechpartner']);
 		$this->set('setup_mvp', 0);
 	}
 
@@ -40,8 +41,28 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 	}
 
 	/**
-	 * Modulkonfiguration: Checkbox „MVP-Testdatenmodell“ ausführen.
+	 * Konfigurierte Template-Namen für die Redaktion (Reihenfolge = Nav-Reihenfolge).
+	 *
+	 * @return string[]
 	 */
+	public function editorialTemplateNames(): array {
+		$raw = $this->get('editorial_templates');
+		if (is_string($raw) && $raw !== '') {
+			$raw = preg_split('/[\s,]+/', $raw) ?: [];
+		}
+		if (!is_array($raw)) {
+			$raw = ['ansprechpartner'];
+		}
+		$names = [];
+		foreach ($raw as $name) {
+			$name = trim((string) $name);
+			if ($name !== '' && !in_array($name, $names, true)) {
+				$names[] = $name;
+			}
+		}
+		return $names ?: ['ansprechpartner'];
+	}
+
 	public function hookAfterSaveConfig(HookEvent $event): void {
 		$className = $event->arguments(0);
 		if ($className !== $this->className()) {
@@ -56,7 +77,6 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 			$this->message($msg);
 		}
 		$data['setup_mvp'] = 0;
-		// Verhindert erneutes Anlegen beim nächsten Speichern; bypass Hook-Rekursion
 		$event->arguments(1, $data);
 		$this->wire()->modules->saveModuleConfigData($this, $data);
 	}
@@ -94,19 +114,17 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 		return ($root === '' ? '' : $root) . '/' . $base . '/';
 	}
 
-	/**
-	 * Adapter für die aktuelle Datenquelle (Mock oder ProcessWire).
-	 */
 	public function adapter(): \ProcessWire\BsProcessEditorial\Adapter\AdapterInterface {
 		return \ProcessWire\BsProcessEditorial\Adapter\AdapterFactory::make($this);
 	}
 
 	public function ___install(): void {
-		// Testdatenmodell bewusst manuell über Modulkonfiguration anlegen
+		// optional: Testdatenmodell über Modulkonfiguration
 	}
 
 	public static function getModuleConfigInputfields(array $data): InputfieldWrapper {
 		$modules = wire('modules');
+		$templates = wire('templates');
 		$wrapper = new InputfieldWrapper();
 
 		/** @var InputfieldText $f */
@@ -117,11 +135,32 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 		$f->value = $data['base_path'] ?? self::BASE_PATH;
 		$wrapper->add($f);
 
+		/** @var InputfieldAsmSelect $f */
+		$f = $modules->get('InputfieldAsmSelect');
+		$f->name = 'editorial_templates';
+		$f->label = 'Redaktionelle Templates';
+		$f->description = 'Diese Inhaltstypen erscheinen in der Redaktions-Navigation. Reihenfolge = Anzeige-Reihenfolge.';
+		$f->setAttribute('size', 8);
+		$skip = ['admin', 'user', 'role', 'permission', 'language', 'basic-page'];
+		foreach ($templates as $tpl) {
+			/** @var Template $tpl */
+			if ($tpl->flags & Template::flagSystem) {
+				continue;
+			}
+			if (in_array($tpl->name, $skip, true)) {
+				continue;
+			}
+			$label = trim((string) $tpl->get('label'));
+			$f->addOption($tpl->name, ($label !== '' ? $label : $tpl->name) . ' (' . $tpl->name . ')');
+		}
+		$f->value = $data['editorial_templates'] ?? ['ansprechpartner'];
+		$wrapper->add($f);
+
 		/** @var InputfieldSelect $f */
 		$f = $modules->get('InputfieldSelect');
 		$f->name = 'data_source';
 		$f->label = 'Datenquelle';
-		$f->description = 'auto = ProcessWire, sobald Template „einrichtung“ existiert, sonst Mock.';
+		$f->description = 'auto = ProcessWire, sobald mindestens ein konfiguriertes Template existiert, sonst Mock.';
 		$f->addOption('auto', 'Automatisch');
 		$f->addOption('mock', 'Mock (schema-mock.json)');
 		$f->addOption('processwire', 'ProcessWire');
@@ -131,8 +170,8 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 		/** @var InputfieldCheckbox $f */
 		$f = $modules->get('InputfieldCheckbox');
 		$f->name = 'setup_mvp';
-		$f->label = 'MVP-Testdatenmodell jetzt anlegen';
-		$f->description = 'Erstellt Template „einrichtung“, Felder, /einrichtungen/ und Beispielseiten. Einmalig beim Speichern der Einstellungen.';
+		$f->label = 'Legacy: MVP-Testdatenmodell „einrichtung“ anlegen';
+		$f->description = 'Optional. Für den aktuellen Workflow mit Ansprechpartner nicht nötig.';
 		$f->checked = false;
 		$wrapper->add($f);
 
