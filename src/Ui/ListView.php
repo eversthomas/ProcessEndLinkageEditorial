@@ -11,15 +11,20 @@ class ListView {
 		$editUrl = $options['editUrl'] ?? fn($id) => '#';
 		$columns = $this->listColumns($schema);
 
+		$count = count($records);
 		$html = '<div class="bpe-list">';
 		$html .= '<header class="bpe-list__header">';
+		$html .= '<div class="bpe-list__heading">';
 		$html .= '<h1 class="bpe-list__title">' . $this->e($label) . '</h1>';
+		$html .= '<p class="bpe-list__meta">' . $count . ' ' . ($count === 1 ? 'Eintrag' : 'Einträge') . '</p>';
+		$html .= '</div>';
 		$html .= '<a class="bpe-btn bpe-btn--primary" href="' . $this->e($newUrl) . '">Neu anlegen</a>';
 		$html .= '</header>';
 
 		if (empty($records)) {
 			$html .= '<div class="bpe-empty">';
-			$html .= '<p class="bpe-empty__text">Noch keine Einträge vorhanden.</p>';
+			$html .= '<p class="bpe-empty__title">Noch leer</p>';
+			$html .= '<p class="bpe-empty__text">Legen Sie den ersten Eintrag an — er erscheint dann in dieser Liste.</p>';
 			$html .= '<a class="bpe-btn bpe-btn--primary" href="' . $this->e($newUrl) . '">Ersten Eintrag anlegen</a>';
 			$html .= '</div>';
 			$html .= '</div>';

@@ -4,6 +4,10 @@
 /** @var string $error */
 /** @var string $assetUrl */
 /** @var string $baseUrl */
+/** @var bool $demoEnabled */
+/** @var string $demoUser */
+$demoEnabled = !empty($demoEnabled);
+$demoUser = $demoUser ?? 'redaktion';
 ?><!DOCTYPE html>
 <html lang="de">
 <head>
@@ -17,7 +21,7 @@
 		<div class="bpe-login__panel">
 			<p class="bpe-login__brand">Redaktion</p>
 			<h1 class="bpe-login__title">Anmelden</h1>
-			<p class="bpe-login__lead">Eigener Zugang — getrennt vom ProcessWire-Admin.</p>
+			<p class="bpe-login__lead">Mit Ihrem ProcessWire-Benutzer — getrennt vom Admin-Bereich.</p>
 
 			<?php if ($error): ?>
 				<div class="bpe-flash bpe-flash--error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
@@ -35,7 +39,9 @@
 				</div>
 				<button type="submit" class="bpe-btn bpe-btn--primary bpe-btn--block">Anmelden</button>
 			</form>
-			<p class="bpe-login__hint">Demo: <code>redaktion</code> / <code>redaktion</code></p>
+			<?php if ($demoEnabled): ?>
+				<p class="bpe-login__hint">Demo: <code><?= htmlspecialchars($demoUser, ENT_QUOTES, 'UTF-8') ?></code></p>
+			<?php endif; ?>
 		</div>
 	</main>
 </body>

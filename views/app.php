@@ -8,7 +8,9 @@
 /** @var string|null $navActive */
 /** @var array $navItems */
 /** @var string|null $dataSource */
+/** @var bool $isDemo */
 $navItems = $navItems ?? [];
+$isDemo = !empty($isDemo);
 ?><!DOCTYPE html>
 <html lang="de">
 <head>
@@ -28,11 +30,14 @@ $navItems = $navItems ?? [];
 					<?php
 					$name = $item['name'] ?? '';
 					$label = $item['label'] ?? $name;
+					$mode = $item['mode'] ?? 'list';
 					$href = $baseUrl . rawurlencode($name) . '/';
+					$modeHint = $mode === 'single' ? 'Seite' : 'Liste';
 					?>
 					<a class="bpe-nav__item<?= $navActive === $name ? ' is-active' : '' ?>"
 					   href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>">
-						<?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
+						<span class="bpe-nav__item-label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+						<span class="bpe-nav__item-mode"><?= htmlspecialchars($modeHint, ENT_QUOTES, 'UTF-8') ?></span>
 					</a>
 				<?php endforeach; ?>
 			</nav>
@@ -41,14 +46,20 @@ $navItems = $navItems ?? [];
 					<span class="bpe-nav__source">Daten: <?= htmlspecialchars($dataSource, ENT_QUOTES, 'UTF-8') ?></span>
 				<?php endif; ?>
 				<?php if ($userName): ?>
-					<span class="bpe-nav__user"><?= htmlspecialchars($userName, ENT_QUOTES, 'UTF-8') ?></span>
+					<span class="bpe-nav__user">
+						<?= htmlspecialchars($userName, ENT_QUOTES, 'UTF-8') ?>
+						<?php if ($isDemo): ?><span class="bpe-nav__badge">Demo</span><?php endif; ?>
+					</span>
 					<a class="bpe-nav__logout" href="<?= htmlspecialchars($baseUrl . 'logout/', ENT_QUOTES, 'UTF-8') ?>">Abmelden</a>
 				<?php endif; ?>
 			</div>
 		</aside>
 		<main class="bpe-main">
 			<?php if (!empty($flash)): ?>
-				<div class="bpe-flash bpe-flash--ok" role="status"><?= htmlspecialchars($flash, ENT_QUOTES, 'UTF-8') ?></div>
+				<div class="bpe-flash bpe-flash--ok" role="status" data-bpe-flash>
+					<span><?= htmlspecialchars($flash, ENT_QUOTES, 'UTF-8') ?></span>
+					<button type="button" class="bpe-flash__close" aria-label="Schließen" data-bpe-flash-close>&times;</button>
+				</div>
 			<?php endif; ?>
 			<?= $content ?>
 		</main>

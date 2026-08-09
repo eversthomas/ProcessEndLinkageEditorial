@@ -3,11 +3,12 @@
 use ProcessWire\BsProcessEditorial;
 use ProcessWire\BsProcessEditorial\Adapter\AdapterInterface;
 use ProcessWire\BsProcessEditorial\Auth\EditorialAuth;
+use ProcessWire\BsProcessEditorial\Auth\TemplateAccess;
 use ProcessWire\BsProcessEditorial\FormEngine\FormRenderer;
 use ProcessWire\HookEvent;
 
 /**
- * Routing der Editorial-App — Inhaltstypen dynamisch aus dem Adapter.
+ * Routing der Editorial-App — Inhaltstypen dynamisch aus dem Adapter + Rechtefilter.
  */
 class Router {
 
@@ -15,14 +16,14 @@ class Router {
 	protected EditorialAuth $auth;
 	protected AdapterInterface $adapter;
 
-	/** @var array<int, array{name: string, label: string}> */
-	protected array $contentTypes;
+	/** @var array<int, array{name: string, label: string, mode?: string}> */
+	protected array $contentTypes = [];
 
 	public function __construct(BsProcessEditorial $module) {
 		$this->module = $module;
 		$this->auth = new EditorialAuth($module);
 		$this->adapter = $module->adapter();
-		$this->contentTypes = $this->adapter->listContentTypes();
+		$this->refreshContentTypes();
 	}
 
 	public function dispatch(HookEvent $event): string {
@@ -30,6 +31,9 @@ class Router {
 		$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 		if (($segments[0] ?? '') === 'login') {
+			if ($this->auth->isLoggedIn()) {
+				return $this->redirectHome();
+			}
 			return $method === 'POST' ? $this->postLogin() : $this->getLogin();
 		}
 		if (($segments[0] ?? '') === 'logout') {
@@ -41,12 +45,18 @@ class Router {
 			return $this->redirect($this->url('login'));
 		}
 
+		$this->bindEditorialUser();
+		$this->refreshContentTypes();
+
 		if ($this->contentTypes === []) {
-			return $this->renderError(503, 'Keine Inhaltstypen konfiguriert oder gefunden. Bitte in den Moduleinstellungen „Redaktionelle Templates“ setzen.');
+			return $this->renderError(
+				403,
+				'Keine Inhaltstypen für Ihren Zugang freigegeben. Bitte einen Administrator unter Setup → Redaktion prüfen.'
+			);
 		}
 
 		if ($segments === [] || $segments === ['']) {
-			return $this->redirect($this->url($this->contentTypes[0]['name']));
+			return $this->redirectHome();
 		}
 
 		$template = $segments[0];
@@ -59,7 +69,6 @@ class Router {
 		$isSingle = $this->module->editorialMode($template) === 'single';
 
 		if ($isSingle) {
-			// Einzelseite: keine Liste, kein Anlegen — nur das eine Formular
 			if ($action === 'new') {
 				return $this->redirect($this->url($template));
 			}
@@ -70,7 +79,6 @@ class Router {
 				if ($id === null) {
 					return $this->renderError(404, 'Keine Seite für diesen Inhaltstyp gefunden.');
 				}
-				// Canonical URL ohne ID
 				if ($action !== null && $action !== '' && ctype_digit((string) $action) && $method === 'GET') {
 					return $this->redirect($this->url($template));
 				}
@@ -92,6 +100,42 @@ class Router {
 		}
 
 		return $this->renderError(404, 'Seite nicht gefunden.');
+	}
+
+	protected function refreshContentTypes(): void {
+		$all = $this->adapter->listContentTypes();
+		$access = new TemplateAccess($this->module);
+		$user = $this->auth->currentUser();
+		$allowed = $this->auth->isDemoSession()
+			? $this->module->editorialTemplateNames()
+			: $access->allowedTemplates($user);
+
+		$types = [];
+		foreach ($all as $type) {
+			$name = (string) ($type['name'] ?? '');
+			if ($name === '' || !in_array($name, $allowed, true)) {
+				continue;
+			}
+			$type['mode'] = $this->module->editorialMode($name);
+			$types[] = $type;
+		}
+		$this->contentTypes = $types;
+	}
+
+	protected function bindEditorialUser(): void {
+		$user = $this->auth->currentUser();
+		if ($user) {
+			$this->module->wire()->users->setCurrentUser($user);
+		}
+	}
+
+	protected function redirectHome(): string {
+		$first = $this->contentTypes[0]['name'] ?? '';
+		if ($first === '') {
+			$this->refreshContentTypes();
+			$first = $this->contentTypes[0]['name'] ?? '';
+		}
+		return $this->redirect($first !== '' ? $this->url($first) : $this->module->baseUrl());
 	}
 
 	protected function resolveSingletonId(string $template): ?string {
@@ -123,6 +167,8 @@ class Router {
 			'csrf' => $this->csrfField(),
 			'userName' => null,
 			'navItems' => [],
+			'demoEnabled' => $this->auth->demoEnabled(),
+			'demoUser' => (string) $this->module->get('login_user'),
 		]);
 	}
 
@@ -135,10 +181,11 @@ class Router {
 		$user = (string) $input->post('username');
 		$pass = (string) $input->post('password');
 		if ($this->auth->attempt($user, $pass)) {
-			$first = $this->contentTypes[0]['name'] ?? '';
-			return $this->redirect($first !== '' ? $this->url($first) : $this->module->baseUrl());
+			$this->bindEditorialUser();
+			$this->refreshContentTypes();
+			return $this->redirectHome();
 		}
-		return $this->getLogin('Benutzername oder Passwort ungültig.');
+		return $this->getLogin('Anmeldung fehlgeschlagen. Prüfen Sie Benutzername, Passwort und die Permission „editorial-access“.');
 	}
 
 	protected function getList(string $template): string {
@@ -288,7 +335,8 @@ class Router {
 		$vars['module'] = $this->module;
 		$vars['baseUrl'] = $this->module->baseUrl();
 		$vars['assetUrl'] = $this->module->moduleUrl() . 'assets/';
-		$vars['userName'] = $vars['userName'] ?? $this->auth->userName();
+		$vars['userName'] = $vars['userName'] ?? $this->auth->displayName();
+		$vars['isDemo'] = $vars['isDemo'] ?? $this->auth->isDemoSession();
 		$vars['flash'] = $vars['flash'] ?? null;
 		$vars['navActive'] = $vars['navActive'] ?? null;
 		$vars['navItems'] = $vars['navItems'] ?? $this->contentTypes;
@@ -309,13 +357,16 @@ class Router {
 		$home = $this->contentTypes[0]['name'] ?? '';
 		$homeUrl = $home !== '' ? $this->url($home) : $this->module->baseUrl();
 		return $this->view('app', [
-			'title' => 'Fehler',
+			'title' => 'Hinweis',
 			'content' => '<div class="bpe-empty"><p class="bpe-empty__text">' .
 				htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>' .
-				'<a class="bpe-btn bpe-btn--primary" href="' . htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') .
-				'">Zur Übersicht</a></div>',
+				($home !== ''
+					? '<a class="bpe-btn bpe-btn--primary" href="' . htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') .
+						'">Zur Übersicht</a>'
+					: '') .
+				'</div>',
 			'navActive' => null,
-			'userName' => $this->auth->userName(),
+			'userName' => $this->auth->displayName(),
 		]);
 	}
 

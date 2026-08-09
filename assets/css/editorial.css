@@ -74,7 +74,10 @@ a {
 }
 
 .bpe-nav__item {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
   padding: 0.55rem 0.75rem;
   border-radius: var(--bpe-radius);
   color: #c5d5cc;
@@ -85,6 +88,29 @@ a {
 .bpe-nav__item.is-active {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
+}
+
+.bpe-nav__item-mode {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7f968a;
+}
+
+.bpe-nav__item.is-active .bpe-nav__item-mode {
+  color: #b8d0c4;
+}
+
+.bpe-nav__badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .bpe-nav__footer {
@@ -111,6 +137,16 @@ a {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+.bpe-list__heading {
+  min-width: 0;
+}
+
+.bpe-list__meta {
+  margin: 0.2rem 0 0;
+  color: var(--bpe-muted);
+  font-size: 0.9rem;
 }
 
 .bpe-list__title,
@@ -232,6 +268,12 @@ a {
   border: 1px dashed var(--bpe-line);
   border-radius: var(--bpe-radius);
   background: var(--bpe-bg-panel);
+}
+
+.bpe-empty__title {
+  margin: 0 0 0.4rem;
+  font-family: var(--bpe-font);
+  font-size: 1.25rem;
 }
 
 .bpe-empty__text {
@@ -420,9 +462,19 @@ a {
 }
 
 .bpe-flash {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1.25rem;
   padding: 0.75rem 1rem;
   border-radius: var(--bpe-radius);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.bpe-flash.is-hiding {
+  opacity: 0;
+  transform: translateY(-0.25rem);
 }
 
 .bpe-flash--ok {
@@ -433,6 +485,22 @@ a {
 .bpe-flash--error {
   background: var(--bpe-danger-soft);
   color: var(--bpe-danger);
+}
+
+.bpe-flash__close {
+  margin: -0.15rem -0.25rem 0 0;
+  padding: 0 0.35rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.bpe-flash__close:hover {
+  opacity: 1;
 }
 
 .bpe-body--login {

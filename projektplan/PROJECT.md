@@ -41,20 +41,21 @@ Frontend-Anwendung mit eigenem Login.
 
 **Erledigt (MVP+):**
 - Modul + URL-App unter `/editorial/`
-- Setup → Redaktion (Freigabe, Datenquelle, Login)
+- Setup → Redaktion (Freigabe, Datenquelle, Darstellungsmodus)
 - PW-Adapter + Mock-Adapter
 - 6 Feldtypen: Text, Textarea (Plain), Checkbox, Select, Bild, Page Reference
 - Listenansicht + Formular (Erstellen/Bearbeiten)
 - Template-Discovery + Freigabe mehrerer Inhaltstypen
 - Darstellungsmodus **Datensätze (Liste)** vs. **Einzelseite** (z. B. Home)
+- Login gegen echte PW-User (Permission `editorial-access`, Rolle `editorial`)
+- Grobe Rechte: Rolle → sichtbare Inhaltstypen
+- Optionaler Demo-Login (Setup-Schalter, standardmäßig aus)
+- UX-Basics: Nav-Modus-Hinweis, Flash dismiss, Listen-Meta, Empty States
 
 **Als Nächstes:**
-1. Grobe Rechte (Rolle → sichtbare Inhaltstypen)
-2. Login an echte PW-User koppeln (statt nur Demo-Credentials)
-3. **Überarbeitung der Redaktions-UX** (Visuelles Design, Klarheit Liste/Einzelseite,
-   Feedback, Mobile, Tonalität — eigener Fokus-Sprint)
-4. TinyMCE / HTML-Textarea, wenn in Feldern gesetzt
-5. Phase-2-Themen: Suche, Filter, Dashboard, Medienbibliothek
+1. **Überarbeitung der Redaktions-UX** (Visuelles Design, Mobile, Tonalität — Fokus-Sprint)
+2. TinyMCE / HTML-Textarea, wenn in Feldern gesetzt
+3. Phase-2-Themen: Suche, Filter, Dashboard, Medienbibliothek
 
 **Später (Roadmap Phase 2–4):**
 - Dashboard, Schnellbearbeitung, Responsive Feinschliff

@@ -46,7 +46,25 @@
     return true;
   }
 
+  function bindFlashDismiss() {
+    document.querySelectorAll('[data-bpe-flash]').forEach(function (flash) {
+      var close = flash.querySelector('[data-bpe-flash-close]');
+      var hide = function () {
+        flash.classList.add('is-hiding');
+        window.setTimeout(function () {
+          if (flash.parentNode) flash.parentNode.removeChild(flash);
+        }, 260);
+      };
+      if (close) {
+        close.addEventListener('click', hide);
+      }
+      window.setTimeout(hide, 5000);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    bindFlashDismiss();
+
     var form = document.querySelector('.bpe-form');
     if (!form) return;
 

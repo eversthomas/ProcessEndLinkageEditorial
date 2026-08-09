@@ -12,8 +12,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 6,
-			'summary' => 'Redaktionsoberfläche mit eigenem Login — Inhaltstypen aus dem PW-Datenmodell.',
+			'version' => 7,
+			'summary' => 'Redaktionsoberfläche mit PW-Login, Rollenrechten und Freigabe — Inhaltstypen aus dem Datenmodell.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
 			'autoload' => true,
@@ -35,6 +35,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('data_source', 'auto');
 		$this->set('editorial_templates', ['ansprechpartner']);
 		$this->set('editorial_modes', ['ansprechpartner' => 'list']);
+		$this->set('role_templates', []);
+		$this->set('allow_demo_login', 0);
 		$this->set('setup_mvp', 0);
 	}
 
@@ -48,6 +50,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	public function ready(): void {
 		$this->ensureSetupPage();
+		$auth = new \ProcessWire\BsProcessEditorial\Auth\EditorialAuth($this);
+		$auth->ensureAccessInfrastructure();
 		$session = $this->wire()->session;
 		if (!$session->getFor('bpe', 'nav_cleared_v5')) {
 			$this->clearAdminNavCache();
@@ -128,6 +132,11 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 		$out .= '</tbody></table>';
 
+		$out .= '<h2>Zugang</h2>';
+		$out .= '<p class="description">Redakteure brauchen die Permission <code>editorial-access</code> '
+			. '(Rolle <code>editorial</code> wird automatisch angelegt). Superuser haben immer Zugang. '
+			. 'Login unter <code>/editorial/</code> ist vom Admin-Login getrennt.</p>';
+
 		$out .= '<h2>Einstellungen</h2>';
 		$out .= $form->render();
 		$out .= '</div>';
@@ -182,37 +191,79 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	}
 
 	/**
-	 * Formularwerte + mode__*-Felder zu speicherbarer Config normalisieren.
+	 * Formularwerte + mode__/role__*-Felder zu speicherbarer Config normalisieren.
 	 */
 	protected function normalizeConfigValues(array $values, array $previous): array {
 		$modes = is_array($previous['editorial_modes'] ?? null) ? $previous['editorial_modes'] : [];
+		$roleTemplates = is_array($previous['role_templates'] ?? null) ? $previous['role_templates'] : [];
+
 		foreach ($values as $key => $value) {
-			if (!str_starts_with((string) $key, 'mode__')) {
+			$key = (string) $key;
+			if (str_starts_with($key, 'mode__')) {
+				$tpl = substr($key, 6);
+				if ($tpl !== '') {
+					$modes[$tpl] = ((string) $value === 'single') ? 'single' : 'list';
+				}
+				unset($values[$key]);
 				continue;
 			}
-			$tpl = substr((string) $key, 6);
-			if ($tpl !== '') {
-				$modes[$tpl] = ((string) $value === 'single') ? 'single' : 'list';
+			if (str_starts_with($key, 'role__')) {
+				$role = substr($key, 6);
+				if ($role !== '') {
+					if (!is_array($value)) {
+						$value = $value ? [(string) $value] : [];
+					}
+					$roleTemplates[$role] = array_values(array_filter(array_map('strval', $value)));
+				}
+				unset($values[$key]);
 			}
-			unset($values[$key]);
 		}
+
 		$templates = $values['editorial_templates'] ?? [];
 		if (!is_array($templates)) {
 			$templates = $templates ? [(string) $templates] : [];
 		}
-		// Nur Modi für freigegebene Templates behalten; fehlende per Vorschlag füllen
+		$templates = array_values(array_filter(array_map('strval', $templates)));
+
 		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
 		$cleanModes = [];
 		foreach ($templates as $tpl) {
-			$tpl = (string) $tpl;
 			if ($tpl === '') {
 				continue;
 			}
 			$cleanModes[$tpl] = $modes[$tpl] ?? $discovery->suggestMode($tpl);
 		}
+
+		$cleanRoles = [];
+		foreach ($roleTemplates as $role => $tpls) {
+			$role = (string) $role;
+			if ($role === '' || $role === 'guest' || $role === 'superuser') {
+				continue;
+			}
+			if (!is_array($tpls)) {
+				continue;
+			}
+			$cleanRoles[$role] = array_values(array_filter(
+				array_map('strval', $tpls),
+				fn(string $t) => $t !== '' && in_array($t, $templates, true)
+			));
+		}
+
 		$values['editorial_modes'] = $cleanModes;
-		$values['editorial_templates'] = array_values(array_filter(array_map('strval', $templates)));
+		$values['editorial_templates'] = $templates;
+		$values['role_templates'] = $cleanRoles;
+		$values['allow_demo_login'] = !empty($values['allow_demo_login']) ? 1 : 0;
 		return $values;
+	}
+
+	/**
+	 * Templates, die der aktuelle Redaktions-User sehen darf.
+	 *
+	 * @return string[]
+	 */
+	public function allowedTemplatesForUser(?\ProcessWire\User $user): array {
+		$access = new \ProcessWire\BsProcessEditorial\Auth\TemplateAccess($this);
+		return $access->allowedTemplates($user);
 	}
 
 	public function hookAfterSaveConfig(HookEvent $event): void {
@@ -272,6 +323,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	public function ___install(): void {
 		parent::___install();
+		$auth = new \ProcessWire\BsProcessEditorial\Auth\EditorialAuth($this);
+		$auth->ensureAccessInfrastructure();
 	}
 
 	public function ___uninstall(): void {
@@ -394,21 +447,57 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->value = $data['data_source'] ?? 'auto';
 		$fields[] = $f;
 
+		// Rolle → Inhaltstypen
+		$roleMap = is_array($data['role_templates'] ?? null) ? $data['role_templates'] : [];
+		$tplOptions = [];
+		foreach ($selected as $name) {
+			$name = (string) $name;
+			if ($name !== '') {
+				$tplOptions[$name] = $name;
+			}
+		}
+		foreach ($this->wire()->roles as $role) {
+			if (in_array($role->name, ['guest', 'superuser'], true)) {
+				continue;
+			}
+			/** @var InputfieldAsmSelect $rf */
+			$rf = $modules->get('InputfieldAsmSelect');
+			$rf->name = 'role__' . $role->name;
+			$rf->label = 'Rolle „' . $role->name . '“ sieht';
+			$rf->description = 'Leer = alle freigegebenen Inhaltstypen (solange die Rolle editorial-access hat).';
+			$rf->setAttribute('size', 6);
+			foreach ($tplOptions as $name => $label) {
+				$rf->addOption($name, $label);
+			}
+			$rf->value = $roleMap[$role->name] ?? [];
+			$fields[] = $rf;
+		}
+
+		/** @var InputfieldCheckbox $f */
+		$f = $modules->get('InputfieldCheckbox');
+		$f->name = 'allow_demo_login';
+		$f->label = 'Demo-Login erlauben (ohne PW-User)';
+		$f->description = 'Nur für lokale Tests. Produktiv auslassen.';
+		$f->checked = !empty($data['allow_demo_login']);
+		$fields[] = $f;
+
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');
 		$f->name = 'login_user';
-		$f->label = 'Demo-Benutzer (Mock-Login)';
+		$f->label = 'Demo-Benutzername';
 		$f->value = $data['login_user'] ?? 'redaktion';
+		$f->showIf = 'allow_demo_login=1';
 		$fields[] = $f;
 
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');
 		$f->name = 'login_pass';
-		$f->label = 'Demo-Passwort (Mock-Login)';
+		$f->label = 'Demo-Passwort';
 		$f->description = 'Leer lassen = bestehendes Passwort behalten.';
 		$f->attr('type', 'password');
 		$f->attr('autocomplete', 'new-password');
 		$f->value = '';
+		$f->showIf = 'allow_demo_login=1';
 		$fields[] = $f;
 
 		/** @var InputfieldCheckbox $f */
