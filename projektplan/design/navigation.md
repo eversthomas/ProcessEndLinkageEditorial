@@ -13,11 +13,11 @@ Unter **Setup → Redaktion** definiert der Entwickler eine Menühierarchie
 
 Icons: Lucide-Namen (kuratiertes Subset, siehe Setup-Beschreibung).
 
-## Hybrid-Baum
+## Inhaltsbaum ohne Einzelsätze
 
-Unter einem Listen-Inhaltstyp erscheinen einzelne Datensätze nur, wenn
-höchstens 50 Einträge vorhanden sind. Sonst öffnet der Typ die Liste /
-das Dashboard in der Mitte.
+Der mittlere Baum zeigt nur Gruppen und Inhaltstypen (mit Anzahl-Badge).
+Einzelne Datensätze gehören in die Listenansicht / das Formular in der
+Mitte — nicht in die Navigation (skaliert nicht bei vielen Einträgen).
 
 ## Dashboard zuerst
 

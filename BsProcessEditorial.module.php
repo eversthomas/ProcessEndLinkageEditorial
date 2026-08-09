@@ -277,12 +277,14 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$this->error($e->getMessage());
 		}
 
-		foreach (['theme_accent', 'theme_rail_bg'] as $colorKey) {
-			$c = trim((string) ($values[$colorKey] ?? ''));
-			$values[$colorKey] = preg_match('/^#[0-9a-fA-F]{3,8}$/', $c)
-				? $c
-				: (string) ($previous[$colorKey] ?? ($colorKey === 'theme_accent' ? '#1f6b4a' : '#1c1f1d'));
-		}
+		$values['theme_accent'] = $this->normalizeHexColor(
+			(string) ($values['theme_accent'] ?? ''),
+			(string) ($previous['theme_accent'] ?? '#1f6b4a')
+		);
+		$values['theme_rail_bg'] = $this->normalizeHexColor(
+			(string) ($values['theme_rail_bg'] ?? ''),
+			(string) ($previous['theme_rail_bg'] ?? '#1c1f1d')
+		);
 		$radius = trim((string) ($values['theme_radius'] ?? '8'));
 		$values['theme_radius'] = preg_match('/^\d+(\.\d+)?$/', $radius) ? $radius : '8';
 
@@ -297,6 +299,26 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public function allowedTemplatesForUser(?\ProcessWire\User $user): array {
 		$access = new \ProcessWire\BsProcessEditorial\Auth\TemplateAccess($this);
 		return $access->allowedTemplates($user);
+	}
+
+	/** Hex für HTML-Farbpicker normalisieren (#rgb → #rrggbb). */
+	protected function normalizeHexColor(string $value, string $fallback): string {
+		$value = trim($value);
+		if (preg_match('/^#([0-9a-fA-F]{3})$/', $value, $m)) {
+			$s = $m[1];
+			return '#' . $s[0] . $s[0] . $s[1] . $s[1] . $s[2] . $s[2];
+		}
+		if (preg_match('/^#([0-9a-fA-F]{6})$/', $value)) {
+			return strtolower($value);
+		}
+		if (preg_match('/^#([0-9a-fA-F]{8})$/', $value)) {
+			return strtolower('#' . substr($value, 1, 6));
+		}
+		$fallback = trim($fallback);
+		if (preg_match('/^#([0-9a-fA-F]{6})$/', $fallback)) {
+			return strtolower($fallback);
+		}
+		return '#1f6b4a';
 	}
 
 	public function hookAfterSaveConfig(HookEvent $event): void {
@@ -497,20 +519,21 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 		$fields[] = $f;
 
-		/** @var InputfieldText $f */
-		$f = $modules->get('InputfieldText');
-		$f->name = 'theme_accent';
-		$f->label = 'Theme: Akzentfarbe';
-		$f->description = 'Hex, z. B. #1f6b4a';
-		$f->value = $data['theme_accent'] ?? '#1f6b4a';
-		$fields[] = $f;
-
-		/** @var InputfieldText $f */
-		$f = $modules->get('InputfieldText');
-		$f->name = 'theme_rail_bg';
-		$f->label = 'Theme: Rail-Hintergrund';
-		$f->value = $data['theme_rail_bg'] ?? '#1c1f1d';
-		$fields[] = $f;
+		// Kein natives InputfieldColor in PW-Core → HTML5 type=color
+		foreach ([
+			['theme_accent', 'Theme: Akzentfarbe', '#1f6b4a'],
+			['theme_rail_bg', 'Theme: Rail-Hintergrund', '#1c1f1d'],
+		] as [$name, $label, $default]) {
+			/** @var InputfieldText $f */
+			$f = $modules->get('InputfieldText');
+			$f->name = $name;
+			$f->label = $label;
+			$f->description = 'Farbwähler (HTML5). Alternativ Hex-Wert eingeben.';
+			$f->attr('type', 'color');
+			$f->attr('style', 'width: 3.5rem; height: 2.5rem; padding: 0.15rem; cursor: pointer;');
+			$f->value = $this->normalizeHexColor((string) ($data[$name] ?? $default), $default);
+			$fields[] = $f;
+		}
 
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');

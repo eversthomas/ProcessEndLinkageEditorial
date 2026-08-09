@@ -9,8 +9,6 @@ use ProcessWire\BsProcessEditorial;
  */
 class NavConfig {
 
-	public const HYBRID_RECORD_LIMIT = 50;
-
 	protected BsProcessEditorial $module;
 
 	public function __construct(BsProcessEditorial $module) {

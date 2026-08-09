@@ -43,8 +43,8 @@ Frontend-Anwendung mit eigenem Login.
 **Erledigt (MVP+ / UX-Shell):**
 - Modul + URL-App unter `/editorial/`
 - Setup → Redaktion: Freigabe, Modi, **Menühierarchie (JSON)**, Theme-Tokens
-- 4-Spalten-Shell: Icon-Rail (Icon/Text-Toggle) | Inhaltsbaum | Hauptfläche | Details
-- Dashboard-Übersichten + Hybrid-Baum (Datensätze ≤ 50)
+- 4-Spalten-Shell: Icon-Rail (Toggle + Tooltips) | Inhaltsbaum | Header/Main/Footer
+- Dashboard-Übersichten; Baum nur Gruppen/Typen (Anzahl-Badge, keine Einzelsätze)
 - PW-Adapter + Mock-Adapter
 - Feldtypen: Text, Textarea (Plain + HTML/TinyMCE), Checkbox, Select, Bild, Page Reference
 - Publish-MVP (veröffentlicht / Entwurf)

@@ -1,7 +1,7 @@
 <?php namespace ProcessWire\BsProcessEditorial\Ui;
 
 /**
- * 4-Spalten-Shell: Rail | Tree | Main | (Details im Content).
+ * 4-Spalten-Shell: Rail | Tree | Stage (Header / Main / Footer).
  */
 class ShellView {
 
@@ -22,6 +22,7 @@ class ShellView {
 		$dataSource = $vars['dataSource'] ?? null;
 		$needsTinyMce = !empty($vars['needsTinyMce']);
 		$tinyMceUrl = $vars['tinyMceUrl'] ?? '';
+		$headerMeta = $vars['headerMeta'] ?? null;
 
 		ob_start();
 		?>
@@ -40,11 +41,11 @@ class ShellView {
 	<div class="bpe-shell" data-rail="expanded" data-tree="<?= $treeCollapsed ? 'collapsed' : 'open' ?>">
 		<aside class="bpe-rail" aria-label="Hauptmodule">
 			<div class="bpe-rail__top">
-				<a class="bpe-rail__brand" href="<?= $this->e($baseUrl) ?>" title="Redaktion">
+				<a class="bpe-rail__brand" href="<?= $this->e($baseUrl) ?>" data-tooltip="Redaktion" aria-label="Redaktion">
 					<span class="bpe-rail__logo">R</span>
 					<span class="bpe-rail__brand-text">Redaktion</span>
 				</a>
-				<button type="button" class="bpe-rail__toggle" data-bpe-rail-toggle title="Menü umschalten" aria-label="Menü umschalten">
+				<button type="button" class="bpe-rail__toggle" data-bpe-rail-toggle data-tooltip="Menü ein-/ausklappen" aria-label="Menü ein-/ausklappen" title="Menü ein-/ausklappen">
 					<?= Icons::svg('panel-left') ?>
 				</button>
 			</div>
@@ -53,23 +54,28 @@ class ShellView {
 					<?php
 					$id = $item['id'] ?? '';
 					$type = $item['type'] ?? '';
+					$label = (string) ($item['label'] ?? $id);
 					$href = $type === 'dashboard' ? $baseUrl : $baseUrl . 'nav/' . rawurlencode($id) . '/';
 					$active = $railActive === $id;
 					?>
-					<a class="bpe-rail__item<?= $active ? ' is-active' : '' ?>" href="<?= $this->e($href) ?>" title="<?= $this->e($item['label'] ?? $id) ?>">
+					<a class="bpe-rail__item<?= $active ? ' is-active' : '' ?>"
+					   href="<?= $this->e($href) ?>"
+					   data-tooltip="<?= $this->e($label) ?>"
+					   aria-label="<?= $this->e($label) ?>"
+					   title="<?= $this->e($label) ?>">
 						<span class="bpe-rail__icon"><?= Icons::svg($item['icon'] ?? 'layers') ?></span>
-						<span class="bpe-rail__label"><?= $this->e($item['label'] ?? $id) ?></span>
+						<span class="bpe-rail__label"><?= $this->e($label) ?></span>
 					</a>
 				<?php endforeach; ?>
 			</nav>
 			<div class="bpe-rail__footer">
 				<?php if ($userName): ?>
-					<span class="bpe-rail__user" title="<?= $this->e($userName) ?>">
+					<span class="bpe-rail__user" data-tooltip="<?= $this->e($userName) ?>" title="<?= $this->e($userName) ?>">
 						<span class="bpe-rail__avatar"><?= $this->e(mb_strtoupper(mb_substr($userName, 0, 1))) ?></span>
 						<span class="bpe-rail__label"><?= $this->e($userName) ?><?php if ($isDemo): ?> <em>Demo</em><?php endif; ?></span>
 					</span>
 				<?php endif; ?>
-				<a class="bpe-rail__item" href="<?= $this->e($baseUrl . 'logout/') ?>" title="Abmelden">
+				<a class="bpe-rail__item" href="<?= $this->e($baseUrl . 'logout/') ?>" data-tooltip="Abmelden" aria-label="Abmelden" title="Abmelden">
 					<span class="bpe-rail__icon"><?= Icons::svg('log-out') ?></span>
 					<span class="bpe-rail__label">Abmelden</span>
 				</a>
@@ -79,7 +85,7 @@ class ShellView {
 		<aside class="bpe-sidebar" aria-label="Inhaltsnavigation">
 			<div class="bpe-sidebar__head">
 				<h2 class="bpe-sidebar__title"><?= $this->e($treeTitle) ?></h2>
-				<button type="button" class="bpe-sidebar__collapse" data-bpe-tree-toggle title="Baum einklappen" aria-label="Baum einklappen">
+				<button type="button" class="bpe-sidebar__collapse" data-bpe-tree-toggle data-tooltip="Navigation einklappen" title="Navigation einklappen" aria-label="Navigation einklappen">
 					<?= Icons::svg('chevrons-left') ?>
 				</button>
 			</div>
@@ -91,19 +97,44 @@ class ShellView {
 			<?php endif; ?>
 		</aside>
 
-		<button type="button" class="bpe-tree-expand" data-bpe-tree-toggle hidden aria-label="Baum einblenden">
+		<button type="button" class="bpe-tree-expand" data-bpe-tree-toggle data-tooltip="Navigation einblenden" title="Navigation einblenden" aria-label="Navigation einblenden">
 			<?= Icons::svg('chevrons-right') ?>
 		</button>
 
-		<main class="bpe-main">
-			<?php if (!empty($flash)): ?>
-				<div class="bpe-flash bpe-flash--ok" role="status" data-bpe-flash>
-					<span><?= $this->e($flash) ?></span>
-					<button type="button" class="bpe-flash__close" aria-label="Schließen" data-bpe-flash-close>&times;</button>
+		<div class="bpe-stage">
+			<header class="bpe-topbar">
+				<div class="bpe-topbar__left">
+					<p class="bpe-topbar__brand">Redaktion</p>
+					<h1 class="bpe-topbar__title"><?= $this->e($title) ?></h1>
 				</div>
-			<?php endif; ?>
-			<?= $content ?>
-		</main>
+				<div class="bpe-topbar__right">
+					<?php if ($headerMeta): ?>
+						<span class="bpe-topbar__meta"><?= $this->e($headerMeta) ?></span>
+					<?php endif; ?>
+					<?php if ($userName): ?>
+						<span class="bpe-topbar__user"><?= $this->e($userName) ?></span>
+					<?php endif; ?>
+				</div>
+			</header>
+
+			<main class="bpe-main">
+				<?php if (!empty($flash)): ?>
+					<div class="bpe-flash bpe-flash--ok" role="status" data-bpe-flash>
+						<span><?= $this->e($flash) ?></span>
+						<button type="button" class="bpe-flash__close" aria-label="Schließen" data-bpe-flash-close>&times;</button>
+					</div>
+				<?php endif; ?>
+				<?= $content ?>
+			</main>
+
+			<footer class="bpe-footer">
+				<p class="bpe-footer__copy">
+					<span>Tom Evers</span>
+					<span class="bpe-footer__sep" aria-hidden="true">|</span>
+					<a href="https://bezugssysteme.de" target="_blank" rel="noopener noreferrer">bezugssysteme.de</a>
+				</p>
+			</footer>
+		</div>
 	</div>
 	<script src="<?= $this->e($assetUrl) ?>js/editorial.js"></script>
 	<?php if ($needsTinyMce && $tinyMceUrl): ?>

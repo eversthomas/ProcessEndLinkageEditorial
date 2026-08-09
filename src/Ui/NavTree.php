@@ -4,18 +4,14 @@ use ProcessWire\BsProcessEditorial\Adapter\AdapterInterface;
 use ProcessWire\BsProcessEditorial\Setup\NavConfig;
 
 /**
- * Hybrid-Inhaltsbaum: Gruppen + Typen; Datensätze nur bei count ≤ HYBRID_RECORD_LIMIT.
+ * Inhaltsbaum: Gruppen + Inhaltstypen (keine Einzelsätze — die gehören in die Liste).
  */
 class NavTree {
 
 	protected AdapterInterface $adapter;
-	protected NavConfig $navConfig;
 
 	/** @var callable(string): string */
 	protected $url;
-
-	/** @var callable(string, string): string */
-	protected $recordUrl;
 
 	/** @var array<string, string> template => mode */
 	protected array $modes;
@@ -28,10 +24,9 @@ class NavTree {
 		array $modes = []
 	) {
 		$this->adapter = $adapter;
-		$this->navConfig = $navConfig;
 		$this->url = $url;
-		$this->recordUrl = $recordUrl;
 		$this->modes = $modes;
+		// $navConfig / $recordUrl bewusst ungenutzt (Signatur stabil für Aufrufer)
 	}
 
 	/**
@@ -39,24 +34,24 @@ class NavTree {
 	 */
 	public function render(array $children, array $active = []): string {
 		$html = '<div class="bpe-tree">';
-		$html .= $this->renderNodes($children, $active, 0);
+		$html .= $this->renderNodes($children, $active);
 		$html .= '</div>';
 		return $html;
 	}
 
-	protected function renderNodes(array $nodes, array $active, int $depth): string {
+	protected function renderNodes(array $nodes, array $active): string {
 		if (!$nodes) {
 			return '<p class="bpe-tree__empty">Keine Einträge.</p>';
 		}
 		$html = '<ul class="bpe-tree__list">';
 		foreach ($nodes as $node) {
-			$html .= $this->renderNode($node, $active, $depth);
+			$html .= $this->renderNode($node, $active);
 		}
 		$html .= '</ul>';
 		return $html;
 	}
 
-	protected function renderNode(array $node, array $active, int $depth): string {
+	protected function renderNode(array $node, array $active): string {
 		$type = $node['type'] ?? '';
 		$id = $node['id'] ?? '';
 		$label = $node['label'] ?? $id;
@@ -72,7 +67,7 @@ class NavTree {
 			$html .= '<span class="bpe-tree__label">' . $this->e($label) . '</span>';
 			$html .= '</button>';
 			$html .= '<div class="bpe-tree__children"' . ($open ? '' : ' hidden') . '>';
-			$html .= $this->renderNodes($node['children'] ?? [], $active, $depth + 1);
+			$html .= $this->renderNodes($node['children'] ?? [], $active);
 			$html .= '</div></li>';
 			return $html;
 		}
@@ -82,34 +77,25 @@ class NavTree {
 			$mode = $this->modes[$tpl] ?? 'list';
 			$urlFn = $this->url;
 			$href = $urlFn('t/' . $tpl);
+			$count = null;
+			if ($mode === 'list') {
+				try {
+					$count = count($this->adapter->listRecords($tpl));
+				} catch (\Throwable $e) {
+					$count = null;
+				}
+			}
 			$html = '<li class="bpe-tree__item bpe-tree__item--template' . ($isActive ? ' is-active' : '') . '">';
 			$html .= '<a class="bpe-tree__row" href="' . $this->e($href) . '">';
 			$html .= Icons::svg($icon, 'bpe-icon bpe-icon--sm');
 			$html .= '<span class="bpe-tree__label">' . $this->e($label) . '</span>';
-			$html .= '</a>';
-
-			if ($mode === 'list') {
-				try {
-					$records = $this->adapter->listRecords($tpl);
-				} catch (\Throwable $e) {
-					$records = [];
-				}
-				if (count($records) > 0 && count($records) <= NavConfig::HYBRID_RECORD_LIMIT) {
-					$recUrl = $this->recordUrl;
-					$html .= '<ul class="bpe-tree__list bpe-tree__list--records">';
-					foreach ($records as $record) {
-						$rid = (string) ($record['id'] ?? '');
-						$rtitle = (string) ($record['title'] ?? 'Ohne Titel');
-						$rActive = ($active['record'] ?? null) === $rid;
-						$html .= '<li class="bpe-tree__item bpe-tree__item--record' . ($rActive ? ' is-active' : '') . '">';
-						$html .= '<a class="bpe-tree__row" href="' . $this->e($recUrl($tpl, $rid)) . '">';
-						$html .= '<span class="bpe-tree__label">' . $this->e($rtitle) . '</span>';
-						$html .= '</a></li>';
-					}
-					$html .= '</ul>';
-				}
+			if ($count !== null) {
+				$html .= '<span class="bpe-tree__count" title="' . $this->e((string) $count . ' Einträge') . '">'
+					. (int) $count . '</span>';
+			} elseif ($mode === 'single') {
+				$html .= '<span class="bpe-tree__count bpe-tree__count--mode" title="Einzelseite">1</span>';
 			}
-			$html .= '</li>';
+			$html .= '</a></li>';
 			return $html;
 		}
 
