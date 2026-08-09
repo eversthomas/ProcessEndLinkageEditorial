@@ -57,6 +57,40 @@ text, textarea, html/TinyMCE, email, url, integer, float, datetime, checkbox, se
 
 ---
 
+## Sicherheit (Ist & später)
+
+Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor Kunden-Go-Live, aber kein Blocker für die UX-Arbeit morgen.
+
+### Bereits vorhanden
+- Login nur mit gültigem PW-User + Passwort (`$session->authenticate`)
+- Zugang nur mit Permission `editorial-access` (oder Superuser)
+- CSRF-Token auf Login und Formularen
+- Editorial-Session getrennt vom Admin-Login (kein `$session->login()`)
+- Demo-Login standardmäßig aus
+- Sichtbarkeit der Inhaltstypen über Rollen-Mapping filterbar
+
+### Betrieb (nicht Modul-Code, aber nötig)
+- **HTTPS** für `/editorial/`
+- Starke Passwörter / PW-User-Hygiene
+- Demo-Login produktiv nie aktivieren
+- Server-/Hosting-Härtung wie für die restliche Site
+
+### Später im Modul / Konzept (Roadmap)
+| Thema | Warum | Priorität |
+|-------|--------|-----------|
+| Login-Rate-Limit / Lockout nach Fehlversuchen | Brute-Force auf `/editorial/login` | hoch vor Go-Live |
+| Session-Timeout / „Angemeldet bleiben“-Policy | Offene Redakteurs-PCs | hoch vor Go-Live |
+| Feinere Rechte (anlegen / löschen / nur bearbeiten) | Weniger Schaden bei kompromittiertem Account | mittel |
+| Audit-Log (wer speicherte/publishte was) | Nachvollziehbarkeit bei Kunden | mittel |
+| **2FA (TOTP o. ä.)** | Extra Schutz für Publish-Zugang; oft Kundenanforderung | mittel–hoch je nach Kunde |
+| Upload-Härtung (MIME, SVG, Dateigrößen zentral) | Datei-/Bildfelder | laufend prüfen |
+
+**Brauchen wir ein Sicherheitskonzept?** Ja — als kurze Checkliste (Ist/Soll/Go-Live), kein Roman. Liegt sinnvoll **vor erstem Kunden-Produktivbetrieb**, parallel zu Rechte/Löschen.
+
+**Brauchen wir 2FA?** Nicht für den nächsten Dev-Sprint. Für produktive Kundeninstanzen mit öffentlichen oder sensiblen Inhalten: **ja, einplanen** (z. B. TOTP nach erfolgreichem Passwort; optional PW-Module/`LoginRegister`/`TwoFactorAuth`-Ökosystem prüfen, sonst eigenes TOTP im Editorial-Login). 2FA ersetzt nicht Rate-Limit und HTTPS.
+
+---
+
 ## Offen — Reihenfolge für den nächsten Chat
 
 1. **Listen: Suche / Filter / Sortierung**
@@ -65,9 +99,11 @@ text, textarea, html/TinyMCE, email, url, integer, float, datetime, checkbox, se
 4. **Autosave** + robusteres Speichern-Feedback
 5. **Zeitplanung** veröffentlichen (aktuell Stub)
 6. **Rechte feiner** (anlegen/löschen vs. nur bearbeiten)
-7. **Workflow** jenseits Publish/Entwurf
-8. **Weitere Feldtypen** bei Bedarf: Repeater, Combo, …
-9. Repo öffentlich / Doku für Dritte (wenn gewünscht)
+7. **Sicherheit Go-Live:** Rate-Limit/Lockout, Session-Timeout, kurze Security-Checkliste
+8. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
+9. **Workflow** jenseits Publish/Entwurf
+10. **Weitere Feldtypen** bei Bedarf: Repeater, Combo, …
+11. Repo öffentlich / Doku für Dritte (wenn gewünscht)
 
 Einstieg morgen: dieses README lesen, dann `projektplan/PROJECT.md`. Code starten bei Listen-UX (`src/Ui/ListView.php`, `Router.php`) oder Löschen im Adapter.
 
