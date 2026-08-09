@@ -12,16 +12,13 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 5,
+			'version' => 6,
 			'summary' => 'Redaktionsoberfläche mit eigenem Login — Inhaltstypen aus dem PW-Datenmodell.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
 			'autoload' => true,
 			'singular' => true,
 			'requires' => 'ProcessWire>=3.0.173, PHP>=8.0.0',
-			// Keine module-permission: Autoload muss /editorial/ ohne PW-Login bedienen.
-			// Setup-Seite liegt unter Admin (nur eingeloggt). Menü braucht ggf. Logout/Login
-			// wegen AdminTheme-Session-Cache (prnav/sidenav).
 			'page' => [
 				'name' => self::ADMIN_PAGE_NAME,
 				'parent' => 'setup',
@@ -37,6 +34,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('base_path', self::BASE_PATH);
 		$this->set('data_source', 'auto');
 		$this->set('editorial_templates', ['ansprechpartner']);
+		$this->set('editorial_modes', ['ansprechpartner' => 'list']);
 		$this->set('setup_mvp', 0);
 	}
 
@@ -50,7 +48,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	public function ready(): void {
 		$this->ensureSetupPage();
-		// Einmalig Nav-Cache leeren (AdminTheme session-cached Setup-Menü)
 		$session = $this->wire()->session;
 		if (!$session->getFor('bpe', 'nav_cleared_v5')) {
 			$this->clearAdminNavCache();
@@ -58,9 +55,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 	}
 
-	/**
-	 * Setup → Redaktion: Einstellungen + Überblick Inhaltstypen.
-	 */
 	public function ___execute(): string {
 		$modules = $this->wire()->modules;
 		$input = $this->wire()->input;
@@ -77,10 +71,10 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 						$values[$field->name] = $field->value;
 					}
 				}
-				// Passwort nicht leeren, wenn Feld leer gelassen
 				if (($values['login_pass'] ?? '') === '' && !empty($configData['login_pass'])) {
 					$values['login_pass'] = $configData['login_pass'];
 				}
+				$values = $this->normalizeConfigValues($values, $configData);
 				if (!empty($values['setup_mvp'])) {
 					$installer = new \ProcessWire\BsProcessEditorial\Setup\MvpInstaller($this);
 					foreach ($installer->install() as $msg) {
@@ -110,21 +104,25 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			. $this->wire()->config->urls->root . trim($this->baseUrl(), '/') . '/">Redaktion öffnen</a></p>';
 
 		$out .= '<h2>Entdeckte Inhaltstypen</h2>';
-		$out .= '<p class="description">Kandidaten aus dieser Installation (System-Templates ausgeschlossen). '
-			. 'Freigabe über „Redaktionelle Templates“ darunter.</p>';
+		$out .= '<p class="description">Kandidaten aus dieser Installation. '
+			. '<strong>Datensätze</strong> = Listenansicht, <strong>Einzelseite</strong> = direktes Formular (z. B. Home). '
+			. 'Freigabe und Modus unten festlegen.</p>';
 		$out .= '<table class="AdminDataTable AdminDataList"><thead><tr>'
-			. '<th>Template</th><th>Label</th><th>Seiten</th><th>Felder</th><th>Status</th>'
+			. '<th>Template</th><th>Label</th><th>Seiten</th><th>Felder</th><th>Vorschlag</th><th>Status</th>'
 			. '</tr></thead><tbody>';
 		if (!$candidates) {
-			$out .= '<tr><td colspan="5">Keine geeigneten Templates gefunden.</td></tr>';
+			$out .= '<tr><td colspan="6">Keine geeigneten Templates gefunden.</td></tr>';
 		}
 		foreach ($candidates as $item) {
 			$active = in_array($item['name'], $enabled, true);
+			$mode = $active ? $this->editorialMode($item['name']) : $item['suggestedMode'];
+			$modeLabel = $mode === 'single' ? 'Einzelseite' : 'Datensätze (Liste)';
 			$out .= '<tr>'
 				. '<td><code>' . htmlspecialchars($item['name']) . '</code></td>'
 				. '<td>' . htmlspecialchars($item['label']) . '</td>'
 				. '<td>' . (int) $item['pages'] . '</td>'
 				. '<td>' . (int) $item['fields'] . '</td>'
+				. '<td>' . htmlspecialchars($item['kind']) . ($active ? ' → <strong>' . htmlspecialchars($modeLabel) . '</strong>' : '') . '</td>'
 				. '<td>' . ($active ? '<strong>freigegeben</strong>' : '—') . '</td>'
 				. '</tr>';
 		}
@@ -155,6 +153,66 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			}
 		}
 		return $names ?: ['ansprechpartner'];
+	}
+
+	/**
+	 * Darstellung: list | single
+	 */
+	public function editorialMode(string $template): string {
+		$modes = $this->get('editorial_modes');
+		if (!is_array($modes)) {
+			$modes = [];
+		}
+		if (isset($modes[$template]) && in_array($modes[$template], ['list', 'single'], true)) {
+			return $modes[$template];
+		}
+		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
+		return $discovery->suggestMode($template);
+	}
+
+	/**
+	 * @return array<string, string> template => list|single
+	 */
+	public function editorialModes(): array {
+		$out = [];
+		foreach ($this->editorialTemplateNames() as $name) {
+			$out[$name] = $this->editorialMode($name);
+		}
+		return $out;
+	}
+
+	/**
+	 * Formularwerte + mode__*-Felder zu speicherbarer Config normalisieren.
+	 */
+	protected function normalizeConfigValues(array $values, array $previous): array {
+		$modes = is_array($previous['editorial_modes'] ?? null) ? $previous['editorial_modes'] : [];
+		foreach ($values as $key => $value) {
+			if (!str_starts_with((string) $key, 'mode__')) {
+				continue;
+			}
+			$tpl = substr((string) $key, 6);
+			if ($tpl !== '') {
+				$modes[$tpl] = ((string) $value === 'single') ? 'single' : 'list';
+			}
+			unset($values[$key]);
+		}
+		$templates = $values['editorial_templates'] ?? [];
+		if (!is_array($templates)) {
+			$templates = $templates ? [(string) $templates] : [];
+		}
+		// Nur Modi für freigegebene Templates behalten; fehlende per Vorschlag füllen
+		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
+		$cleanModes = [];
+		foreach ($templates as $tpl) {
+			$tpl = (string) $tpl;
+			if ($tpl === '') {
+				continue;
+			}
+			$cleanModes[$tpl] = $modes[$tpl] ?? $discovery->suggestMode($tpl);
+		}
+		$values['editorial_modes'] = $cleanModes;
+		$values['editorial_templates'] = array_values(array_filter(array_map('strval', $templates)));
+		return $values;
 	}
 
 	public function hookAfterSaveConfig(HookEvent $event): void {
@@ -220,9 +278,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		parent::___uninstall();
 	}
 
-	/**
-	 * Nach Upgrade von WireData→Process: Setup-Seite anlegen, falls fehlend.
-	 */
 	protected function ensureSetupPage(): void {
 		$pages = $this->wire()->pages;
 		$existing = $pages->get('template=admin, name=' . self::ADMIN_PAGE_NAME);
@@ -236,20 +291,12 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			return;
 		}
 		try {
-			$this->installPage(
-				self::ADMIN_PAGE_NAME,
-				'setup',
-				'Redaktion'
-			);
+			$this->installPage(self::ADMIN_PAGE_NAME, 'setup', 'Redaktion');
 			$this->clearAdminNavCache();
 		} catch (\Throwable $e) {
-			// Modules-Refresh — nicht hart fehlschlagen
 		}
 	}
 
-	/**
-	 * AdminThemeUikit cached Setup-Nav in der Session — ohne Clear fehlt neue Seite im Menü.
-	 */
 	protected function clearAdminNavCache(): void {
 		$session = $this->wire()->session;
 		foreach (['AdminThemeUikit', 'AdminThemeDefault', 'AdminThemeReno'] as $ns) {
@@ -298,15 +345,13 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->name = 'editorial_templates';
 		$f->label = 'Redaktionelle Templates (Freigabe)';
-		$f->description = 'Was Redakteure sehen und pflegen dürfen. Reihenfolge = Navigation. '
-			. 'Liste basiert auf Auto-Discovery dieser Installation.';
+		$f->description = 'Was Redakteure sehen dürfen. Reihenfolge = Navigation.';
 		$f->setAttribute('size', 10);
 		$optionNames = [];
 		foreach ($discovery->optionsForSelect() as $name => $label) {
 			$f->addOption($name, $label);
 			$optionNames[$name] = true;
 		}
-		// Bereits freigegebene, die Discovery evtl. nicht mehr listet, trotzdem anbieten
 		$selected = $data['editorial_templates'] ?? ['ansprechpartner'];
 		if (!is_array($selected)) {
 			$selected = [$selected];
@@ -319,6 +364,24 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 		$f->value = $selected;
 		$fields[] = $f;
+
+		// Darstellungsmodus pro freigegebenem Template
+		$modes = is_array($data['editorial_modes'] ?? null) ? $data['editorial_modes'] : [];
+		foreach ($selected as $name) {
+			$name = (string) $name;
+			if ($name === '') {
+				continue;
+			}
+			/** @var InputfieldSelect $mf */
+			$mf = $modules->get('InputfieldSelect');
+			$mf->name = 'mode__' . $name;
+			$mf->label = 'Darstellung: ' . $name;
+			$mf->description = 'Datensätze = Liste + Anlegen. Einzelseite = direktes Formular (Homepage-Inhalte o. ä.).';
+			$mf->addOption('list', 'Datensätze (Liste)');
+			$mf->addOption('single', 'Einzelseite (ohne Liste)');
+			$mf->value = $modes[$name] ?? $discovery->suggestMode($name);
+			$fields[] = $mf;
+		}
 
 		/** @var InputfieldSelect $f */
 		$f = $modules->get('InputfieldSelect');
@@ -352,7 +415,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f = $modules->get('InputfieldCheckbox');
 		$f->name = 'setup_mvp';
 		$f->label = 'Legacy: MVP-Testdatenmodell „einrichtung“ anlegen';
-		$f->description = 'Optional, nicht nötig für Ansprechpartner.';
 		$f->checked = false;
 		$fields[] = $f;
 
@@ -361,7 +423,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	public static function getModuleConfigInputfields(array $data): InputfieldWrapper {
 		/** @var BsProcessEditorial $module */
-		$module = wire('modules')->get('BsProcessEditorial');
+		$module = wire('modules')->getModule('BsProcessEditorial', ['noPermissionCheck' => true]);
 		$wrapper = new InputfieldWrapper();
 
 		/** @var InputfieldMarkup $info */
@@ -369,7 +431,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$info->label = 'Hinweis';
 		$setup = wire('pages')->get('template=admin, name=' . self::ADMIN_PAGE_NAME);
 		$url = $setup->id ? $setup->url : wire('config')->urls->admin . 'setup/';
-		$info->value = '<p>Die Einstellungen liegen unter <a href="'
+		$info->value = '<p>Einstellungen unter <a href="'
 			. htmlspecialchars($url) . '"><strong>Setup → Redaktion</strong></a>.</p>';
 		$wrapper->add($info);
 

@@ -8,7 +8,7 @@ interface AdapterInterface {
 
 	/**
 	 * Redaktionelle Inhaltstypen für Navigation.
-	 * @return array<int, array{name: string, label: string}>
+	 * @return array<int, array{name: string, label: string, mode: string}>
 	 */
 	public function listContentTypes(): array;
 

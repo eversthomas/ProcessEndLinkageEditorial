@@ -56,6 +56,31 @@ class Router {
 			return $this->renderError(404, 'Unbekannter Inhaltstyp.');
 		}
 
+		$isSingle = $this->module->editorialMode($template) === 'single';
+
+		if ($isSingle) {
+			// Einzelseite: keine Liste, kein Anlegen — nur das eine Formular
+			if ($action === 'new') {
+				return $this->redirect($this->url($template));
+			}
+			if ($action === null || $action === '' || ctype_digit((string) $action)) {
+				$id = ($action !== null && $action !== '' && ctype_digit((string) $action))
+					? (string) $action
+					: $this->resolveSingletonId($template);
+				if ($id === null) {
+					return $this->renderError(404, 'Keine Seite für diesen Inhaltstyp gefunden.');
+				}
+				// Canonical URL ohne ID
+				if ($action !== null && $action !== '' && ctype_digit((string) $action) && $method === 'GET') {
+					return $this->redirect($this->url($template));
+				}
+				return $method === 'POST'
+					? $this->postForm($template, $id, true)
+					: $this->getForm($template, $id, [], [], true);
+			}
+			return $this->renderError(404, 'Seite nicht gefunden.');
+		}
+
 		if ($action === null || $action === '') {
 			return $this->getList($template);
 		}
@@ -67,6 +92,14 @@ class Router {
 		}
 
 		return $this->renderError(404, 'Seite nicht gefunden.');
+	}
+
+	protected function resolveSingletonId(string $template): ?string {
+		$records = $this->adapter->listRecords($template);
+		if (!$records) {
+			return null;
+		}
+		return (string) ($records[0]['id'] ?? '');
 	}
 
 	protected function wire() {
@@ -125,7 +158,7 @@ class Router {
 		]);
 	}
 
-	protected function getForm(string $template, ?string $id, array $values = [], array $errors = []): string {
+	protected function getForm(string $template, ?string $id, array $values = [], array $errors = [], bool $single = false): string {
 		$schema = $this->adapter->readSchema($template);
 		$isNew = $id === null;
 
@@ -139,9 +172,9 @@ class Router {
 
 		$form = new FormRenderer();
 		$listLabel = $schema['label'] ?? $template;
-		$title = $isNew
-			? $listLabel . ' anlegen'
-			: ($values['title'] ?? 'Bearbeiten');
+		$title = $single
+			? $listLabel
+			: ($isNew ? $listLabel . ' anlegen' : ($values['title'] ?? 'Bearbeiten'));
 
 		$formErrors = $errors;
 		$formError = $formErrors['_form'] ?? null;
@@ -153,13 +186,19 @@ class Router {
 				htmlspecialchars($formError, ENT_QUOTES, 'UTF-8') . '</div>';
 		}
 
+		$actionUrl = $single
+			? $this->url($template)
+			: ($isNew ? $this->url($template . '/new') : $this->url($template . '/' . $id));
+
 		$content .= $form->renderForm($schema, $values, $formErrors, [
-			'action' => $isNew ? $this->url($template . '/new') : $this->url($template . '/' . $id),
+			'action' => $actionUrl,
 			'title' => $title,
-			'cancelUrl' => $this->url($template),
+			'cancelUrl' => $single ? null : $this->url($template),
 			'csrf' => $this->csrfField(),
 			'submitLabel' => 'Speichern',
-			'breadcrumb' => [
+			'breadcrumb' => $single ? [
+				['label' => $listLabel],
+			] : [
 				['label' => $listLabel, 'url' => $this->url($template)],
 				['label' => $isNew ? 'Neu' : 'Bearbeiten'],
 			],
@@ -175,12 +214,12 @@ class Router {
 		]);
 	}
 
-	protected function postForm(string $template, ?string $id): string {
+	protected function postForm(string $template, ?string $id, bool $single = false): string {
 		$session = $this->wire()->session;
 		if (!$session->CSRF->hasValidToken()) {
 			return $this->getForm($template, $id, $this->postedValues($template), [
 				'_form' => 'Sicherheits-Token ungültig. Bitte erneut speichern.',
-			]);
+			], $single);
 		}
 
 		$data = $this->postedValues($template);
@@ -190,10 +229,13 @@ class Router {
 
 		$result = $this->adapter->saveRecord($template, $data);
 		if (!empty($result['errors'])) {
-			return $this->getForm($template, $id, $data, $result['errors']);
+			return $this->getForm($template, $id, $data, $result['errors'], $single);
 		}
 
 		$this->setFlash('Gespeichert.');
+		if ($single) {
+			return $this->redirect($this->url($template));
+		}
 		$savedId = (string) $result['record']['id'];
 		return $this->redirect($this->url($template . '/' . $savedId));
 	}

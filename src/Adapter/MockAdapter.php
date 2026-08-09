@@ -30,6 +30,7 @@ class MockAdapter implements AdapterInterface {
 		return [[
 			'name' => $name,
 			'label' => $schema['label'] ?? ucfirst($name),
+			'mode' => $this->module ? $this->module->editorialMode($name) : 'list',
 		]];
 	}
 

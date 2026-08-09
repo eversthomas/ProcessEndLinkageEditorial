@@ -45,6 +45,7 @@ class ProcessWireAdapter implements AdapterInterface {
 			$types[] = [
 				'name' => $tpl->name,
 				'label' => $this->templateLabel($tpl),
+				'mode' => $this->module->editorialMode($tpl->name),
 			];
 		}
 		return $types;
