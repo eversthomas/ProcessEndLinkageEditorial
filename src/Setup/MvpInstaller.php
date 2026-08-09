@@ -89,7 +89,7 @@ class MvpInstaller {
 		], 'Einrichtung', $messages);
 
 		$this->ensureParentPage($messages);
-		$this->ensureSamplePages($messages);
+		// Keine Beispiel-Einträge — Redakteure starten mit leerer Liste (echte Daten).
 
 		return $messages;
 	}
@@ -166,55 +166,5 @@ class MvpInstaller {
 		$page->addStatus(Page::statusHidden);
 		$page->save();
 		$messages[] = 'Elternseite /einrichtungen/ angelegt.';
-	}
-
-	protected function ensureSamplePages(array &$messages): void {
-		$pages = $this->module->wire()->pages;
-		$parent = $pages->get(self::PARENT_PATH);
-		$tpl = $this->module->wire()->templates->get(self::TEMPLATE);
-		if (!$parent->id || !$tpl) {
-			return;
-		}
-		if ($pages->count("template=" . self::TEMPLATE) > 0) {
-			$messages[] = 'Beispiel-Einrichtungen existieren bereits.';
-			return;
-		}
-
-		$contacts = $pages->find('template=' . self::CONTACT_TEMPLATE . ', limit=2');
-		$samples = [
-			[
-				'title' => 'AWO-Treff Kamp-Lintfort',
-				'beschreibung' => 'Begegnungsstätte mit Café und Kursangebot.',
-				'aktiv' => 1,
-				'kategorie' => 'treff',
-				'ansprechpartner' => $contacts->count() ? [$contacts->first()->id] : [],
-			],
-			[
-				'title' => 'Beratungsstelle Moers',
-				'beschreibung' => 'Sozialberatung nach Terminvereinbarung.',
-				'aktiv' => 1,
-				'kategorie' => 'beratung',
-				'ansprechpartner' => $contacts->count() > 1 ? [$contacts->eq(1)->id] : [],
-			],
-		];
-
-		foreach ($samples as $data) {
-			$page = new Page();
-			$page->of(false);
-			$page->template = $tpl;
-			$page->parent = $parent;
-			$page->title = $data['title'];
-			$page->name = $this->module->wire()->sanitizer->pageName($data['title'], true);
-			$page->save();
-			$page->of(false);
-			$page->set('beschreibung', $data['beschreibung']);
-			$page->set('aktiv', $data['aktiv']);
-			$page->set('kategorie', $data['kategorie']);
-			if ($data['ansprechpartner']) {
-				$page->set('ansprechpartner', $data['ansprechpartner']);
-			}
-			$page->save();
-		}
-		$messages[] = 'Beispiel-Einrichtungen angelegt.';
 	}
 }
