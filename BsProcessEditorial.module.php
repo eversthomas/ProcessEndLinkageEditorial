@@ -1,25 +1,32 @@
 <?php namespace ProcessWire;
 
 /**
- * BsProcessEditorial — generische Redaktionsoberfläche für ProcessWire.
- *
- * Eigene Frontend-App unter /editorial/ (nicht PW-Admin).
+ * BsProcessEditorial — Redaktionsoberfläche + Setup unter ProcessWire → Setup.
  */
-class BsProcessEditorial extends WireData implements Module, ConfigurableModule {
+class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	const BASE_PATH = 'editorial';
 	const SESSION_KEY = 'bpe_auth';
+	const ADMIN_PAGE_NAME = 'bs-process-editorial';
 
 	public static function getModuleInfo(): array {
 		return [
-			'title' => 'bs-processEditorial',
-			'version' => 3,
-			'summary' => 'Redaktionsoberfläche mit eigenem Login — baut sich aus dem Datenmodell auf.',
+			'title' => 'Redaktion (bs-processEditorial)',
+			'version' => 5,
+			'summary' => 'Redaktionsoberfläche mit eigenem Login — Inhaltstypen aus dem PW-Datenmodell.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
 			'autoload' => true,
 			'singular' => true,
 			'requires' => 'ProcessWire>=3.0.173, PHP>=8.0.0',
+			// Keine module-permission: Autoload muss /editorial/ ohne PW-Login bedienen.
+			// Setup-Seite liegt unter Admin (nur eingeloggt). Menü braucht ggf. Logout/Login
+			// wegen AdminTheme-Session-Cache (prnav/sidenav).
+			'page' => [
+				'name' => self::ADMIN_PAGE_NAME,
+				'parent' => 'setup',
+				'title' => 'Redaktion',
+			],
 		];
 	}
 
@@ -35,14 +42,101 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 
 	public function init(): void {
 		$this->registerAutoloader();
+		parent::init();
 		$base = preg_quote(trim((string) $this->get('base_path') ?: self::BASE_PATH, '/'), '!');
 		$this->addHook("!^/{$base}(?:/(.*))?/?$!", $this, 'handleRequest');
 		$this->addHookAfter('Modules::saveConfig', $this, 'hookAfterSaveConfig');
 	}
 
+	public function ready(): void {
+		$this->ensureSetupPage();
+		// Einmalig Nav-Cache leeren (AdminTheme session-cached Setup-Menü)
+		$session = $this->wire()->session;
+		if (!$session->getFor('bpe', 'nav_cleared_v5')) {
+			$this->clearAdminNavCache();
+			$session->setFor('bpe', 'nav_cleared_v5', 1);
+		}
+	}
+
 	/**
-	 * Konfigurierte Template-Namen für die Redaktion (Reihenfolge = Nav-Reihenfolge).
-	 *
+	 * Setup → Redaktion: Einstellungen + Überblick Inhaltstypen.
+	 */
+	public function ___execute(): string {
+		$modules = $this->wire()->modules;
+		$input = $this->wire()->input;
+		$configData = $modules->getModuleConfigData($this);
+
+		if ($input->post('submit_save')) {
+			$form = $this->buildSettingsForm($configData);
+			$form->processInput($input->post);
+			if (!$form->getErrors()) {
+				$values = [];
+				foreach ($form->getAll() as $field) {
+					/** @var Inputfield $field */
+					if ($field->name) {
+						$values[$field->name] = $field->value;
+					}
+				}
+				// Passwort nicht leeren, wenn Feld leer gelassen
+				if (($values['login_pass'] ?? '') === '' && !empty($configData['login_pass'])) {
+					$values['login_pass'] = $configData['login_pass'];
+				}
+				if (!empty($values['setup_mvp'])) {
+					$installer = new \ProcessWire\BsProcessEditorial\Setup\MvpInstaller($this);
+					foreach ($installer->install() as $msg) {
+						$this->message($msg);
+					}
+					$values['setup_mvp'] = 0;
+				}
+				$modules->saveModuleConfigData($this, $values);
+				foreach ($values as $key => $value) {
+					$this->set($key, $value);
+				}
+				$this->clearAdminNavCache();
+				$this->message('Einstellungen gespeichert.');
+				$configData = $values;
+			} else {
+				$this->error('Bitte Eingaben prüfen.');
+			}
+		}
+
+		$form = $this->buildSettingsForm($configData);
+		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
+		$candidates = $discovery->candidates();
+		$enabled = $this->editorialTemplateNames();
+
+		$out = '<div class="bpe-admin">';
+		$out .= '<p><a class="uk-button uk-button-primary" target="_blank" rel="noopener" href="'
+			. $this->wire()->config->urls->root . trim($this->baseUrl(), '/') . '/">Redaktion öffnen</a></p>';
+
+		$out .= '<h2>Entdeckte Inhaltstypen</h2>';
+		$out .= '<p class="description">Kandidaten aus dieser Installation (System-Templates ausgeschlossen). '
+			. 'Freigabe über „Redaktionelle Templates“ darunter.</p>';
+		$out .= '<table class="AdminDataTable AdminDataList"><thead><tr>'
+			. '<th>Template</th><th>Label</th><th>Seiten</th><th>Felder</th><th>Status</th>'
+			. '</tr></thead><tbody>';
+		if (!$candidates) {
+			$out .= '<tr><td colspan="5">Keine geeigneten Templates gefunden.</td></tr>';
+		}
+		foreach ($candidates as $item) {
+			$active = in_array($item['name'], $enabled, true);
+			$out .= '<tr>'
+				. '<td><code>' . htmlspecialchars($item['name']) . '</code></td>'
+				. '<td>' . htmlspecialchars($item['label']) . '</td>'
+				. '<td>' . (int) $item['pages'] . '</td>'
+				. '<td>' . (int) $item['fields'] . '</td>'
+				. '<td>' . ($active ? '<strong>freigegeben</strong>' : '—') . '</td>'
+				. '</tr>';
+		}
+		$out .= '</tbody></table>';
+
+		$out .= '<h2>Einstellungen</h2>';
+		$out .= $form->render();
+		$out .= '</div>';
+		return $out;
+	}
+
+	/**
 	 * @return string[]
 	 */
 	public function editorialTemplateNames(): array {
@@ -119,13 +213,78 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 	}
 
 	public function ___install(): void {
-		// optional: Testdatenmodell über Modulkonfiguration
+		parent::___install();
 	}
 
-	public static function getModuleConfigInputfields(array $data): InputfieldWrapper {
-		$modules = wire('modules');
-		$templates = wire('templates');
-		$wrapper = new InputfieldWrapper();
+	public function ___uninstall(): void {
+		parent::___uninstall();
+	}
+
+	/**
+	 * Nach Upgrade von WireData→Process: Setup-Seite anlegen, falls fehlend.
+	 */
+	protected function ensureSetupPage(): void {
+		$pages = $this->wire()->pages;
+		$existing = $pages->get('template=admin, name=' . self::ADMIN_PAGE_NAME);
+		if ($existing->id) {
+			if ((string) $existing->process !== $this->className()) {
+				$existing->of(false);
+				$existing->process = $this;
+				$existing->save();
+				$this->clearAdminNavCache();
+			}
+			return;
+		}
+		try {
+			$this->installPage(
+				self::ADMIN_PAGE_NAME,
+				'setup',
+				'Redaktion'
+			);
+			$this->clearAdminNavCache();
+		} catch (\Throwable $e) {
+			// Modules-Refresh — nicht hart fehlschlagen
+		}
+	}
+
+	/**
+	 * AdminThemeUikit cached Setup-Nav in der Session — ohne Clear fehlt neue Seite im Menü.
+	 */
+	protected function clearAdminNavCache(): void {
+		$session = $this->wire()->session;
+		foreach (['AdminThemeUikit', 'AdminThemeDefault', 'AdminThemeReno'] as $ns) {
+			$session->removeFor($ns, 'prnav');
+			$session->removeFor($ns, 'sidenav');
+		}
+	}
+
+	protected function buildSettingsForm(array $data): InputfieldForm {
+		/** @var InputfieldForm $form */
+		$form = $this->wire()->modules->get('InputfieldForm');
+		$form->attr('id', 'bpe-settings-form');
+		$form->attr('method', 'post');
+		$form->attr('action', './');
+
+		foreach ($this->buildConfigFields($data) as $field) {
+			$form->add($field);
+		}
+
+		/** @var InputfieldSubmit $submit */
+		$submit = $this->wire()->modules->get('InputfieldSubmit');
+		$submit->name = 'submit_save';
+		$submit->value = 'Speichern';
+		$form->add($submit);
+
+		return $form;
+	}
+
+	/**
+	 * @return Inputfield[]
+	 */
+	protected function buildConfigFields(array $data): array {
+		$modules = $this->wire()->modules;
+		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
+		$fields = [];
 
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');
@@ -133,63 +292,92 @@ class BsProcessEditorial extends WireData implements Module, ConfigurableModule 
 		$f->label = 'URL-Pfad der Redaktion';
 		$f->description = 'Ohne führenden Slash, z. B. editorial → /editorial/';
 		$f->value = $data['base_path'] ?? self::BASE_PATH;
-		$wrapper->add($f);
+		$fields[] = $f;
 
 		/** @var InputfieldAsmSelect $f */
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->name = 'editorial_templates';
-		$f->label = 'Redaktionelle Templates';
-		$f->description = 'Diese Inhaltstypen erscheinen in der Redaktions-Navigation. Reihenfolge = Anzeige-Reihenfolge.';
-		$f->setAttribute('size', 8);
-		$skip = ['admin', 'user', 'role', 'permission', 'language', 'basic-page'];
-		foreach ($templates as $tpl) {
-			/** @var Template $tpl */
-			if ($tpl->flags & Template::flagSystem) {
-				continue;
-			}
-			if (in_array($tpl->name, $skip, true)) {
-				continue;
-			}
-			$label = trim((string) $tpl->get('label'));
-			$f->addOption($tpl->name, ($label !== '' ? $label : $tpl->name) . ' (' . $tpl->name . ')');
+		$f->label = 'Redaktionelle Templates (Freigabe)';
+		$f->description = 'Was Redakteure sehen und pflegen dürfen. Reihenfolge = Navigation. '
+			. 'Liste basiert auf Auto-Discovery dieser Installation.';
+		$f->setAttribute('size', 10);
+		$optionNames = [];
+		foreach ($discovery->optionsForSelect() as $name => $label) {
+			$f->addOption($name, $label);
+			$optionNames[$name] = true;
 		}
-		$f->value = $data['editorial_templates'] ?? ['ansprechpartner'];
-		$wrapper->add($f);
+		// Bereits freigegebene, die Discovery evtl. nicht mehr listet, trotzdem anbieten
+		$selected = $data['editorial_templates'] ?? ['ansprechpartner'];
+		if (!is_array($selected)) {
+			$selected = [$selected];
+		}
+		foreach ($selected as $name) {
+			$name = (string) $name;
+			if ($name !== '' && empty($optionNames[$name])) {
+				$f->addOption($name, $name . ' (manuell)');
+			}
+		}
+		$f->value = $selected;
+		$fields[] = $f;
 
 		/** @var InputfieldSelect $f */
 		$f = $modules->get('InputfieldSelect');
 		$f->name = 'data_source';
 		$f->label = 'Datenquelle';
-		$f->description = 'auto = ProcessWire, sobald mindestens ein konfiguriertes Template existiert, sonst Mock.';
+		$f->description = 'auto = ProcessWire, sobald mindestens ein freigegebenes Template existiert.';
 		$f->addOption('auto', 'Automatisch');
 		$f->addOption('mock', 'Mock (schema-mock.json)');
 		$f->addOption('processwire', 'ProcessWire');
 		$f->value = $data['data_source'] ?? 'auto';
-		$wrapper->add($f);
-
-		/** @var InputfieldCheckbox $f */
-		$f = $modules->get('InputfieldCheckbox');
-		$f->name = 'setup_mvp';
-		$f->label = 'Legacy: MVP-Testdatenmodell „einrichtung“ anlegen';
-		$f->description = 'Optional. Für den aktuellen Workflow mit Ansprechpartner nicht nötig.';
-		$f->checked = false;
-		$wrapper->add($f);
+		$fields[] = $f;
 
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');
 		$f->name = 'login_user';
 		$f->label = 'Demo-Benutzer (Mock-Login)';
 		$f->value = $data['login_user'] ?? 'redaktion';
-		$wrapper->add($f);
+		$fields[] = $f;
 
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');
 		$f->name = 'login_pass';
 		$f->label = 'Demo-Passwort (Mock-Login)';
+		$f->description = 'Leer lassen = bestehendes Passwort behalten.';
 		$f->attr('type', 'password');
-		$f->value = $data['login_pass'] ?? 'redaktion';
-		$wrapper->add($f);
+		$f->attr('autocomplete', 'new-password');
+		$f->value = '';
+		$fields[] = $f;
 
+		/** @var InputfieldCheckbox $f */
+		$f = $modules->get('InputfieldCheckbox');
+		$f->name = 'setup_mvp';
+		$f->label = 'Legacy: MVP-Testdatenmodell „einrichtung“ anlegen';
+		$f->description = 'Optional, nicht nötig für Ansprechpartner.';
+		$f->checked = false;
+		$fields[] = $f;
+
+		return $fields;
+	}
+
+	public static function getModuleConfigInputfields(array $data): InputfieldWrapper {
+		/** @var BsProcessEditorial $module */
+		$module = wire('modules')->get('BsProcessEditorial');
+		$wrapper = new InputfieldWrapper();
+
+		/** @var InputfieldMarkup $info */
+		$info = wire('modules')->get('InputfieldMarkup');
+		$info->label = 'Hinweis';
+		$setup = wire('pages')->get('template=admin, name=' . self::ADMIN_PAGE_NAME);
+		$url = $setup->id ? $setup->url : wire('config')->urls->admin . 'setup/';
+		$info->value = '<p>Die Einstellungen liegen unter <a href="'
+			. htmlspecialchars($url) . '"><strong>Setup → Redaktion</strong></a>.</p>';
+		$wrapper->add($info);
+
+		if ($module instanceof self) {
+			foreach ($module->buildConfigFields($data) as $field) {
+				$wrapper->add($field);
+			}
+		}
 		return $wrapper;
 	}
 }
