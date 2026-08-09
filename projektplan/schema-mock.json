@@ -1,0 +1,59 @@
+{
+  "template": "einrichtung",
+  "label": "Einrichtung",
+  "fields": [
+    {
+      "name": "title",
+      "type": "text",
+      "label": "Name der Einrichtung",
+      "required": true,
+      "placeholder": "z. B. AWO-Treff Kamp-Lintfort"
+    },
+    {
+      "name": "beschreibung",
+      "type": "textarea",
+      "label": "Beschreibung",
+      "required": false,
+      "placeholder": "Kurzbeschreibung der Einrichtung ..."
+    },
+    {
+      "name": "aktiv",
+      "type": "checkbox",
+      "label": "Aktiv / öffentlich sichtbar",
+      "required": false,
+      "default": true
+    },
+    {
+      "name": "kategorie",
+      "type": "select",
+      "label": "Kategorie",
+      "required": true,
+      "options": [
+        { "value": "treff", "label": "AWO-Treff" },
+        { "value": "beratung", "label": "Beratungsstelle" },
+        { "value": "kita", "label": "Kita" },
+        { "value": "wohnen", "label": "Wohnanlage" }
+      ]
+    },
+    {
+      "name": "titelbild",
+      "type": "image",
+      "label": "Titelbild",
+      "required": false,
+      "maxFiles": 1,
+      "accept": ["image/jpeg", "image/png", "image/webp"]
+    },
+    {
+      "name": "ansprechpartner",
+      "type": "pageReference",
+      "label": "Ansprechpartner",
+      "required": false,
+      "referenceTemplate": "ansprechpartner",
+      "multiple": true,
+      "options": [
+        { "id": 1023, "label": "Anna Beispiel" },
+        { "id": 1024, "label": "Jan Muster" }
+      ]
+    }
+  ]
+}
