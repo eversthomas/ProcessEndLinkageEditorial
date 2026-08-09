@@ -121,7 +121,10 @@ class MockAdapter implements AdapterInterface {
 			'checkbox' => filter_var($raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
 			'pageReference' => array_values(array_filter(array_map('intval', (array) $raw))),
 			'image' => is_string($raw) && $raw !== '' ? $raw : null,
-			'text', 'textarea', 'html', 'select' => is_string($raw) ? trim($raw) : (string) ($raw ?? ''),
+			'text', 'textarea', 'html', 'select', 'email', 'url', 'datetime' => is_string($raw) ? trim($raw) : (string) ($raw ?? ''),
+			'integer' => $raw === '' || $raw === null ? null : (int) $raw,
+			'float' => $raw === '' || $raw === null ? null : (float) $raw,
+			'file' => is_array($raw) ? $raw : (is_string($raw) && $raw !== '' ? ['name' => $raw] : null),
 			default => $raw,
 		};
 	}
@@ -130,8 +133,9 @@ class MockAdapter implements AdapterInterface {
 		return match ($type) {
 			'checkbox' => false,
 			'pageReference' => empty($value),
-			'image' => $value === null || $value === '',
+			'image', 'file' => $value === null || $value === '' || (is_array($value) && empty($value['name'])),
 			'html' => trim(strip_tags((string) $value)) === '',
+			'integer', 'float' => $value === null || $value === '',
 			default => $value === null || $value === '',
 		};
 	}

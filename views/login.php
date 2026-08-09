@@ -6,20 +6,29 @@
 /** @var string $baseUrl */
 /** @var bool $demoEnabled */
 /** @var string $demoUser */
+/** @var string $brandName */
+/** @var string|null $brandLogoUrl */
 $demoEnabled = !empty($demoEnabled);
 $demoUser = $demoUser ?? 'redaktion';
+$brandName = $brandName ?? 'Redaktion';
+$brandLogoUrl = $brandLogoUrl ?? null;
 ?><!DOCTYPE html>
 <html lang="de">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> · Redaktion</title>
+	<title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></title>
 	<link rel="stylesheet" href="<?= htmlspecialchars($assetUrl, ENT_QUOTES, 'UTF-8') ?>css/editorial.css">
 </head>
 <body class="bpe-body bpe-body--login">
 	<main class="bpe-login">
 		<div class="bpe-login__panel">
-			<p class="bpe-login__brand">Redaktion</p>
+			<div class="bpe-login__branding">
+				<?php if ($brandLogoUrl): ?>
+					<img class="bpe-login__logo" src="<?= htmlspecialchars($brandLogoUrl, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?>">
+				<?php endif; ?>
+				<p class="bpe-login__brand"><?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></p>
+			</div>
 			<h1 class="bpe-login__title">Anmelden</h1>
 			<p class="bpe-login__lead">Mit Ihrem ProcessWire-Benutzer — getrennt vom Admin-Bereich.</p>
 

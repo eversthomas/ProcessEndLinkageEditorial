@@ -42,19 +42,21 @@ Frontend-Anwendung mit eigenem Login.
 
 **Erledigt (MVP+ / UX-Shell):**
 - Modul + URL-App unter `/editorial/`
-- Setup → Redaktion: Freigabe, Modi, **Menühierarchie (JSON)**, Theme-Tokens
+- Setup → Redaktion: Freigabe, Modi, Menühierarchie (JSON), Theme-Tokens, **Kunden-Branding** (Name + Logo)
 - 4-Spalten-Shell: Icon-Rail (Toggle + Tooltips) | Inhaltsbaum | Header/Main/Footer
 - Dashboard-Übersichten; Baum nur Gruppen/Typen (Anzahl-Badge, keine Einzelsätze)
 - PW-Adapter + Mock-Adapter
-- Feldtypen: Text, Textarea (Plain + HTML/TinyMCE), Checkbox, Select, Bild, Page Reference
+- Feldtypen: Text, Textarea/HTML, Email, URL, Integer/Float, Datetime, Checkbox, Select, Bild, Datei, Page Reference
+- Visueller Menü-Builder (+ JSON für Power-User)
 - Publish-MVP (veröffentlicht / Entwurf)
 - Login gegen PW-User (`editorial-access` / Rolle `editorial`)
 - Grobe Rechte: Rolle → sichtbare Inhaltstypen
 
 **Als Nächstes:**
-1. Medienbibliothek, Zeitplanung, Autosave
-2. Visueller Menü-Builder (statt reinem JSON)
-3. Phase-2: Suche, Filter, Workflow-Stufen
+1. Listen: Suche / Filter / Sortierung
+2. Medienbibliothek, Zeitplanung, Autosave
+3. Löschen / Papierkorb
+4. Phase-2: Workflow-Stufen, Repeater
 
 ## Feldtypen (aktuell)
 
@@ -63,12 +65,18 @@ Frontend-Anwendung mit eigenem Login.
 | text | FieldtypeText, FieldtypePageTitle |
 | textarea | FieldtypeTextarea (Plaintext) |
 | html | FieldtypeTextarea (HTML / TinyMCE / CKEditor) |
+| email | FieldtypeEmail |
+| url | FieldtypeURL |
+| integer | FieldtypeInteger |
+| float | FieldtypeFloat |
+| datetime | FieldtypeDatetime |
 | checkbox | FieldtypeCheckbox |
 | select | FieldtypeOptions |
 | image | FieldtypeImage |
+| file | FieldtypeFile |
 | pageReference | FieldtypePage |
 
-Nicht abgedeckt u. a.: Datetime, Integer, Email, URL, File, Repeater.
+Nicht abgedeckt u. a.: Repeater, Combo, Table, Map.
 
 ## Leitplanken
 

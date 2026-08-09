@@ -409,7 +409,7 @@ class Router {
 				$data[$name] = is_array($raw) ? $raw : ($raw !== null && $raw !== '' ? [$raw] : []);
 				continue;
 			}
-			if ($type === 'image') {
+			if ($type === 'image' || $type === 'file') {
 				$data[$name . '_clear'] = (string) $input->post($name . '_clear') === '1';
 				$existing = $input->post($name . '_existing');
 				$data[$name . '_existing'] = $existing ? (string) $existing : null;
@@ -418,8 +418,15 @@ class Router {
 				} elseif (!empty($_FILES[$name]['name'])) {
 					$data[$name] = basename((string) $_FILES[$name]['name']);
 				} else {
-					$data[$name] = $data[$name . '_existing'];
+					$data[$name] = $data[$name . '_existing']
+						? ['name' => $data[$name . '_existing']]
+						: null;
 				}
+				continue;
+			}
+			if ($type === 'integer' || $type === 'float') {
+				$raw = $input->post($name);
+				$data[$name] = $raw === null ? '' : (string) $raw;
 				continue;
 			}
 			$data[$name] = (string) ($input->post($name) ?? '');
@@ -531,6 +538,8 @@ class Router {
 			'tinyMceUrl' => $this->tinyMceUrl(),
 			'needsTinyMce' => false,
 			'treeCollapsed' => false,
+			'brandName' => $this->module->brandName(),
+			'brandLogoUrl' => $this->module->brandLogoUrl(),
 		], $vars));
 	}
 
@@ -568,6 +577,8 @@ class Router {
 			'csrf' => $this->csrfField(),
 			'demoEnabled' => $this->auth->demoEnabled(),
 			'demoUser' => (string) $this->module->get('login_user'),
+			'brandName' => $this->module->brandName(),
+			'brandLogoUrl' => $this->module->brandLogoUrl(),
 		]);
 	}
 

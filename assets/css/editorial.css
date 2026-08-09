@@ -133,6 +133,17 @@ a {
   font-family: var(--bpe-font);
   font-weight: 600;
   color: #fff;
+  flex-shrink: 0;
+}
+
+.bpe-rail__logo-img {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.15rem;
+  flex-shrink: 0;
 }
 
 .bpe-rail__brand-text {
@@ -141,6 +152,8 @@ a {
   font-size: 1.05rem;
   color: #fff;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bpe-rail__toggle {
@@ -417,6 +430,30 @@ a {
   z-index: 5;
 }
 
+.bpe-topbar__branding {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.bpe-topbar__logo {
+  max-height: 2.25rem;
+  max-width: 8rem;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.bpe-topbar__branding-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .bpe-topbar__brand {
   margin: 0;
   font-size: 0.72rem;
@@ -431,6 +468,9 @@ a {
   font-family: var(--bpe-font);
   font-size: 1.15rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bpe-topbar__right {
@@ -1011,8 +1051,24 @@ a {
   box-shadow: 0 18px 40px rgba(26, 36, 32, 0.06);
 }
 
+.bpe-login__branding {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.bpe-login__logo {
+  max-height: 3rem;
+  max-width: 12rem;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
 .bpe-login__brand {
-  margin: 0 0 0.35rem;
+  margin: 0;
   font-family: var(--bpe-font);
   font-size: 1.25rem;
   font-weight: 600;
@@ -1041,11 +1097,36 @@ a {
   font-size: 0.9em;
 }
 
-/* Image field leftovers */
-.bpe-image-preview {
-  max-width: 12rem;
+/* Image / File */
+.bpe-image-preview,
+.bpe-file-preview {
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 0.75rem;
   border-radius: 6px;
   border: 1px solid var(--bpe-line);
+  background: #fafbfa;
+}
+
+.bpe-image-preview__name,
+.bpe-file-preview__name {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+}
+
+.bpe-file-preview__link {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.bpe-image-preview__clear,
+.bpe-file-preview__clear {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--bpe-muted);
+  cursor: pointer;
 }
 
 /* Mobile */

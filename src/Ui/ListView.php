@@ -71,7 +71,7 @@ class ListView {
 		foreach ($schema['fields'] ?? [] as $field) {
 			$type = $field['type'] ?? '';
 			$name = $field['name'] ?? '';
-			if ($name === '' || in_array($type, ['image', 'pageReference', 'textarea', 'html'], true)) {
+			if ($name === '' || in_array($type, ['image', 'file', 'pageReference', 'textarea', 'html'], true)) {
 				continue;
 			}
 			if ($name === 'title') {
@@ -109,6 +109,21 @@ class ListView {
 			}
 			$key = (string) ($value ?? '');
 			return $this->e($map[$key] ?? ($key !== '' ? $key : '—'));
+		}
+		if ($type === 'datetime') {
+			$text = trim((string) ($value ?? ''));
+			if ($text === '') {
+				return '—';
+			}
+			$ts = strtotime(str_replace('T', ' ', $text));
+			if (!$ts) {
+				return $this->e($text);
+			}
+			$format = str_contains($text, 'T') ? 'd.m.Y H:i' : 'd.m.Y';
+			return $this->e(date($format, $ts));
+		}
+		if ($type === 'integer' || $type === 'float') {
+			return $value === null || $value === '' ? '—' : $this->e((string) $value);
 		}
 		$text = trim((string) ($value ?? ''));
 		return $text !== '' ? $this->e($text) : '—';

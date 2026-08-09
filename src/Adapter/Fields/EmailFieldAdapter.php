@@ -2,39 +2,34 @@
 
 use ProcessWire\Field;
 use ProcessWire\FieldtypeEmail;
-use ProcessWire\FieldtypeText;
-use ProcessWire\FieldtypeTextarea;
-use ProcessWire\FieldtypeURL;
 use ProcessWire\Page;
 
-class TextFieldAdapter extends AbstractFieldAdapter {
+class EmailFieldAdapter extends AbstractFieldAdapter {
 
 	public function supports(Field $field): bool {
-		$type = $field->type;
-		if ($type instanceof FieldtypeTextarea) {
-			return false;
-		}
-		if ($type instanceof FieldtypeEmail || $type instanceof FieldtypeURL) {
-			return false;
-		}
-		return $type instanceof FieldtypeText
-			|| $type->className() === 'FieldtypePageTitle';
+		return $field->type instanceof FieldtypeEmail;
 	}
 
 	public function readSchema(Field $field, Page $page): array {
-		$schema = $this->baseSchema($field, 'text');
+		$schema = $this->baseSchema($field, 'email');
 		$schema['placeholder'] = (string) $field->get('placeholder');
-		$schema['maxLength'] = (int) ($field->get('maxlength') ?: 2048);
+		$schema['maxLength'] = (int) ($field->get('maxlength') ?: 250);
 		return $schema;
 	}
 
 	public function sanitizeAndValidate(Field $field, Page $page, mixed $rawValue): array {
 		$sanitizer = $field->wire()->sanitizer;
-		$maxLength = (int) ($field->get('maxlength') ?: 2048);
-		$clean = $sanitizer->text((string) ($rawValue ?? ''), ['maxLength' => $maxLength]);
+		$raw = trim((string) ($rawValue ?? ''));
 		$errors = [];
-		if ($field->get('required') && $clean === '') {
-			$errors[] = $this->requiredError($field);
+		if ($raw === '') {
+			if ($field->get('required')) {
+				$errors[] = $this->requiredError($field);
+			}
+			return ['value' => '', 'errors' => $errors];
+		}
+		$clean = $sanitizer->email($raw);
+		if ($clean === '') {
+			$errors[] = '„' . $field->getLabel() . '“: ungültige E-Mail-Adresse.';
 		}
 		return ['value' => $clean, 'errors' => $errors];
 	}

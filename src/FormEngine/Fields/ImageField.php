@@ -28,7 +28,6 @@ class ImageField extends AbstractFieldRenderer {
 			$this->escape($accept),
 			!empty($field['required']) && !$value ? ' required' : ''
 		);
-		$html .= '<p class="bpe-field__hint">MVP: Dateiname wird gemerkt; Upload-Persistenz folgt mit dem PW-Adapter.</p>';
 		$html .= $this->wrapperEnd($field, $errors);
 		return $html;
 	}

@@ -12,7 +12,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 8,
+			'version' => 9,
 			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE und Publish.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
@@ -40,6 +40,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('theme_accent', '#1f6b4a');
 		$this->set('theme_rail_bg', '#1c1f1d');
 		$this->set('theme_radius', '8');
+		$this->set('brand_name', '');
+		$this->set('brand_logo', '');
 		$this->set('allow_demo_login', 0);
 		$this->set('setup_mvp', 0);
 	}
@@ -49,6 +51,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		parent::init();
 		$base = preg_quote(trim((string) $this->get('base_path') ?: self::BASE_PATH, '/'), '!');
 		$this->addHook("!^/{$base}(?:/(.*))?/?$!", $this, 'handleRequest');
+		$this->addHookBefore('Modules::saveConfig', $this, 'hookBeforeSaveConfig');
 		$this->addHookAfter('Modules::saveConfig', $this, 'hookAfterSaveConfig');
 	}
 
@@ -83,6 +86,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 					$values['login_pass'] = $configData['login_pass'];
 				}
 				$values = $this->normalizeConfigValues($values, $configData);
+				$values = $this->processBrandLogoUpload($values, $configData);
 				if (!empty($values['setup_mvp'])) {
 					$installer = new \ProcessWire\BsProcessEditorial\Setup\MvpInstaller($this);
 					foreach ($installer->install() as $msg) {
@@ -288,7 +292,101 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$radius = trim((string) ($values['theme_radius'] ?? '8'));
 		$values['theme_radius'] = preg_match('/^\d+(\.\d+)?$/', $radius) ? $radius : '8';
 
+		$values['brand_name'] = trim((string) ($values['brand_name'] ?? ''));
+		// Logo-Dateiname bleibt in processBrandLogoUpload erhalten/aktualisiert
+		if (!array_key_exists('brand_logo', $values)) {
+			$values['brand_logo'] = (string) ($previous['brand_logo'] ?? '');
+		}
+
 		return $values;
+	}
+
+	/**
+	 * Kundenlogo nach site/assets/bs-processEditorial/brand/ speichern.
+	 */
+	protected function processBrandLogoUpload(array $values, array $previous): array {
+		$input = $this->wire()->input;
+		$existing = (string) ($previous['brand_logo'] ?? '');
+
+		if ($input->post('brand_logo_clear')) {
+			$this->deleteBrandLogoFile($existing);
+			$values['brand_logo'] = '';
+			return $values;
+		}
+
+		$file = $_FILES['brand_logo_file'] ?? null;
+		if (!is_array($file) || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+			if (!array_key_exists('brand_logo', $values)) {
+				$values['brand_logo'] = $existing;
+			}
+			return $values;
+		}
+
+		$ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+		$allowed = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+		if (!in_array($ext, $allowed, true)) {
+			$this->error('Logo: erlaubt sind PNG, JPG, GIF, WebP, SVG.');
+			$values['brand_logo'] = $existing;
+			return $values;
+		}
+		if (($file['size'] ?? 0) > 2 * 1024 * 1024) {
+			$this->error('Logo darf maximal 2 MB groß sein.');
+			$values['brand_logo'] = $existing;
+			return $values;
+		}
+
+		$dir = $this->brandLogoDir();
+		if (!is_dir($dir) && !wireMkdir($dir, true)) {
+			$this->error('Logo-Verzeichnis konnte nicht angelegt werden.');
+			$values['brand_logo'] = $existing;
+			return $values;
+		}
+
+		$filename = 'logo-' . time() . '.' . $ext;
+		$target = $dir . $filename;
+		if (!@move_uploaded_file($file['tmp_name'], $target)) {
+			$this->error('Logo konnte nicht gespeichert werden.');
+			$values['brand_logo'] = $existing;
+			return $values;
+		}
+
+		$this->deleteBrandLogoFile($existing);
+		$values['brand_logo'] = $filename;
+		return $values;
+	}
+
+	protected function brandLogoDir(): string {
+		return rtrim($this->wire()->config->paths->assets, '/') . '/bs-processEditorial/brand/';
+	}
+
+	protected function deleteBrandLogoFile(string $filename): void {
+		$filename = basename($filename);
+		if ($filename === '') {
+			return;
+		}
+		$path = $this->brandLogoDir() . $filename;
+		if (is_file($path)) {
+			@unlink($path);
+		}
+	}
+
+	/** Anzeigename für Kunden-Branding (Fallback: Redaktion). */
+	public function brandName(): string {
+		$name = trim((string) $this->get('brand_name'));
+		return $name !== '' ? $name : 'Redaktion';
+	}
+
+	/** Öffentliche URL zum Kundenlogo oder null. */
+	public function brandLogoUrl(): ?string {
+		$file = basename((string) $this->get('brand_logo'));
+		if ($file === '') {
+			return null;
+		}
+		$path = $this->brandLogoDir() . $file;
+		if (!is_file($path)) {
+			return null;
+		}
+		return rtrim($this->wire()->config->urls->assets, '/') . '/bs-processEditorial/brand/' . rawurlencode($file);
 	}
 
 	/**
@@ -319,6 +417,20 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			return strtolower($fallback);
 		}
 		return '#1f6b4a';
+	}
+
+	public function hookBeforeSaveConfig(HookEvent $event): void {
+		$className = $event->arguments(0);
+		if ($className !== $this->className()) {
+			return;
+		}
+		$data = $event->arguments(1);
+		if (!is_array($data)) {
+			return;
+		}
+		$previous = $this->wire()->modules->getModuleConfigData($this);
+		$data = $this->processBrandLogoUpload($data, is_array($previous) ? $previous : []);
+		$event->arguments(1, $data);
 	}
 
 	public function hookAfterSaveConfig(HookEvent $event): void {
@@ -419,6 +531,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$form->attr('id', 'bpe-settings-form');
 		$form->attr('method', 'post');
 		$form->attr('action', './');
+		$form->attr('enctype', 'multipart/form-data');
 
 		foreach ($this->buildConfigFields($data) as $field) {
 			$form->add($field);
@@ -440,6 +553,38 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$modules = $this->wire()->modules;
 		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
 		$fields = [];
+
+		/** @var InputfieldText $f */
+		$f = $modules->get('InputfieldText');
+		$f->name = 'brand_name';
+		$f->label = 'Kunden-Branding: Firmenname';
+		$f->description = 'Erscheint im Header und in der Rail der Redaktion. Leer = „Redaktion“.';
+		$f->value = $data['brand_name'] ?? '';
+		$fields[] = $f;
+
+		$logoFile = basename((string) ($data['brand_logo'] ?? ''));
+		$logoUrl = null;
+		if ($logoFile !== '') {
+			$logoPath = $this->brandLogoDir() . $logoFile;
+			if (is_file($logoPath)) {
+				$logoUrl = rtrim($this->wire()->config->urls->assets, '/')
+					. '/bs-processEditorial/brand/' . rawurlencode($logoFile);
+			}
+		}
+		/** @var InputfieldMarkup $f */
+		$f = $modules->get('InputfieldMarkup');
+		$f->name = 'brand_logo_ui';
+		$f->label = 'Kunden-Branding: Logo';
+		$f->description = 'PNG, JPG, GIF, WebP oder SVG, max. 2 MB. Wird im Header und in der Rail angezeigt.';
+		$html = '';
+		if ($logoUrl) {
+			$html .= '<p class="bpe-admin-logo-preview"><img src="'
+				. htmlspecialchars($logoUrl) . '" alt="Logo" style="max-height:64px;max-width:220px;background:#fff;padding:6px;border:1px solid #ddd;border-radius:4px;"></p>';
+			$html .= '<p><label><input type="checkbox" name="brand_logo_clear" value="1"> Logo entfernen</label></p>';
+		}
+		$html .= '<input type="file" name="brand_logo_file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg">';
+		$f->value = $html;
+		$fields[] = $f;
 
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');
@@ -492,31 +637,53 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 
 		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
+		$prevTemplates = $this->get('editorial_templates');
+		$prevModes = $this->get('editorial_modes');
+		$prevNav = $this->get('editorial_nav');
+		$this->set('editorial_templates', $selected);
+		$this->set('editorial_modes', $modes);
+		$existingNav = $data['editorial_nav'] ?? '';
+		if (is_array($existingNav)) {
+			$this->set('editorial_nav', json_encode($existingNav, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+		} elseif (is_string($existingNav)) {
+			$this->set('editorial_nav', $existingNav);
+		}
+		$navTree = $navConfig->tree();
+		$navJson = $navConfig->toJson();
+		$this->set('editorial_templates', $prevTemplates);
+		$this->set('editorial_modes', $prevModes);
+		$this->set('editorial_nav', $prevNav);
+
+		$tplLabels = [];
+		foreach ($selected as $name) {
+			$name = (string) $name;
+			if ($name === '') {
+				continue;
+			}
+			$tpl = $this->wire()->templates->get($name);
+			$label = $tpl && $tpl->id ? trim((string) $tpl->get('label')) : '';
+			$tplLabels[$name] = $label !== '' ? $label . ' (' . $name . ')' : $name;
+		}
+
+		$this->wire()->config->scripts->add($this->moduleUrl() . 'assets/js/nav-builder.js?v=8');
+
+		$builder = new \ProcessWire\BsProcessEditorial\Setup\NavBuilder($this);
+		/** @var InputfieldMarkup $f */
+		$f = $modules->get('InputfieldMarkup');
+		$f->name = 'editorial_nav_builder';
+		$f->label = 'Menühierarchie';
+		$f->description = 'Visuell Sections, Gruppen und Templates zuordnen. Speichern übernimmt die Struktur.';
+		$f->value = $builder->renderMarkup($navTree, $tplLabels);
+		$fields[] = $f;
+
 		/** @var InputfieldTextarea $f */
 		$f = $modules->get('InputfieldTextarea');
 		$f->name = 'editorial_nav';
 		$f->label = 'Menühierarchie (JSON)';
-		$f->description = 'Sections/Groups/Templates mit Lucide-Icon-Namen. Leer lassen und speichern mit Default-Migration, '
-			. 'oder JSON pflegen. Typen: dashboard, section, group, template. Icons u. a.: '
-			. implode(', ', array_keys(\ProcessWire\BsProcessEditorial\Setup\NavConfig::iconChoices())) . '.';
-		$f->rows = 16;
-		$existingNav = $data['editorial_nav'] ?? '';
-		if (is_array($existingNav)) {
-			$f->value = json_encode($existingNav, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-		} elseif (is_string($existingNav) && trim($existingNav) !== '') {
-			$decoded = json_decode($existingNav, true);
-			$f->value = is_array($decoded)
-				? json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-				: $existingNav;
-		} else {
-			$prevTemplates = $this->get('editorial_templates');
-			$prevModes = $this->get('editorial_modes');
-			$this->set('editorial_templates', $selected);
-			$this->set('editorial_modes', $modes);
-			$f->value = $navConfig->toJson();
-			$this->set('editorial_templates', $prevTemplates);
-			$this->set('editorial_modes', $prevModes);
-		}
+		$f->description = 'Power-User: wird vom Builder synchron gehalten. Typen: dashboard, section, group, template.';
+		$f->rows = 12;
+		$f->collapsed = Inputfield::collapsedYes;
+		$f->value = $navJson;
 		$fields[] = $f;
 
 		// Kein natives InputfieldColor in PW-Core → HTML5 type=color

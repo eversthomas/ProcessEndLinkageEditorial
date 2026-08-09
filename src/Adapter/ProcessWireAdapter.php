@@ -3,11 +3,16 @@
 use ProcessWire\BsProcessEditorial;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\AbstractFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\CheckboxFieldAdapter;
+use ProcessWire\BsProcessEditorial\Adapter\Fields\DatetimeFieldAdapter;
+use ProcessWire\BsProcessEditorial\Adapter\Fields\EmailFieldAdapter;
+use ProcessWire\BsProcessEditorial\Adapter\Fields\FileFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\ImageFieldAdapter;
+use ProcessWire\BsProcessEditorial\Adapter\Fields\NumberFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\PageReferenceFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\SelectFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\TextareaFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\TextFieldAdapter;
+use ProcessWire\BsProcessEditorial\Adapter\Fields\UrlFieldAdapter;
 use ProcessWire\Field;
 use ProcessWire\Page;
 use ProcessWire\Template;
@@ -27,10 +32,15 @@ class ProcessWireAdapter implements AdapterInterface {
 		$this->module = $module;
 		$this->fieldAdapters = $fieldAdapters ?? [
 			new TextareaFieldAdapter(),
+			new EmailFieldAdapter(),
+			new UrlFieldAdapter(),
 			new TextFieldAdapter(),
+			new NumberFieldAdapter(),
+			new DatetimeFieldAdapter(),
 			new CheckboxFieldAdapter(),
 			new SelectFieldAdapter(),
 			new ImageFieldAdapter(),
+			new FileFieldAdapter(),
 			new PageReferenceFieldAdapter(),
 		];
 	}
@@ -224,10 +234,10 @@ class ProcessWireAdapter implements AdapterInterface {
 	protected function rawForField(Field $field, array $data): mixed {
 		$name = $field->name;
 		$adapter = $this->adapterFor($field);
-		if ($adapter instanceof ImageFieldAdapter) {
+		if ($adapter instanceof ImageFieldAdapter || $adapter instanceof FileFieldAdapter) {
 			return [
 				'clear' => !empty($data[$name . '_clear']),
-				'keep' => $data[$name . '_existing'] ?? ($data[$name] ?? null),
+				'keep' => $data[$name . '_existing'] ?? (is_array($data[$name] ?? null) ? ($data[$name]['name'] ?? null) : ($data[$name] ?? null)),
 				'upload' => !empty($_FILES[$name]['name']),
 			];
 		}

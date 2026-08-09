@@ -23,6 +23,9 @@ class ShellView {
 		$needsTinyMce = !empty($vars['needsTinyMce']);
 		$tinyMceUrl = $vars['tinyMceUrl'] ?? '';
 		$headerMeta = $vars['headerMeta'] ?? null;
+		$brandName = (string) ($vars['brandName'] ?? 'Redaktion');
+		$brandLogoUrl = $vars['brandLogoUrl'] ?? null;
+		$brandInitial = mb_strtoupper(mb_substr($brandName, 0, 1));
 
 		ob_start();
 		?>
@@ -31,7 +34,7 @@ class ShellView {
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title><?= $this->e($title) ?> · Redaktion</title>
+	<title><?= $this->e($title) ?> · <?= $this->e($brandName) ?></title>
 	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/editorial.css">
 	<?php if ($themeStyle): ?>
 	<style id="bpe-theme"><?= $themeStyle ?></style>
@@ -41,9 +44,13 @@ class ShellView {
 	<div class="bpe-shell" data-rail="expanded" data-tree="<?= $treeCollapsed ? 'collapsed' : 'open' ?>">
 		<aside class="bpe-rail" aria-label="Hauptmodule">
 			<div class="bpe-rail__top">
-				<a class="bpe-rail__brand" href="<?= $this->e($baseUrl) ?>" data-tooltip="Redaktion" aria-label="Redaktion">
-					<span class="bpe-rail__logo">R</span>
-					<span class="bpe-rail__brand-text">Redaktion</span>
+				<a class="bpe-rail__brand" href="<?= $this->e($baseUrl) ?>" data-tooltip="<?= $this->e($brandName) ?>" aria-label="<?= $this->e($brandName) ?>">
+					<?php if ($brandLogoUrl): ?>
+						<img class="bpe-rail__logo-img" src="<?= $this->e($brandLogoUrl) ?>" alt="<?= $this->e($brandName) ?>">
+					<?php else: ?>
+						<span class="bpe-rail__logo"><?= $this->e($brandInitial) ?></span>
+					<?php endif; ?>
+					<span class="bpe-rail__brand-text"><?= $this->e($brandName) ?></span>
 				</a>
 				<button type="button" class="bpe-rail__toggle" data-bpe-rail-toggle data-tooltip="Menü ein-/ausklappen" aria-label="Menü ein-/ausklappen" title="Menü ein-/ausklappen">
 					<?= Icons::svg('panel-left') ?>
@@ -104,8 +111,15 @@ class ShellView {
 		<div class="bpe-stage">
 			<header class="bpe-topbar">
 				<div class="bpe-topbar__left">
-					<p class="bpe-topbar__brand">Redaktion</p>
-					<h1 class="bpe-topbar__title"><?= $this->e($title) ?></h1>
+					<a class="bpe-topbar__branding" href="<?= $this->e($baseUrl) ?>">
+						<?php if ($brandLogoUrl): ?>
+							<img class="bpe-topbar__logo" src="<?= $this->e($brandLogoUrl) ?>" alt="<?= $this->e($brandName) ?>">
+						<?php endif; ?>
+						<span class="bpe-topbar__branding-text">
+							<span class="bpe-topbar__brand"><?= $this->e($brandName) ?></span>
+							<span class="bpe-topbar__title"><?= $this->e($title) ?></span>
+						</span>
+					</a>
 				</div>
 				<div class="bpe-topbar__right">
 					<?php if ($headerMeta): ?>

@@ -1,7 +1,9 @@
 <?php namespace ProcessWire\BsProcessEditorial\FormEngine;
 
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\CheckboxField;
+use ProcessWire\BsProcessEditorial\FormEngine\Fields\DatetimeField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\FieldRendererInterface;
+use ProcessWire\BsProcessEditorial\FormEngine\Fields\FileField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\ImageField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\PageReferenceField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\SelectField;
@@ -15,7 +17,7 @@ use ProcessWire\BsProcessEditorial\Ui\Icons;
 class FormRenderer {
 
 	/** Feldtypen standardmäßig im Details-Panel */
-	protected const META_TYPES = ['checkbox', 'select', 'image', 'pageReference'];
+	protected const META_TYPES = ['checkbox', 'select', 'image', 'file', 'pageReference'];
 
 	/** @var FieldRendererInterface[] */
 	protected array $renderers = [];
@@ -24,9 +26,11 @@ class FormRenderer {
 		$this->renderers = $renderers ?? [
 			new TextField(),
 			new TextareaField(),
+			new DatetimeField(),
 			new CheckboxField(),
 			new SelectField(),
 			new ImageField(),
+			new FileField(),
 			new PageReferenceField(),
 		];
 	}
