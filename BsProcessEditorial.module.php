@@ -12,8 +12,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 7,
-			'summary' => 'Redaktionsoberfläche mit PW-Login, Rollenrechten und Freigabe — Inhaltstypen aus dem Datenmodell.',
+			'version' => 8,
+			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE und Publish.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
 			'autoload' => true,
@@ -36,6 +36,10 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('editorial_templates', ['ansprechpartner']);
 		$this->set('editorial_modes', ['ansprechpartner' => 'list']);
 		$this->set('role_templates', []);
+		$this->set('editorial_nav', '');
+		$this->set('theme_accent', '#1f6b4a');
+		$this->set('theme_rail_bg', '#1c1f1d');
+		$this->set('theme_radius', '8');
 		$this->set('allow_demo_login', 0);
 		$this->set('setup_mvp', 0);
 	}
@@ -132,10 +136,11 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 		$out .= '</tbody></table>';
 
-		$out .= '<h2>Zugang</h2>';
+		$out .= '<h2>Zugang &amp; UX</h2>';
 		$out .= '<p class="description">Redakteure brauchen die Permission <code>editorial-access</code> '
 			. '(Rolle <code>editorial</code> wird automatisch angelegt). Superuser haben immer Zugang. '
-			. 'Login unter <code>/editorial/</code> ist vom Admin-Login getrennt.</p>';
+			. 'Login unter <code>/editorial/</code> ist vom Admin-Login getrennt. '
+			. 'Menühierarchie und Theme-Farben unten konfigurieren — die Shell zeigt Dashboard, Hybrid-Baum und Details-Sidebar.</p>';
 
 		$out .= '<h2>Einstellungen</h2>';
 		$out .= $form->render();
@@ -253,6 +258,34 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$values['editorial_templates'] = $templates;
 		$values['role_templates'] = $cleanRoles;
 		$values['allow_demo_login'] = !empty($values['allow_demo_login']) ? 1 : 0;
+
+		$navRaw = $values['editorial_nav'] ?? '';
+		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
+		try {
+			if (is_string($navRaw) && trim($navRaw) !== '') {
+				$tree = $navConfig->parseAndValidate($navRaw, $templates);
+				$values['editorial_nav'] = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+			} elseif (is_array($navRaw) && $navRaw !== []) {
+				$tree = $navConfig->parseAndValidate($navRaw, $templates);
+				$values['editorial_nav'] = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+			} else {
+				// Leer = Runtime-Migration aus freigegebenen Templates
+				$values['editorial_nav'] = '';
+			}
+		} catch (\InvalidArgumentException $e) {
+			$values['editorial_nav'] = $previous['editorial_nav'] ?? '';
+			$this->error($e->getMessage());
+		}
+
+		foreach (['theme_accent', 'theme_rail_bg'] as $colorKey) {
+			$c = trim((string) ($values[$colorKey] ?? ''));
+			$values[$colorKey] = preg_match('/^#[0-9a-fA-F]{3,8}$/', $c)
+				? $c
+				: (string) ($previous[$colorKey] ?? ($colorKey === 'theme_accent' ? '#1f6b4a' : '#1c1f1d'));
+		}
+		$radius = trim((string) ($values['theme_radius'] ?? '8'));
+		$values['theme_radius'] = preg_match('/^\d+(\.\d+)?$/', $radius) ? $radius : '8';
+
 		return $values;
 	}
 
@@ -435,6 +468,56 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$mf->value = $modes[$name] ?? $discovery->suggestMode($name);
 			$fields[] = $mf;
 		}
+
+		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
+		/** @var InputfieldTextarea $f */
+		$f = $modules->get('InputfieldTextarea');
+		$f->name = 'editorial_nav';
+		$f->label = 'Menühierarchie (JSON)';
+		$f->description = 'Sections/Groups/Templates mit Lucide-Icon-Namen. Leer lassen und speichern mit Default-Migration, '
+			. 'oder JSON pflegen. Typen: dashboard, section, group, template. Icons u. a.: '
+			. implode(', ', array_keys(\ProcessWire\BsProcessEditorial\Setup\NavConfig::iconChoices())) . '.';
+		$f->rows = 16;
+		$existingNav = $data['editorial_nav'] ?? '';
+		if (is_array($existingNav)) {
+			$f->value = json_encode($existingNav, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		} elseif (is_string($existingNav) && trim($existingNav) !== '') {
+			$decoded = json_decode($existingNav, true);
+			$f->value = is_array($decoded)
+				? json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+				: $existingNav;
+		} else {
+			$prevTemplates = $this->get('editorial_templates');
+			$prevModes = $this->get('editorial_modes');
+			$this->set('editorial_templates', $selected);
+			$this->set('editorial_modes', $modes);
+			$f->value = $navConfig->toJson();
+			$this->set('editorial_templates', $prevTemplates);
+			$this->set('editorial_modes', $prevModes);
+		}
+		$fields[] = $f;
+
+		/** @var InputfieldText $f */
+		$f = $modules->get('InputfieldText');
+		$f->name = 'theme_accent';
+		$f->label = 'Theme: Akzentfarbe';
+		$f->description = 'Hex, z. B. #1f6b4a';
+		$f->value = $data['theme_accent'] ?? '#1f6b4a';
+		$fields[] = $f;
+
+		/** @var InputfieldText $f */
+		$f = $modules->get('InputfieldText');
+		$f->name = 'theme_rail_bg';
+		$f->label = 'Theme: Rail-Hintergrund';
+		$f->value = $data['theme_rail_bg'] ?? '#1c1f1d';
+		$fields[] = $f;
+
+		/** @var InputfieldText $f */
+		$f = $modules->get('InputfieldText');
+		$f->name = 'theme_radius';
+		$f->label = 'Theme: Radius (px)';
+		$f->value = $data['theme_radius'] ?? '8';
+		$fields[] = $f;
 
 		/** @var InputfieldSelect $f */
 		$f = $modules->get('InputfieldSelect');

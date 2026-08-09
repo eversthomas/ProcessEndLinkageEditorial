@@ -162,6 +162,14 @@ class ProcessWireAdapter implements AdapterInterface {
 		foreach ($validated as $item) {
 			$item['adapter']->writeValue($item['field'], $page, $item['value']);
 		}
+
+		$status = (string) ($data['status'] ?? '');
+		if ($status === 'unpublished') {
+			$page->addStatus(Page::statusUnpublished);
+		} elseif ($status === 'published') {
+			$page->removeStatus(Page::statusUnpublished);
+		}
+
 		$page->save();
 
 		return ['record' => $this->pageToRecord($page), 'errors' => []];
@@ -200,6 +208,8 @@ class ProcessWireAdapter implements AdapterInterface {
 			'id' => (string) $page->id,
 			'created' => date('c', $page->created),
 			'modified' => date('c', $page->modified),
+			'status' => $page->isUnpublished() ? 'unpublished' : 'published',
+			'url' => $page->id ? (string) $page->url : null,
 		];
 		foreach ($page->template->fields as $field) {
 			$adapter = $this->adapterFor($field);

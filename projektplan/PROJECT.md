@@ -16,7 +16,7 @@ Frontend-Anwendung mit eigenem Login.
 
 ```
 ┌─────────────────────────────┐
-│      Editorial UI            │  Navigation, Listen, Formulare
+│      Editorial UI            │  Shell, Dashboard, Listen, Formulare
 └──────────────┬───────────────┘
 ┌──────────────▼───────────────┐
 │     UI / Form-Engine          │  Komponenten — kennen PW nicht,
@@ -34,33 +34,27 @@ Frontend-Anwendung mit eigenem Login.
 
 - PHP (ProcessWire API)
 - Vanilla JavaScript, kein Framework
-- SCSS (ohne Build-Step; CSS wird ausgeliefert)
+- CSS ohne Build-Step; Lucide-Icons (MIT) inline
+- TinyMCE aus PW-Core (`InputfieldTinyMCE`), wenn HTML-Felder vorhanden
 - Installierbar als ProcessWire-Modul
 
 ## Stand (Aug 2026)
 
-**Erledigt (MVP+):**
+**Erledigt (MVP+ / UX-Shell):**
 - Modul + URL-App unter `/editorial/`
-- Setup → Redaktion (Freigabe, Datenquelle, Darstellungsmodus)
+- Setup → Redaktion: Freigabe, Modi, **Menühierarchie (JSON)**, Theme-Tokens
+- 4-Spalten-Shell: Icon-Rail (Icon/Text-Toggle) | Inhaltsbaum | Hauptfläche | Details
+- Dashboard-Übersichten + Hybrid-Baum (Datensätze ≤ 50)
 - PW-Adapter + Mock-Adapter
-- 6 Feldtypen: Text, Textarea (Plain), Checkbox, Select, Bild, Page Reference
-- Listenansicht + Formular (Erstellen/Bearbeiten)
-- Template-Discovery + Freigabe mehrerer Inhaltstypen
-- Darstellungsmodus **Datensätze (Liste)** vs. **Einzelseite** (z. B. Home)
-- Login gegen echte PW-User (Permission `editorial-access`, Rolle `editorial`)
+- Feldtypen: Text, Textarea (Plain + HTML/TinyMCE), Checkbox, Select, Bild, Page Reference
+- Publish-MVP (veröffentlicht / Entwurf)
+- Login gegen PW-User (`editorial-access` / Rolle `editorial`)
 - Grobe Rechte: Rolle → sichtbare Inhaltstypen
-- Optionaler Demo-Login (Setup-Schalter, standardmäßig aus)
-- UX-Basics: Nav-Modus-Hinweis, Flash dismiss, Listen-Meta, Empty States
 
 **Als Nächstes:**
-1. **Überarbeitung der Redaktions-UX** (Visuelles Design, Mobile, Tonalität — Fokus-Sprint)
-2. TinyMCE / HTML-Textarea, wenn in Feldern gesetzt
-3. Phase-2-Themen: Suche, Filter, Dashboard, Medienbibliothek
-
-**Später (Roadmap Phase 2–4):**
-- Dashboard, Schnellbearbeitung, Responsive Feinschliff
-- Widgets, Favoriten, Revisionen, mehrsprachige Oberfläche, Workflow
-- Open-Source, Dokumentation, Entwickler-API, Erweiterungssystem
+1. Medienbibliothek, Zeitplanung, Autosave
+2. Visueller Menü-Builder (statt reinem JSON)
+3. Phase-2: Suche, Filter, Workflow-Stufen
 
 ## Feldtypen (aktuell)
 
@@ -68,16 +62,17 @@ Frontend-Anwendung mit eigenem Login.
 |-----------|-------------|
 | text | FieldtypeText, FieldtypePageTitle |
 | textarea | FieldtypeTextarea (Plaintext) |
+| html | FieldtypeTextarea (HTML / TinyMCE / CKEditor) |
 | checkbox | FieldtypeCheckbox |
 | select | FieldtypeOptions |
 | image | FieldtypeImage |
 | pageReference | FieldtypePage |
 
-Nicht abgedeckt u. a.: TinyMCE/HTML, Datetime, Integer, Email, URL, File, Repeater.
+Nicht abgedeckt u. a.: Datetime, Integer, Email, URL, File, Repeater.
 
 ## Leitplanken
 
-- Kein Build-Step, keine CSS-Frameworks — PHP/JS/SCSS
+- Kein Build-Step, keine CSS-Frameworks — PHP/JS/CSS
 - UI/Form-Engine nur Schema-Daten, nie PW-Objekte
-- Freigabe und Darstellungsmodus im PW-Setup, nicht hardcodiert in der UI
+- Freigabe, Menü und Darstellungsmodus im PW-Setup, nicht hardcodiert in der UI
 - Bei Unsicherheit: dieses Dokument ist die Referenz

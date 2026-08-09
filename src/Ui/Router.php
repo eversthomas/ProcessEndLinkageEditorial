@@ -2,28 +2,38 @@
 
 use ProcessWire\BsProcessEditorial;
 use ProcessWire\BsProcessEditorial\Adapter\AdapterInterface;
+use ProcessWire\BsProcessEditorial\Adapter\ProcessWireAdapter;
 use ProcessWire\BsProcessEditorial\Auth\EditorialAuth;
 use ProcessWire\BsProcessEditorial\Auth\TemplateAccess;
 use ProcessWire\BsProcessEditorial\FormEngine\FormRenderer;
+use ProcessWire\BsProcessEditorial\Setup\NavConfig;
 use ProcessWire\HookEvent;
 
 /**
- * Routing der Editorial-App — Inhaltstypen dynamisch aus dem Adapter + Rechtefilter.
+ * Routing: Dashboard / Nav / Templates unter /t/{template}/…
  */
 class Router {
 
 	protected BsProcessEditorial $module;
 	protected EditorialAuth $auth;
 	protected AdapterInterface $adapter;
+	protected NavConfig $navConfig;
+
+	/** @var string[] */
+	protected array $allowedTemplates = [];
 
 	/** @var array<int, array{name: string, label: string, mode?: string}> */
 	protected array $contentTypes = [];
+
+	/** @var array<int, array<string, mixed>> */
+	protected array $navTree = [];
 
 	public function __construct(BsProcessEditorial $module) {
 		$this->module = $module;
 		$this->auth = new EditorialAuth($module);
 		$this->adapter = $module->adapter();
-		$this->refreshContentTypes();
+		$this->navConfig = new NavConfig($module);
+		$this->refreshAccess();
 	}
 
 	public function dispatch(HookEvent $event): string {
@@ -32,7 +42,7 @@ class Router {
 
 		if (($segments[0] ?? '') === 'login') {
 			if ($this->auth->isLoggedIn()) {
-				return $this->redirectHome();
+				return $this->redirect($this->url());
 			}
 			return $method === 'POST' ? $this->postLogin() : $this->getLogin();
 		}
@@ -46,20 +56,54 @@ class Router {
 		}
 
 		$this->bindEditorialUser();
-		$this->refreshContentTypes();
+		$this->refreshAccess();
 
-		if ($this->contentTypes === []) {
-			return $this->renderError(
-				403,
-				'Keine Inhaltstypen für Ihren Zugang freigegeben. Bitte einen Administrator unter Setup → Redaktion prüfen.'
-			);
+		if (($segments[0] ?? '') === 'nav') {
+			return $this->dispatchNav(array_slice($segments, 1));
+		}
+
+		if (($segments[0] ?? '') === 't') {
+			return $this->dispatchTemplate(array_slice($segments, 1), $method);
+		}
+
+		// Legacy: /editorial/{template}/… → /editorial/t/{template}/…
+		if ($segments !== [] && $this->isAllowedTemplate($segments[0])) {
+			$path = 't/' . implode('/', $segments);
+			return $this->redirect($this->url($path));
 		}
 
 		if ($segments === [] || $segments === ['']) {
-			return $this->redirectHome();
+			return $this->getDashboard();
 		}
 
-		$template = $segments[0];
+		return $this->renderError(404, 'Seite nicht gefunden.');
+	}
+
+	protected function dispatchNav(array $segments): string {
+		$sectionId = $segments[0] ?? '';
+		$groupId = $segments[1] ?? null;
+		if ($sectionId === '') {
+			return $this->redirect($this->url());
+		}
+
+		$section = $this->navConfig->findNode($sectionId, $this->navTree);
+		if (!$section || ($section['type'] ?? '') !== 'section') {
+			return $this->renderError(404, 'Menüpunkt nicht gefunden.');
+		}
+
+		if ($groupId) {
+			$group = $this->navConfig->findNode($groupId, $section['children'] ?? []);
+			if (!$group || ($group['type'] ?? '') !== 'group') {
+				return $this->renderError(404, 'Gruppe nicht gefunden.');
+			}
+			return $this->getNodeDashboard($group, $sectionId, $groupId);
+		}
+
+		return $this->getNodeDashboard($section, $sectionId, null);
+	}
+
+	protected function dispatchTemplate(array $segments, string $method): string {
+		$template = $segments[0] ?? '';
 		$action = $segments[1] ?? null;
 
 		if (!$this->isAllowedTemplate($template)) {
@@ -70,7 +114,7 @@ class Router {
 
 		if ($isSingle) {
 			if ($action === 'new') {
-				return $this->redirect($this->url($template));
+				return $this->redirect($this->url('t/' . $template));
 			}
 			if ($action === null || $action === '' || ctype_digit((string) $action)) {
 				$id = ($action !== null && $action !== '' && ctype_digit((string) $action))
@@ -80,7 +124,7 @@ class Router {
 					return $this->renderError(404, 'Keine Seite für diesen Inhaltstyp gefunden.');
 				}
 				if ($action !== null && $action !== '' && ctype_digit((string) $action) && $method === 'GET') {
-					return $this->redirect($this->url($template));
+					return $this->redirect($this->url('t/' . $template));
 				}
 				return $method === 'POST'
 					? $this->postForm($template, $id, true)
@@ -102,24 +146,24 @@ class Router {
 		return $this->renderError(404, 'Seite nicht gefunden.');
 	}
 
-	protected function refreshContentTypes(): void {
-		$all = $this->adapter->listContentTypes();
+	protected function refreshAccess(): void {
 		$access = new TemplateAccess($this->module);
 		$user = $this->auth->currentUser();
-		$allowed = $this->auth->isDemoSession()
+		$this->allowedTemplates = $this->auth->isDemoSession()
 			? $this->module->editorialTemplateNames()
 			: $access->allowedTemplates($user);
 
 		$types = [];
-		foreach ($all as $type) {
+		foreach ($this->adapter->listContentTypes() as $type) {
 			$name = (string) ($type['name'] ?? '');
-			if ($name === '' || !in_array($name, $allowed, true)) {
+			if ($name === '' || !in_array($name, $this->allowedTemplates, true)) {
 				continue;
 			}
 			$type['mode'] = $this->module->editorialMode($name);
 			$types[] = $type;
 		}
 		$this->contentTypes = $types;
+		$this->navTree = $this->navConfig->treeForTemplates($this->allowedTemplates);
 	}
 
 	protected function bindEditorialUser(): void {
@@ -129,63 +173,110 @@ class Router {
 		}
 	}
 
-	protected function redirectHome(): string {
-		$first = $this->contentTypes[0]['name'] ?? '';
-		if ($first === '') {
-			$this->refreshContentTypes();
-			$first = $this->contentTypes[0]['name'] ?? '';
-		}
-		return $this->redirect($first !== '' ? $this->url($first) : $this->module->baseUrl());
-	}
-
-	protected function resolveSingletonId(string $template): ?string {
-		$records = $this->adapter->listRecords($template);
-		if (!$records) {
-			return null;
-		}
-		return (string) ($records[0]['id'] ?? '');
-	}
-
-	protected function wire() {
-		return $this->module->wire();
-	}
-
-	protected function isAllowedTemplate(string $template): bool {
-		foreach ($this->contentTypes as $type) {
-			if ($type['name'] === $template) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	protected function getLogin(string $error = ''): string {
-		return $this->view('login', [
-			'title' => 'Anmelden',
-			'error' => $error,
-			'action' => $this->url('login'),
-			'csrf' => $this->csrfField(),
-			'userName' => null,
-			'navItems' => [],
-			'demoEnabled' => $this->auth->demoEnabled(),
-			'demoUser' => (string) $this->module->get('login_user'),
+	protected function getDashboard(): string {
+		$dash = new DashboardView();
+		$templates = $this->allowedTemplates;
+		$tiles = $this->tilesForTemplates($templates);
+		$recent = $dash->collectRecent(
+			$this->adapter,
+			$templates,
+			fn(string $tpl, string $id) => $this->url('t/' . $tpl . '/' . $id)
+		);
+		$content = $dash->render([
+			'title' => 'Übersicht',
+			'lead' => 'Zuletzt bearbeitet und Schnellzugriff auf Ihre Inhaltstypen.',
+			'tiles' => $tiles,
+			'recent' => $recent,
+		]);
+		return $this->shell($content, [
+			'title' => 'Übersicht',
+			'railActive' => 'overview',
+			'treeTitle' => 'Navigation',
+			'treeHtml' => $this->renderGlobalTree(['node' => 'overview']),
+			'flash' => $this->takeFlash(),
 		]);
 	}
 
-	protected function postLogin(): string {
-		$session = $this->wire()->session;
-		if (!$session->CSRF->hasValidToken()) {
-			return $this->getLogin('Sicherheits-Token ungültig. Bitte erneut versuchen.');
+	protected function getNodeDashboard(array $node, string $sectionId, ?string $groupId): string {
+		$templates = $this->navConfig->templatesUnder($node);
+		$templates = array_values(array_filter($templates, fn($t) => in_array($t, $this->allowedTemplates, true)));
+		$dash = new DashboardView();
+		$tiles = $this->tilesForTemplates($templates);
+		$recent = $dash->collectRecent(
+			$this->adapter,
+			$templates,
+			fn(string $tpl, string $id) => $this->url('t/' . $tpl . '/' . $id)
+		);
+		$label = $node['label'] ?? $node['id'];
+		$content = $dash->render([
+			'title' => $label,
+			'lead' => 'Inhaltstypen in diesem Bereich.',
+			'tiles' => $tiles,
+			'recent' => $recent,
+		]);
+
+		$section = $this->navConfig->findNode($sectionId, $this->navTree);
+		$treeHtml = $this->renderSectionTree($section ?? [], [
+			'node' => $groupId ?: $sectionId,
+		]);
+
+		return $this->shell($content, [
+			'title' => $label,
+			'railActive' => $sectionId,
+			'treeTitle' => $section['label'] ?? 'Inhalte',
+			'treeHtml' => $treeHtml,
+			'flash' => $this->takeFlash(),
+		]);
+	}
+
+	/**
+	 * @param string[] $templates
+	 */
+	protected function tilesForTemplates(array $templates): array {
+		$tiles = [];
+		foreach ($templates as $tpl) {
+			$label = $tpl;
+			$mode = $this->module->editorialMode($tpl);
+			$count = null;
+			try {
+				$schema = $this->adapter->readSchema($tpl);
+				$label = $schema['label'] ?? $tpl;
+				$count = count($this->adapter->listRecords($tpl));
+			} catch (\Throwable $e) {
+			}
+			$icon = 'file-text';
+			foreach ($this->flattenNav($this->navTree) as $n) {
+				if (($n['type'] ?? '') === 'template' && ($n['template'] ?? '') === $tpl) {
+					$icon = $n['icon'] ?? $icon;
+					if (!empty($n['label'])) {
+						$label = $n['label'];
+					}
+					break;
+				}
+			}
+			$tiles[] = [
+				'label' => $label,
+				'icon' => $icon,
+				'mode' => $mode,
+				'count' => $count,
+				'url' => $this->url('t/' . $tpl),
+				'newUrl' => $mode === 'list' ? $this->url('t/' . $tpl . '/new') : null,
+			];
 		}
-		$input = $this->wire()->input;
-		$user = (string) $input->post('username');
-		$pass = (string) $input->post('password');
-		if ($this->auth->attempt($user, $pass)) {
-			$this->bindEditorialUser();
-			$this->refreshContentTypes();
-			return $this->redirectHome();
+		return $tiles;
+	}
+
+	protected function flattenNav(array $nodes): array {
+		$out = [];
+		foreach ($nodes as $n) {
+			$out[] = $n;
+			if (!empty($n['children'])) {
+				foreach ($this->flattenNav($n['children']) as $c) {
+					$out[] = $c;
+				}
+			}
 		}
-		return $this->getLogin('Anmeldung fehlgeschlagen. Prüfen Sie Benutzername, Passwort und die Permission „editorial-access“.');
+		return $out;
 	}
 
 	protected function getList(string $template): string {
@@ -193,16 +284,13 @@ class Router {
 		$records = $this->adapter->listRecords($template);
 		$list = new ListView();
 		$content = $list->render($schema, $records, [
-			'newUrl' => $this->url($template . '/new'),
-			'editUrl' => fn(string $id) => $this->url($template . '/' . $id),
+			'newUrl' => $this->url('t/' . $template . '/new'),
+			'editUrl' => fn(string $id) => $this->url('t/' . $template . '/' . $id),
 		]);
-		return $this->view('app', [
-			'title' => $schema['label'] ?? $template,
-			'content' => $content,
-			'navActive' => $template,
+		return $this->shell($content, $this->shellContextForTemplate($template, $schema['label'] ?? $template, [
 			'flash' => $this->takeFlash(),
-			'dataSource' => $this->dataSourceLabel(),
-		]);
+			'active' => ['template' => $template],
+		]));
 	}
 
 	protected function getForm(string $template, ?string $id, array $values = [], array $errors = [], bool $single = false): string {
@@ -234,31 +322,35 @@ class Router {
 		}
 
 		$actionUrl = $single
-			? $this->url($template)
-			: ($isNew ? $this->url($template . '/new') : $this->url($template . '/' . $id));
+			? $this->url('t/' . $template)
+			: ($isNew ? $this->url('t/' . $template . '/new') : $this->url('t/' . $template . '/' . $id));
 
 		$content .= $form->renderForm($schema, $values, $formErrors, [
 			'action' => $actionUrl,
 			'title' => $title,
-			'cancelUrl' => $single ? null : $this->url($template),
+			'cancelUrl' => $single ? null : $this->url('t/' . $template),
 			'csrf' => $this->csrfField(),
 			'submitLabel' => 'Speichern',
+			'previewUrl' => $values['url'] ?? null,
+			'status' => $values['status'] ?? 'published',
+			'showPublish' => !$isNew || $this->adapter instanceof ProcessWireAdapter,
 			'breadcrumb' => $single ? [
+				['label' => 'Inhalte', 'url' => $this->url('nav/content')],
 				['label' => $listLabel],
 			] : [
-				['label' => $listLabel, 'url' => $this->url($template)],
+				['label' => 'Inhalte', 'url' => $this->url('nav/content')],
+				['label' => $listLabel, 'url' => $this->url('t/' . $template)],
 				['label' => $isNew ? 'Neu' : 'Bearbeiten'],
 			],
 			'savedAt' => $values['modified'] ?? null,
 		]);
 
-		return $this->view('app', [
-			'title' => $title,
-			'content' => $content,
-			'navActive' => $template,
+		$needsTiny = $this->schemaNeedsTinyMce($schema);
+		return $this->shell($content, $this->shellContextForTemplate($template, $title, [
 			'flash' => $this->takeFlash(),
-			'dataSource' => $this->dataSourceLabel(),
-		]);
+			'active' => ['template' => $template, 'record' => $id],
+			'needsTinyMce' => $needsTiny,
+		]));
 	}
 
 	protected function postForm(string $template, ?string $id, bool $single = false): string {
@@ -274,17 +366,29 @@ class Router {
 			$data['id'] = $id;
 		}
 
+		$action = (string) $this->wire()->input->post('bpe_action');
+		if ($action === 'publish') {
+			$data['status'] = 'published';
+		} elseif ($action === 'unpublish') {
+			$data['status'] = 'unpublished';
+		} else {
+			$data['status'] = (string) ($this->wire()->input->post('status') ?: ($data['status'] ?? 'published'));
+			if (!in_array($data['status'], ['published', 'unpublished'], true)) {
+				$data['status'] = 'published';
+			}
+		}
+
 		$result = $this->adapter->saveRecord($template, $data);
 		if (!empty($result['errors'])) {
 			return $this->getForm($template, $id, $data, $result['errors'], $single);
 		}
 
-		$this->setFlash('Gespeichert.');
+		$this->setFlash($action === 'publish' ? 'Veröffentlicht.' : ($action === 'unpublish' ? 'Als Entwurf gespeichert.' : 'Gespeichert.'));
 		if ($single) {
-			return $this->redirect($this->url($template));
+			return $this->redirect($this->url('t/' . $template));
 		}
 		$savedId = (string) $result['record']['id'];
-		return $this->redirect($this->url($template . '/' . $savedId));
+		return $this->redirect($this->url('t/' . $template . '/' . $savedId));
 	}
 
 	protected function postedValues(string $template): array {
@@ -324,28 +428,170 @@ class Router {
 		return $data;
 	}
 
-	protected function dataSourceLabel(): string {
-		if ($this->adapter instanceof \ProcessWire\BsProcessEditorial\Adapter\ProcessWireAdapter) {
-			return 'ProcessWire';
+	protected function schemaNeedsTinyMce(array $schema): bool {
+		foreach ($schema['fields'] ?? [] as $field) {
+			if (($field['type'] ?? '') === 'html' || !empty($field['html'])) {
+				return true;
+			}
 		}
-		return 'Mock';
+		return false;
 	}
 
-	protected function view(string $name, array $vars): string {
+	protected function tinyMceUrl(): string {
+		$config = $this->wire()->config;
+		$path = $config->paths->modules . 'Inputfield/InputfieldTinyMCE/tinymce-6.8.2/tinymce.min.js';
+		if (is_file($path)) {
+			return $config->urls->modules . 'Inputfield/InputfieldTinyMCE/tinymce-6.8.2/tinymce.min.js';
+		}
+		return '';
+	}
+
+	protected function shellContextForTemplate(string $template, string $title, array $extra = []): array {
+		$section = $this->findSectionForTemplate($template);
+		$sectionId = $section['id'] ?? 'content';
+		$active = $extra['active'] ?? ['template' => $template];
+		$treeHtml = $section
+			? $this->renderSectionTree($section, $active)
+			: $this->renderGlobalTree($active);
+
+		return array_merge([
+			'title' => $title,
+			'railActive' => $sectionId,
+			'treeTitle' => $section['label'] ?? 'Inhalte',
+			'treeHtml' => $treeHtml,
+		], $extra);
+	}
+
+	protected function findSectionForTemplate(string $template): ?array {
+		foreach ($this->navTree as $node) {
+			if (($node['type'] ?? '') !== 'section') {
+				continue;
+			}
+			if (in_array($template, $this->navConfig->templatesUnder($node), true)) {
+				return $node;
+			}
+		}
+		foreach ($this->navTree as $node) {
+			if (($node['type'] ?? '') === 'section') {
+				return $node;
+			}
+		}
+		return null;
+	}
+
+	protected function renderSectionTree(array $section, array $active): string {
+		$modes = $this->module->editorialModes();
+		$tree = new NavTree(
+			$this->adapter,
+			$this->navConfig,
+			fn(string $path) => $this->url($path),
+			fn(string $tpl, string $id) => $this->url('t/' . $tpl . '/' . $id),
+			$modes
+		);
+		return $tree->render($section['children'] ?? [], $active);
+	}
+
+	protected function renderGlobalTree(array $active): string {
+		$html = '<ul class="bpe-tree__list">';
+		foreach ($this->navTree as $node) {
+			$type = $node['type'] ?? '';
+			if ($type === 'dashboard') {
+				$href = $this->url();
+				$activeCls = ($active['node'] ?? '') === 'overview' ? ' is-active' : '';
+				$html .= '<li class="bpe-tree__item' . $activeCls . '"><a class="bpe-tree__row" href="'
+					. htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '">'
+					. Icons::svg($node['icon'] ?? 'layout-dashboard', 'bpe-icon bpe-icon--sm')
+					. '<span class="bpe-tree__label">' . htmlspecialchars($node['label'] ?? 'Übersicht', ENT_QUOTES, 'UTF-8')
+					. '</span></a></li>';
+			} elseif ($type === 'section') {
+				$href = $this->url('nav/' . ($node['id'] ?? ''));
+				$html .= '<li class="bpe-tree__item"><a class="bpe-tree__row" href="'
+					. htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '">'
+					. Icons::svg($node['icon'] ?? 'file-text', 'bpe-icon bpe-icon--sm')
+					. '<span class="bpe-tree__label">' . htmlspecialchars($node['label'] ?? '', ENT_QUOTES, 'UTF-8')
+					. '</span></a></li>';
+			}
+		}
+		$html .= '</ul>';
+		return '<div class="bpe-tree">' . $html . '</div>';
+	}
+
+	protected function shell(string $content, array $vars): string {
+		$shell = new ShellView();
+		$theme = $this->themeCss();
+		return $shell->render(array_merge([
+			'baseUrl' => $this->module->baseUrl(),
+			'assetUrl' => $this->module->moduleUrl() . 'assets/',
+			'content' => $content,
+			'userName' => $this->auth->displayName(),
+			'isDemo' => $this->auth->isDemoSession(),
+			'railItems' => $this->navConfig->railItems($this->allowedTemplates),
+			'dataSource' => $this->adapter instanceof ProcessWireAdapter ? 'ProcessWire' : 'Mock',
+			'themeStyle' => $theme,
+			'tinyMceUrl' => $this->tinyMceUrl(),
+			'needsTinyMce' => false,
+			'treeCollapsed' => false,
+		], $vars));
+	}
+
+	protected function themeCss(): string {
+		$accent = (string) ($this->module->get('theme_accent') ?: '#1f6b4a');
+		$rail = (string) ($this->module->get('theme_rail_bg') ?: '#1c1f1d');
+		$radius = (string) ($this->module->get('theme_radius') ?: '8');
+		$accent = preg_match('/^#[0-9a-fA-F]{3,8}$/', $accent) ? $accent : '#1f6b4a';
+		$rail = preg_match('/^#[0-9a-fA-F]{3,8}$/', $rail) ? $rail : '#1c1f1d';
+		$radius = preg_match('/^\d+(\.\d+)?$/', $radius) ? $radius : '8';
+		return ':root{--bpe-accent:' . $accent . ';--bpe-rail-bg:' . $rail . ';--bpe-radius:' . $radius . 'px;}';
+	}
+
+	protected function resolveSingletonId(string $template): ?string {
+		$records = $this->adapter->listRecords($template);
+		if (!$records) {
+			return null;
+		}
+		return (string) ($records[0]['id'] ?? '');
+	}
+
+	protected function wire() {
+		return $this->module->wire();
+	}
+
+	protected function isAllowedTemplate(string $template): bool {
+		return in_array($template, $this->allowedTemplates, true);
+	}
+
+	protected function getLogin(string $error = ''): string {
+		return $this->viewLogin([
+			'title' => 'Anmelden',
+			'error' => $error,
+			'action' => $this->url('login'),
+			'csrf' => $this->csrfField(),
+			'demoEnabled' => $this->auth->demoEnabled(),
+			'demoUser' => (string) $this->module->get('login_user'),
+		]);
+	}
+
+	protected function postLogin(): string {
+		$session = $this->wire()->session;
+		if (!$session->CSRF->hasValidToken()) {
+			return $this->getLogin('Sicherheits-Token ungültig. Bitte erneut versuchen.');
+		}
+		$input = $this->wire()->input;
+		$user = (string) $input->post('username');
+		$pass = (string) $input->post('password');
+		if ($this->auth->attempt($user, $pass)) {
+			$this->bindEditorialUser();
+			$this->refreshAccess();
+			return $this->redirect($this->url());
+		}
+		return $this->getLogin('Anmeldung fehlgeschlagen. Prüfen Sie Benutzername, Passwort und die Permission „editorial-access“.');
+	}
+
+	protected function viewLogin(array $vars): string {
 		$vars['module'] = $this->module;
 		$vars['baseUrl'] = $this->module->baseUrl();
 		$vars['assetUrl'] = $this->module->moduleUrl() . 'assets/';
-		$vars['userName'] = $vars['userName'] ?? $this->auth->displayName();
-		$vars['isDemo'] = $vars['isDemo'] ?? $this->auth->isDemoSession();
-		$vars['flash'] = $vars['flash'] ?? null;
-		$vars['navActive'] = $vars['navActive'] ?? null;
-		$vars['navItems'] = $vars['navItems'] ?? $this->contentTypes;
-		$vars['dataSource'] = $vars['dataSource'] ?? $this->dataSourceLabel();
-
-		$file = $this->module->modulePath() . '/views/' . $name . '.php';
-		if (!is_file($file)) {
-			throw new \RuntimeException("View fehlt: {$name}");
-		}
+		$file = $this->module->modulePath() . '/views/login.php';
 		extract($vars, EXTR_SKIP);
 		ob_start();
 		include $file;
@@ -354,19 +600,15 @@ class Router {
 
 	protected function renderError(int $code, string $message): string {
 		http_response_code($code);
-		$home = $this->contentTypes[0]['name'] ?? '';
-		$homeUrl = $home !== '' ? $this->url($home) : $this->module->baseUrl();
-		return $this->view('app', [
+		$content = '<div class="bpe-empty"><p class="bpe-empty__text">' .
+			htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>' .
+			'<a class="bpe-btn bpe-btn--primary" href="' . htmlspecialchars($this->url(), ENT_QUOTES, 'UTF-8') .
+			'">Zur Übersicht</a></div>';
+		return $this->shell($content, [
 			'title' => 'Hinweis',
-			'content' => '<div class="bpe-empty"><p class="bpe-empty__text">' .
-				htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>' .
-				($home !== ''
-					? '<a class="bpe-btn bpe-btn--primary" href="' . htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') .
-						'">Zur Übersicht</a>'
-					: '') .
-				'</div>',
-			'navActive' => null,
-			'userName' => $this->auth->displayName(),
+			'railActive' => 'overview',
+			'treeTitle' => 'Navigation',
+			'treeHtml' => $this->renderGlobalTree([]),
 		]);
 	}
 

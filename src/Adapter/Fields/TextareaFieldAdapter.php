@@ -11,26 +11,38 @@ class TextareaFieldAdapter extends AbstractFieldAdapter {
 	}
 
 	public function readSchema(Field $field, Page $page): array {
-		$schema = $this->baseSchema($field, 'textarea');
+		$isHtml = $this->isHtmlField($field);
+		$schema = $this->baseSchema($field, $isHtml ? 'html' : 'textarea');
 		$schema['placeholder'] = (string) $field->get('placeholder');
-		$schema['maxLength'] = (int) ($field->get('maxlength') ?: 16384);
-		$schema['rows'] = (int) ($field->get('rows') ?: 5);
+		$schema['maxLength'] = (int) ($field->get('maxlength') ?: ($isHtml ? 100000 : 16384));
+		$schema['rows'] = (int) ($field->get('rows') ?: ($isHtml ? 14 : 5));
 		$schema['contentType'] = (int) $field->get('contentType');
+		$schema['html'] = $isHtml;
+		$schema['panel'] = 'main';
 		return $schema;
 	}
 
 	public function sanitizeAndValidate(Field $field, Page $page, mixed $rawValue): array {
-		$contentType = (int) $field->get('contentType');
 		$errors = [];
-		if ($contentType > 0) {
-			$errors[] = '„' . $field->getLabel() . '“: HTML-Textarea wird im MVP nicht unterstützt.';
-			return ['value' => '', 'errors' => $errors];
+		$sanitizer = $field->wire()->sanitizer;
+		$isHtml = $this->isHtmlField($field);
+		$maxLength = (int) ($field->get('maxlength') ?: ($isHtml ? 100000 : 16384));
+		$raw = (string) ($rawValue ?? '');
+
+		if ($isHtml) {
+			if (method_exists($sanitizer, 'purify')) {
+				$clean = (string) $sanitizer->purify($raw);
+			} else {
+				$clean = strip_tags($raw, '<p><br><strong><b><em><i><u><ul><ol><li><a><h2><h3><h4><blockquote><code><pre><span>');
+			}
+			if (mb_strlen($clean) > $maxLength) {
+				$clean = mb_substr($clean, 0, $maxLength);
+			}
+		} else {
+			$clean = $sanitizer->textarea($raw, ['maxLength' => $maxLength]);
 		}
 
-		$sanitizer = $field->wire()->sanitizer;
-		$maxLength = (int) ($field->get('maxlength') ?: 16384);
-		$clean = $sanitizer->textarea((string) ($rawValue ?? ''), ['maxLength' => $maxLength]);
-		if ($field->get('required') && $clean === '') {
+		if ($field->get('required') && trim(strip_tags($clean)) === '') {
 			$errors[] = $this->requiredError($field);
 		}
 		return ['value' => $clean, 'errors' => $errors];
@@ -42,5 +54,20 @@ class TextareaFieldAdapter extends AbstractFieldAdapter {
 
 	public function readValue(Field $field, Page $page): mixed {
 		return (string) $page->getUnformatted($field->name);
+	}
+
+	protected function isHtmlField(Field $field): bool {
+		$contentType = (int) $field->get('contentType');
+		if ($contentType > 0) {
+			return true;
+		}
+		$inputfieldClass = (string) $field->get('inputfieldClass');
+		if ($inputfieldClass !== '' && stripos($inputfieldClass, 'TinyMCE') !== false) {
+			return true;
+		}
+		if ($inputfieldClass !== '' && stripos($inputfieldClass, 'CKEditor') !== false) {
+			return true;
+		}
+		return false;
 	}
 }

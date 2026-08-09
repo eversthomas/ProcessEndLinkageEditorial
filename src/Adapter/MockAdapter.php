@@ -102,6 +102,9 @@ class MockAdapter implements AdapterInterface {
 			return ['record' => null, 'errors' => $errors];
 		}
 
+		$status = (string) ($data['status'] ?? 'published');
+		$clean['status'] = $status === 'unpublished' ? 'unpublished' : 'published';
+
 		$record = $this->store->save($clean);
 		return ['record' => $record, 'errors' => []];
 	}
@@ -118,7 +121,7 @@ class MockAdapter implements AdapterInterface {
 			'checkbox' => filter_var($raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
 			'pageReference' => array_values(array_filter(array_map('intval', (array) $raw))),
 			'image' => is_string($raw) && $raw !== '' ? $raw : null,
-			'text', 'textarea', 'select' => is_string($raw) ? trim($raw) : (string) ($raw ?? ''),
+			'text', 'textarea', 'html', 'select' => is_string($raw) ? trim($raw) : (string) ($raw ?? ''),
 			default => $raw,
 		};
 	}
@@ -128,6 +131,7 @@ class MockAdapter implements AdapterInterface {
 			'checkbox' => false,
 			'pageReference' => empty($value),
 			'image' => $value === null || $value === '',
+			'html' => trim(strip_tags((string) $value)) === '',
 			default => $value === null || $value === '',
 		};
 	}

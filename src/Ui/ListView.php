@@ -71,7 +71,7 @@ class ListView {
 		foreach ($schema['fields'] ?? [] as $field) {
 			$type = $field['type'] ?? '';
 			$name = $field['name'] ?? '';
-			if ($name === '' || in_array($type, ['image', 'pageReference', 'textarea'], true)) {
+			if ($name === '' || in_array($type, ['image', 'pageReference', 'textarea', 'html'], true)) {
 				continue;
 			}
 			if ($name === 'title') {

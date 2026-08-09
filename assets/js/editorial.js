@@ -1,8 +1,11 @@
 /**
- * Editorial UI — leichtgewichtige Form-Hilfe (Inline-Validierung Pflichtfelder).
+ * Editorial UI — Shell-Toggles, Tree, Flash, Form-Validierung, TinyMCE-Helfer.
  */
 (function () {
   'use strict';
+
+  var RAIL_KEY = 'bpe_rail';
+  var TREE_KEY = 'bpe_tree';
 
   function markInvalid(field, message) {
     field.classList.add('bpe-field--error');
@@ -25,6 +28,10 @@
   function validateField(field) {
     var input = field.querySelector('input:not([type="hidden"]), textarea, select');
     if (!input || !input.hasAttribute('required')) return true;
+    if (input.classList.contains('bpe-input--html') && window.tinymce) {
+      var ed = tinymce.get(input.id);
+      if (ed) ed.save();
+    }
 
     var empty = false;
     if (input.type === 'checkbox') {
@@ -32,7 +39,7 @@
     } else if (input.tagName === 'SELECT' && input.multiple) {
       empty = input.selectedOptions.length === 0;
     } else {
-      empty = !String(input.value || '').trim();
+      empty = !String(input.value || '').replace(/<[^>]+>/g, '').trim();
     }
 
     if (empty) {
@@ -55,15 +62,62 @@
           if (flash.parentNode) flash.parentNode.removeChild(flash);
         }, 260);
       };
-      if (close) {
-        close.addEventListener('click', hide);
-      }
+      if (close) close.addEventListener('click', hide);
       window.setTimeout(hide, 5000);
+    });
+  }
+
+  function bindShell() {
+    var shell = document.querySelector('[data-bpe-shell] .bpe-shell') || document.querySelector('.bpe-shell');
+    if (!shell) return;
+
+    var rail = localStorage.getItem(RAIL_KEY) || 'expanded';
+    var tree = localStorage.getItem(TREE_KEY) || 'open';
+    shell.setAttribute('data-rail', rail === 'collapsed' ? 'collapsed' : 'expanded');
+    shell.setAttribute('data-tree', tree === 'collapsed' ? 'collapsed' : 'open');
+
+    document.querySelectorAll('[data-bpe-rail-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var next = shell.getAttribute('data-rail') === 'collapsed' ? 'expanded' : 'collapsed';
+        shell.setAttribute('data-rail', next);
+        localStorage.setItem(RAIL_KEY, next);
+      });
+    });
+
+    document.querySelectorAll('[data-bpe-tree-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var next = shell.getAttribute('data-tree') === 'collapsed' ? 'open' : 'collapsed';
+        shell.setAttribute('data-tree', next);
+        localStorage.setItem(TREE_KEY, next);
+      });
+    });
+
+    document.querySelectorAll('.bpe-tree__toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var item = btn.closest('.bpe-tree__item');
+        if (!item) return;
+        var children = item.querySelector(':scope > .bpe-tree__children');
+        var open = item.classList.toggle('is-open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (children) {
+          if (open) children.removeAttribute('hidden');
+          else children.setAttribute('hidden', 'hidden');
+        }
+      });
+    });
+
+    document.querySelectorAll('.bpe-tile__action[data-href]').forEach(function (el) {
+      el.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.location.href = el.getAttribute('data-href');
+      });
     });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     bindFlashDismiss();
+    bindShell();
 
     var form = document.querySelector('.bpe-form');
     if (!form) return;
@@ -77,6 +131,7 @@
     });
 
     form.addEventListener('submit', function (event) {
+      if (window.tinymce) tinymce.triggerSave();
       var ok = true;
       form.querySelectorAll('.bpe-field').forEach(function (field) {
         if (!validateField(field)) ok = false;

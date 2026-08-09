@@ -7,14 +7,14 @@ use ProcessWire\BsProcessEditorial\FormEngine\Fields\PageReferenceField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\SelectField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\TextareaField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\TextField;
+use ProcessWire\BsProcessEditorial\Ui\Icons;
 
 /**
- * Form-Engine: rendert Formulare ausschließlich aus Schema-Daten.
- * Layout: Inhaltsfelder links, Meta-Panel rechts (Titelbild, Kategorie, Status, …).
+ * Form-Engine: Schema → Formular. Hauptfläche + Details-Sidebar inkl. Publish.
  */
 class FormRenderer {
 
-	/** Feldtypen standardmäßig im Meta-Panel */
+	/** Feldtypen standardmäßig im Details-Panel */
 	protected const META_TYPES = ['checkbox', 'select', 'image', 'pageReference'];
 
 	/** @var FieldRendererInterface[] */
@@ -38,6 +38,9 @@ class FormRenderer {
 		$csrf = $options['csrf'] ?? '';
 		$breadcrumb = $options['breadcrumb'] ?? null;
 		$savedAt = $options['savedAt'] ?? null;
+		$previewUrl = $options['previewUrl'] ?? null;
+		$status = $values['status'] ?? ($options['status'] ?? 'published');
+		$showPublish = array_key_exists('showPublish', $options) ? (bool) $options['showPublish'] : true;
 
 		[$mainFields, $metaFields] = $this->splitFields($schema['fields'] ?? [], $options);
 
@@ -62,7 +65,7 @@ class FormRenderer {
 					$parts[] = '<span aria-current="page">' . $label . '</span>';
 				}
 			}
-			$html .= implode('<span class="bpe-breadcrumb__sep">/</span>', $parts);
+			$html .= implode('<span class="bpe-breadcrumb__sep">›</span>', $parts);
 			$html .= '</nav>';
 		}
 		$html .= '<h1 class="bpe-form__title">' . $this->e($title) . '</h1>';
@@ -72,10 +75,12 @@ class FormRenderer {
 		}
 		$html .= '</div>';
 		$html .= '<div class="bpe-form__header-actions">';
-		$html .= '<button type="submit" class="bpe-btn bpe-btn--primary">' . $this->e($submitLabel) . '</button>';
-		if (!empty($options['cancelUrl'])) {
-			$html .= '<a class="bpe-btn bpe-btn--ghost" href="' . $this->e($options['cancelUrl']) . '">Abbrechen</a>';
+		if ($previewUrl) {
+			$html .= '<a class="bpe-btn bpe-btn--ghost" href="' . $this->e($previewUrl) . '" target="_blank" rel="noopener">'
+				. Icons::svg('eye', 'bpe-icon bpe-icon--sm') . ' Vorschau</a>';
 		}
+		$html .= '<button type="submit" name="bpe_action" value="save" class="bpe-btn bpe-btn--primary">'
+			. Icons::svg('save', 'bpe-icon bpe-icon--sm') . ' ' . $this->e($submitLabel) . '</button>';
 		$html .= '</div>';
 		$html .= '</header>';
 
@@ -84,26 +89,42 @@ class FormRenderer {
 		foreach ($mainFields as $field) {
 			$html .= $this->renderFieldWithValue($field, $values, $errors);
 		}
-		$html .= '</div>';
-
-		if ($metaFields) {
-			$html .= '<aside class="bpe-form__meta" aria-label="Eigenschaften">';
-			$html .= '<h2 class="bpe-form__meta-title">Eigenschaften</h2>';
-			foreach ($metaFields as $field) {
-				$html .= $this->renderFieldWithValue($field, $values, $errors);
-			}
-			$html .= '</aside>';
+		if (!$mainFields) {
+			$html .= '<p class="bpe-muted">Keine Inhaltsfelder in diesem Template.</p>';
 		}
 		$html .= '</div>';
 
-		$html .= '<footer class="bpe-form__footer">';
-		$html .= '<button type="submit" class="bpe-btn bpe-btn--primary">' . $this->e($submitLabel) . '</button>';
-		if (!empty($options['cancelUrl'])) {
-			$html .= '<a class="bpe-btn bpe-btn--ghost" href="' . $this->e($options['cancelUrl']) . '">Zur Übersicht</a>';
+		$html .= '<aside class="bpe-form__meta" aria-label="Details">';
+		$html .= '<div class="bpe-form__meta-head">';
+		$html .= '<h2 class="bpe-form__meta-title">Details</h2>';
+		$html .= '</div>';
+		foreach ($metaFields as $field) {
+			$html .= $this->renderFieldWithValue($field, $values, $errors);
 		}
-		$html .= '</footer>';
+		if ($showPublish) {
+			$html .= $this->renderPublishBlock($status);
+		}
+		$html .= '</aside>';
+		$html .= '</div>';
 		$html .= '</form>';
 
+		return $html;
+	}
+
+	protected function renderPublishBlock(string $status): string {
+		$published = $status === 'published';
+		$html = '<div class="bpe-publish">';
+		$html .= '<p class="bpe-publish__label">Veröffentlichungsstatus</p>';
+		$html .= '<p class="bpe-publish__status' . ($published ? ' is-live' : ' is-draft') . '">'
+			. ($published ? 'Veröffentlicht' : 'Entwurf') . '</p>';
+		$html .= '<input type="hidden" name="status" id="bpe-status" value="' . $this->e($status) . '">';
+		if ($published) {
+			$html .= '<button type="submit" name="bpe_action" value="unpublish" class="bpe-btn bpe-btn--ghost bpe-btn--block">Zurück auf Entwurf</button>';
+		} else {
+			$html .= '<button type="submit" name="bpe_action" value="publish" class="bpe-btn bpe-btn--publish bpe-btn--block">Veröffentlichen</button>';
+		}
+		$html .= '<p class="bpe-publish__schedule"><span class="bpe-muted">Zeitplan festlegen (demnächst)</span></p>';
+		$html .= '</div>';
 		return $html;
 	}
 
@@ -137,6 +158,15 @@ class FormRenderer {
 		foreach ($fields as $field) {
 			$type = $field['type'] ?? '';
 			$name = $field['name'] ?? '';
+			$panel = $field['panel'] ?? null;
+			if ($panel === 'main') {
+				$main[] = $field;
+				continue;
+			}
+			if ($panel === 'meta' || $panel === 'sidebar') {
+				$meta[] = $field;
+				continue;
+			}
 			$isMeta = is_array($metaNames)
 				? in_array($name, $metaNames, true)
 				: in_array($type, self::META_TYPES, true);
