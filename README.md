@@ -145,8 +145,14 @@ Löschen/Zusammenlegen der Planungsdateien lohnt erst vor Open-Source oder wenn 
 
 ## Kurz testen
 
-1. Module → BsProcessEditorial installiert / Cache ok
-2. Setup → Redaktion: Templates freigeben, Menü speichern, Branding setzen
-3. User mit Rolle `editorial` oder Superuser → `/editorial/`
-4. Inhaltstyp öffnen, speichern, Publish prüfen
+1. Module → BsProcessEditorial installiert / Cache ok  
+2. Setup → Redaktion: Templates freigeben, Menü speichern, Branding setzen  
+3. User mit Rolle `editorial` oder Superuser → `/editorial/`  
+4. Inhaltstyp öffnen, speichern, Publish prüfen  
+
+### Deploy-Hinweis (Linux / Subdomain)
+
+- Modulordner-Name darf von `bs-processEditorial` abweichen — Asset-URLs kommen aus dem realen Pfad.
+- Nach fehlgeschlagener Erstinstallation: neu installieren **oder** unter Access die Permission `editorial-access` und Rolle `editorial` prüfen/anlegen.
+- CSS prüfen: View-Source der Login-Seite → Link muss auf den **tatsächlichen** Modulordner zeigen.
 5. **Neu:** die 7 zusätzlichen Feldtypen (email, url, integer, float, datetime, file, html) einzeln gegen ein echtes PW-Feld testen — bisher ungetestet

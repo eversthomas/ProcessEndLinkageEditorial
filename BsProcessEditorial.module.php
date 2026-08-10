@@ -12,7 +12,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 9,
+			'version' => 10,
 			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE und Publish.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
@@ -452,6 +452,11 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	}
 
 	protected function registerAutoloader(): void {
+		static $registered = false;
+		if ($registered) {
+			return;
+		}
+		$registered = true;
 		spl_autoload_register(function (string $class): void {
 			$prefix = 'ProcessWire\\BsProcessEditorial\\';
 			if (!str_starts_with($class, $prefix)) {
@@ -474,8 +479,19 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		return __DIR__;
 	}
 
+	/**
+	 * Öffentliche Modul-URL — Ordnername aus dem realen Pfad (Linux case-sensitiv).
+	 */
 	public function moduleUrl(): string {
-		return $this->wire()->config->urls->siteModules . 'bs-processEditorial/';
+		$urls = $this->wire()->config->urls;
+		// PW kennt Modul-URLs über paths/urls des Modulverzeichnisses
+		$path = $this->modulePath();
+		$siteModulesPath = rtrim($this->wire()->config->paths->siteModules, '/');
+		if (str_starts_with($path, $siteModulesPath)) {
+			$relative = substr($path, strlen($siteModulesPath));
+			return rtrim($urls->siteModules, '/') . str_replace('\\', '/', $relative) . '/';
+		}
+		return rtrim($urls->siteModules, '/') . '/' . basename($path) . '/';
 	}
 
 	public function baseUrl(): string {
@@ -489,6 +505,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	}
 
 	public function ___install(): void {
+		$this->registerAutoloader();
 		parent::___install();
 		$auth = new \ProcessWire\BsProcessEditorial\Auth\EditorialAuth($this);
 		$auth->ensureAccessInfrastructure();
