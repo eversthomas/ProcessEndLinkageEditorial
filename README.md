@@ -48,6 +48,7 @@ URL-App typisch: `/editorial/` · Modulversion: siehe `BsProcessEditorial.module
 - Theme-Tokens (Akzent, Rail, Radius) inkl. Farbpicker
 - Kunden-Branding: Firmenname + Logo (siehe Sicherheitsfund oben — Upload-Härtung noch offen)
 - Datenquelle: auto / ProcessWire / Mock
+- Geister-Templates: leere Defaults statt `ansprechpartner` (A), Nav/Routen nur bei `supportsTemplate` (B), freundliche Fehlerseite statt Stacktrace (C)
 
 ### Redaktions-UX
 - 4-Spalten-Shell: Icon-Rail (Toggle + Tooltips) | Inhaltsbaum | Header/Main/Footer
@@ -112,17 +113,18 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 2. Router.php: Adapter-Kopplung durch Interface-Methode ersetzen
 3. Pflichtfeld-Kennzeichnung um sichtbaren Text ergänzen
 4. Die 7 zusätzlichen Feldtypen end-to-end gegen echte PW-Instanz testen
-5. **Listen: Suche / Filter / Sortierung**
-6. **Löschen / Papierkorb** für Datensätze
-7. **Medienbibliothek** (statt nur Upload am Feld)
-8. **Autosave** + robusteres Speichern-Feedback
-9. **Zeitplanung** veröffentlichen (aktuell Stub)
-10. **Rechte feiner** (anlegen/löschen vs. nur bearbeiten)
-11. **Sicherheit Go-Live:** Rate-Limit/Lockout, Session-Timeout, kurze Security-Checkliste
-12. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
-13. **Workflow** jenseits Publish/Entwurf
-14. **Weitere Feldtypen** bei Bedarf: Repeater, Combo, …
-15. Repo öffentlich / Doku für Dritte (wenn gewünscht)
+5. **C — Freundliche Fehlerseite** bei fehlendem/unsupported Template (statt PHP-Stacktrace) — Kernpfad in `Router::dispatchTemplate` erledigt; bei weiteren Adapter-Fehlpfaden ggf. erweitern / auf Deploy prüfen
+6. **Listen: Suche / Filter / Sortierung**
+7. **Löschen / Papierkorb** für Datensätze
+8. **Medienbibliothek** (statt nur Upload am Feld)
+9. **Autosave** + robusteres Speichern-Feedback
+10. **Zeitplanung** veröffentlichen (aktuell Stub)
+11. **Rechte feiner** (anlegen/löschen vs. nur bearbeiten)
+12. **Sicherheit Go-Live:** Rate-Limit/Lockout, Session-Timeout, kurze Security-Checkliste
+13. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
+14. **Workflow** jenseits Publish/Entwurf
+15. **Weitere Feldtypen** bei Bedarf: Repeater, Combo, …
+16. Repo öffentlich / Doku für Dritte (wenn gewünscht)
 
 Einstieg morgen: dieses README lesen, dann `projektplan/PROJECT.md`. Code starten bei Punkt 1 (SVG-Härtung) oder — falls die MVP+-Entscheidung zuerst ansteht — mit dem Gespräch darüber.
 

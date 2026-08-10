@@ -12,7 +12,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 10,
+			'version' => 12,
 			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE und Publish.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
@@ -33,8 +33,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('login_pass', 'redaktion');
 		$this->set('base_path', self::BASE_PATH);
 		$this->set('data_source', 'auto');
-		$this->set('editorial_templates', ['ansprechpartner']);
-		$this->set('editorial_modes', ['ansprechpartner' => 'list']);
+		$this->set('editorial_templates', []);
+		$this->set('editorial_modes', []);
 		$this->set('role_templates', []);
 		$this->set('editorial_nav', '');
 		$this->set('theme_accent', '#1f6b4a');
@@ -161,7 +161,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$raw = preg_split('/[\s,]+/', $raw) ?: [];
 		}
 		if (!is_array($raw)) {
-			$raw = ['ansprechpartner'];
+			$raw = [];
 		}
 		$names = [];
 		foreach ($raw as $name) {
@@ -170,7 +170,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 				$names[] = $name;
 			}
 		}
-		return $names ?: ['ansprechpartner'];
+		return $names;
 	}
 
 	/**
@@ -622,9 +622,9 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$f->addOption($name, $label);
 			$optionNames[$name] = true;
 		}
-		$selected = $data['editorial_templates'] ?? ['ansprechpartner'];
+		$selected = $data['editorial_templates'] ?? [];
 		if (!is_array($selected)) {
-			$selected = [$selected];
+			$selected = $selected ? [(string) $selected] : [];
 		}
 		foreach ($selected as $name) {
 			$name = (string) $name;

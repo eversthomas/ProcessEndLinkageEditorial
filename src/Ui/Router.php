@@ -106,52 +106,73 @@ class Router {
 		$template = $segments[0] ?? '';
 		$action = $segments[1] ?? null;
 
-		if (!$this->isAllowedTemplate($template)) {
-			return $this->renderError(404, 'Unbekannter Inhaltstyp.');
+		if (!$this->isAllowedTemplate($template) || !$this->adapter->supportsTemplate($template)) {
+			return $this->renderError(
+				404,
+				'Dieser Inhaltstyp ist nicht verfügbar. Unter Setup → Redaktion nur Templates freigeben, die in ProcessWire existieren.'
+			);
 		}
 
-		$isSingle = $this->module->editorialMode($template) === 'single';
+		try {
+			$isSingle = $this->module->editorialMode($template) === 'single';
 
-		if ($isSingle) {
-			if ($action === 'new') {
-				return $this->redirect($this->url('t/' . $template));
-			}
-			if ($action === null || $action === '' || ctype_digit((string) $action)) {
-				$id = ($action !== null && $action !== '' && ctype_digit((string) $action))
-					? (string) $action
-					: $this->resolveSingletonId($template);
-				if ($id === null) {
-					return $this->renderError(404, 'Keine Seite für diesen Inhaltstyp gefunden.');
-				}
-				if ($action !== null && $action !== '' && ctype_digit((string) $action) && $method === 'GET') {
+			if ($isSingle) {
+				if ($action === 'new') {
 					return $this->redirect($this->url('t/' . $template));
 				}
-				return $method === 'POST'
-					? $this->postForm($template, $id, true)
-					: $this->getForm($template, $id, [], [], true);
+				if ($action === null || $action === '' || ctype_digit((string) $action)) {
+					$id = ($action !== null && $action !== '' && ctype_digit((string) $action))
+						? (string) $action
+						: $this->resolveSingletonId($template);
+					if ($id === null) {
+						return $this->renderError(404, 'Keine Seite für diesen Inhaltstyp gefunden.');
+					}
+					if ($action !== null && $action !== '' && ctype_digit((string) $action) && $method === 'GET') {
+						return $this->redirect($this->url('t/' . $template));
+					}
+					return $method === 'POST'
+						? $this->postForm($template, $id, true)
+						: $this->getForm($template, $id, [], [], true);
+				}
+				return $this->renderError(404, 'Seite nicht gefunden.');
 			}
+
+			if ($action === null || $action === '') {
+				return $this->getList($template);
+			}
+			if ($action === 'new') {
+				return $method === 'POST' ? $this->postForm($template, null) : $this->getForm($template, null);
+			}
+			if (ctype_digit($action)) {
+				return $method === 'POST' ? $this->postForm($template, $action) : $this->getForm($template, $action);
+			}
+
 			return $this->renderError(404, 'Seite nicht gefunden.');
+		} catch (\InvalidArgumentException $e) {
+			return $this->renderError(
+				404,
+				'Dieser Inhaltstyp konnte nicht geladen werden. Bitte Freigabe und Datenquelle unter Setup → Redaktion prüfen.'
+			);
+		} catch (\ProcessWire\WireException $e) {
+			return $this->renderError(
+				404,
+				'Dieser Inhaltstyp konnte nicht geladen werden. Bitte Freigabe und Datenquelle unter Setup → Redaktion prüfen.'
+			);
 		}
-
-		if ($action === null || $action === '') {
-			return $this->getList($template);
-		}
-		if ($action === 'new') {
-			return $method === 'POST' ? $this->postForm($template, null) : $this->getForm($template, null);
-		}
-		if (ctype_digit($action)) {
-			return $method === 'POST' ? $this->postForm($template, $action) : $this->getForm($template, $action);
-		}
-
-		return $this->renderError(404, 'Seite nicht gefunden.');
 	}
 
 	protected function refreshAccess(): void {
 		$access = new TemplateAccess($this->module);
 		$user = $this->auth->currentUser();
-		$this->allowedTemplates = $this->auth->isDemoSession()
+		$candidates = $this->auth->isDemoSession()
 			? $this->module->editorialTemplateNames()
 			: $access->allowedTemplates($user);
+
+		// Nur Templates, die die aktive Datenquelle wirklich bedienen kann
+		$this->allowedTemplates = array_values(array_filter(
+			$candidates,
+			fn(string $name) => $name !== '' && $this->adapter->supportsTemplate($name)
+		));
 
 		$types = [];
 		foreach ($this->adapter->listContentTypes() as $type) {
