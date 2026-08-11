@@ -84,7 +84,7 @@ Nicht in diesem Schritt: inhaltliche Gliederung der Felder selbst (das ist Schri
 
 ---
 
-## Schritt 4 — Transparenz für nicht unterstützte/unvollständige Felder
+## Schritt 4 — Transparenz für nicht unterstützte/unvollständige Felder ✅ erledigt
 
 **Ziel:** Statt Felder ohne passenden Adapter lautlos zu überspringen, sollen sie sichtbar als "noch nicht unterstützt" markiert werden — sowohl für den Entwickler (Setup) als auch für den Redakteur (Formular). Zusätzlich: Bild-Feld zeigt aktuell nur den Dateinamen als Text statt einer Vorschau.
 
@@ -97,9 +97,11 @@ Nicht in diesem Schritt: neue Feldtyp-Adapter selbst bauen (z. B. Repeater) — 
 
 **Akzeptanzkriterium:** Ein Template mit einem nicht unterstützten Feldtyp zeigt im Setup und im Redaktionsformular einen klaren Hinweis statt eines stillschweigend fehlenden Feldes; Bild-Feld zeigt eine Vorschau.
 
+**Umsetzung (live, verifiziert):** Setup zeigt pro Template eine "Ohne Adapter"-Spalte (Feldname + PW-Feldtyp) über `unsupportedFieldsForTemplate()`. `readSchema()` liefert unsupported Felder als `type: unsupported` (nur Name/Typ als Metadaten, kein Feldwert) statt sie zu überspringen; eigene `UnsupportedField`-Renderklasse zeigt den Platzhalter. `Router.php` überspringt unsupported Felder beim POST vollständig — bestehende Werte bleiben beim Speichern anderer Felder unangetastet. Bild-Vorschau liefert jetzt `{name, url}` mit Thumbnail. Getestet mit temporärem `FieldtypePassword`-Feld (danach entfernt); auf aktuellen Kandidaten-Templates sonst keine unsupported Felder.
+
 ---
 
-## Schritt 5 — Setup-Formular strukturieren
+## Schritt 5 — Setup-Formular strukturieren ✅ erledigt
 
 **Ziel:** Das aktuell lineare, ungegliederte Formular (~20 Felder in einer Spalte) in klare Abschnitte gliedern, z. B.:
 1. Inhalte & Freigabe (Templates, Modus pro Typ)
@@ -113,6 +115,14 @@ Voraussetzung: Schritt 1 (Testdaten raus) und Schritt 3 (Dopplung raus) sind abg
 Nicht in diesem Schritt: visuelles Redesign der Redaktions-Oberfläche selbst (das ist ein separates, späteres Thema) — hier geht es ausschließlich um den Entwickler-Settings-Screen unter Setup → Redaktion.
 
 **Akzeptanzkriterium:** Formular ist in benannte Abschnitte/Fieldsets gegliedert; keine funktionale Änderung an den Feldern selbst.
+
+**Umsetzung (live):** `InputfieldFieldset` (alle Abschnitte aufgeklappt) — Speichern läuft weiter über `form->getAll()`, das rekursiv in Fieldsets liest. Fünf Abschnitte: Inhalte & Freigabe (`editorial_templates`, `mode__*`), Navigation (`editorial_nav_builder`, `editorial_nav`), Design/Branding (`brand_name`, `brand_logo_ui`, `theme_accent`, `theme_rail_bg`, `theme_radius`), Zugriff/Rollen (`role__*`, Abschnitt nur bei vorhandenen Rollen), Erweitert (`allow_demo_login`, `login_user`, `login_pass`, `base_path`). "Ohne Adapter"-Hinweise aus Schritt 4 bleiben als eigene Tabelle oberhalb des Formulars. Gegen die ursprüngliche Feldliste geprüft: alle 14 Felder/Feldmuster vollständig zugeordnet, `data_source`/`setup_mvp` korrekt nicht mehr vorhanden. Save/Reload live getestet für `brand_name`/`base_path`; `mode__*`/`role__*` (dynamisch benannt) noch nicht explizit gegengetestet, aber laut Fieldset-Mechanik unkritisch.
+
+---
+
+## Bereinigungsphase abgeschlossen
+
+Schritt 1–5 sind erledigt. Letzter offener Punkt: **README.md wieder auf den echten Stand bringen** (aktuell noch teilweise veraltet, siehe Tabelle unten) — erst danach zurück in reguläre Weiterentwicklung.
 
 ---
 

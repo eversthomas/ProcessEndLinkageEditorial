@@ -636,47 +636,14 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	protected function buildConfigFields(array $data): array {
 		$modules = $this->wire()->modules;
 		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
-		$fields = [];
 
-		/** @var InputfieldText $f */
-		$f = $modules->get('InputfieldText');
-		$f->name = 'brand_name';
-		$f->label = 'Kunden-Branding: Firmenname';
-		$f->description = 'Erscheint im Header und in der Rail der Redaktion. Leer = „Redaktion“.';
-		$f->value = $data['brand_name'] ?? '';
-		$fields[] = $f;
-
-		$logoFile = basename((string) ($data['brand_logo'] ?? ''));
-		$logoUrl = null;
-		if ($logoFile !== '' && strtolower(pathinfo($logoFile, PATHINFO_EXTENSION)) !== 'svg') {
-			$logoPath = $this->brandLogoDir() . $logoFile;
-			if (is_file($logoPath)) {
-				$logoUrl = rtrim($this->wire()->config->urls->assets, '/')
-					. '/bs-processEditorial/brand/' . rawurlencode($logoFile);
-			}
-		}
-		/** @var InputfieldMarkup $f */
-		$f = $modules->get('InputfieldMarkup');
-		$f->name = 'brand_logo_ui';
-		$f->label = 'Kunden-Branding: Logo';
-		$f->description = 'PNG, JPG, GIF oder WebP, max. 2 MB. Wird im Header und in der Rail angezeigt.';
-		$html = '';
-		if ($logoUrl) {
-			$html .= '<p class="bpe-admin-logo-preview"><img src="'
-				. htmlspecialchars($logoUrl) . '" alt="Logo" style="max-height:64px;max-width:220px;background:#fff;padding:6px;border:1px solid #ddd;border-radius:4px;"></p>';
-			$html .= '<p><label><input type="checkbox" name="brand_logo_clear" value="1"> Logo entfernen</label></p>';
-		}
-		$html .= '<input type="file" name="brand_logo_file" accept="image/png,image/jpeg,image/gif,image/webp">';
-		$f->value = $html;
-		$fields[] = $f;
-
-		/** @var InputfieldText $f */
-		$f = $modules->get('InputfieldText');
-		$f->name = 'base_path';
-		$f->label = 'URL-Pfad der Redaktion';
-		$f->description = 'Ohne führenden Slash, z. B. editorial → /editorial/';
-		$f->value = $data['base_path'] ?? self::BASE_PATH;
-		$fields[] = $f;
+		// —— 1. Inhalte & Freigabe ——
+		/** @var InputfieldFieldset $fsContent */
+		$fsContent = $modules->get('InputfieldFieldset');
+		$fsContent->label = 'Inhalte & Freigabe';
+		$fsContent->description = 'Welche Templates Redakteure sehen und wie sie dargestellt werden. '
+			. 'Felder ohne Adapter stehen in der Tabelle „Entdeckte Inhaltstypen“ oben.';
+		$fsContent->collapsed = Inputfield::collapsedNo;
 
 		/** @var InputfieldAsmSelect $f */
 		$f = $modules->get('InputfieldAsmSelect');
@@ -700,9 +667,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			}
 		}
 		$f->value = $selected;
-		$fields[] = $f;
+		$fsContent->add($f);
 
-		// Darstellungsmodus pro freigegebenem Template
 		$modes = is_array($data['editorial_modes'] ?? null) ? $data['editorial_modes'] : [];
 		foreach ($selected as $name) {
 			$name = (string) $name;
@@ -717,9 +683,10 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$mf->addOption('list', 'Datensätze (Liste)');
 			$mf->addOption('single', 'Einzelseite (ohne Liste)');
 			$mf->value = $modes[$name] ?? $discovery->suggestMode($name);
-			$fields[] = $mf;
+			$fsContent->add($mf);
 		}
 
+		// —— 2. Navigation ——
 		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
 		$prevTemplates = $this->get('editorial_templates');
 		$prevModes = $this->get('editorial_modes');
@@ -751,6 +718,11 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		$this->wire()->config->scripts->add($this->moduleUrl() . 'assets/js/nav-builder.js?v=8');
 
+		/** @var InputfieldFieldset $fsNav */
+		$fsNav = $modules->get('InputfieldFieldset');
+		$fsNav->label = 'Navigation';
+		$fsNav->collapsed = Inputfield::collapsedNo;
+
 		$builder = new \ProcessWire\BsProcessEditorial\Setup\NavBuilder($this);
 		/** @var InputfieldMarkup $f */
 		$f = $modules->get('InputfieldMarkup');
@@ -758,7 +730,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->label = 'Menühierarchie';
 		$f->description = 'Visuell Sections, Gruppen, Reihenfolge und Icons. Neu freigegebene Templates erscheinen automatisch in der Default-Gruppe.';
 		$f->value = $builder->renderMarkup($navTree, $tplLabels);
-		$fields[] = $f;
+		$fsNav->add($f);
 
 		/** @var InputfieldTextarea $f */
 		$f = $modules->get('InputfieldTextarea');
@@ -768,9 +740,46 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->rows = 12;
 		$f->collapsed = Inputfield::collapsedYes;
 		$f->value = $navJson;
-		$fields[] = $f;
+		$fsNav->add($f);
 
-		// Kein natives InputfieldColor in PW-Core → HTML5 type=color
+		// —— 3. Design/Branding ——
+		/** @var InputfieldFieldset $fsDesign */
+		$fsDesign = $modules->get('InputfieldFieldset');
+		$fsDesign->label = 'Design / Branding';
+		$fsDesign->collapsed = Inputfield::collapsedNo;
+
+		/** @var InputfieldText $f */
+		$f = $modules->get('InputfieldText');
+		$f->name = 'brand_name';
+		$f->label = 'Kunden-Branding: Firmenname';
+		$f->description = 'Erscheint im Header und in der Rail der Redaktion. Leer = „Redaktion“.';
+		$f->value = $data['brand_name'] ?? '';
+		$fsDesign->add($f);
+
+		$logoFile = basename((string) ($data['brand_logo'] ?? ''));
+		$logoUrl = null;
+		if ($logoFile !== '' && strtolower(pathinfo($logoFile, PATHINFO_EXTENSION)) !== 'svg') {
+			$logoPath = $this->brandLogoDir() . $logoFile;
+			if (is_file($logoPath)) {
+				$logoUrl = rtrim($this->wire()->config->urls->assets, '/')
+					. '/bs-processEditorial/brand/' . rawurlencode($logoFile);
+			}
+		}
+		/** @var InputfieldMarkup $f */
+		$f = $modules->get('InputfieldMarkup');
+		$f->name = 'brand_logo_ui';
+		$f->label = 'Kunden-Branding: Logo';
+		$f->description = 'PNG, JPG, GIF oder WebP, max. 2 MB. Wird im Header und in der Rail angezeigt.';
+		$html = '';
+		if ($logoUrl) {
+			$html .= '<p class="bpe-admin-logo-preview"><img src="'
+				. htmlspecialchars($logoUrl) . '" alt="Logo" style="max-height:64px;max-width:220px;background:#fff;padding:6px;border:1px solid #ddd;border-radius:4px;"></p>';
+			$html .= '<p><label><input type="checkbox" name="brand_logo_clear" value="1"> Logo entfernen</label></p>';
+		}
+		$html .= '<input type="file" name="brand_logo_file" accept="image/png,image/jpeg,image/gif,image/webp">';
+		$f->value = $html;
+		$fsDesign->add($f);
+
 		foreach ([
 			['theme_accent', 'Theme: Akzentfarbe', '#1f6b4a'],
 			['theme_rail_bg', 'Theme: Rail-Hintergrund', '#1c1f1d'],
@@ -783,7 +792,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$f->attr('type', 'color');
 			$f->attr('style', 'width: 3.5rem; height: 2.5rem; padding: 0.15rem; cursor: pointer;');
 			$f->value = $this->normalizeHexColor((string) ($data[$name] ?? $default), $default);
-			$fields[] = $f;
+			$fsDesign->add($f);
 		}
 
 		/** @var InputfieldText $f */
@@ -791,9 +800,14 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->name = 'theme_radius';
 		$f->label = 'Theme: Radius (px)';
 		$f->value = $data['theme_radius'] ?? '8';
-		$fields[] = $f;
+		$fsDesign->add($f);
 
-		// Rolle → Inhaltstypen
+		// —— 4. Zugriff/Rollen ——
+		/** @var InputfieldFieldset $fsRoles */
+		$fsRoles = $modules->get('InputfieldFieldset');
+		$fsRoles->label = 'Zugriff / Rollen';
+		$fsRoles->collapsed = Inputfield::collapsedNo;
+
 		$roleMap = is_array($data['role_templates'] ?? null) ? $data['role_templates'] : [];
 		$tplOptions = [];
 		foreach ($selected as $name) {
@@ -802,6 +816,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 				$tplOptions[$name] = $name;
 			}
 		}
+		$roleFieldCount = 0;
 		foreach ($this->wire()->roles as $role) {
 			if (in_array($role->name, ['guest', 'superuser'], true)) {
 				continue;
@@ -816,8 +831,15 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 				$rf->addOption($name, $label);
 			}
 			$rf->value = $roleMap[$role->name] ?? [];
-			$fields[] = $rf;
+			$fsRoles->add($rf);
+			$roleFieldCount++;
 		}
+
+		// —— 5. Erweitert ——
+		/** @var InputfieldFieldset $fsAdvanced */
+		$fsAdvanced = $modules->get('InputfieldFieldset');
+		$fsAdvanced->label = 'Erweitert';
+		$fsAdvanced->collapsed = Inputfield::collapsedNo;
 
 		/** @var InputfieldCheckbox $f */
 		$f = $modules->get('InputfieldCheckbox');
@@ -825,7 +847,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->label = 'Demo-Login erlauben (ohne PW-User)';
 		$f->description = 'Nur für lokale Tests. Produktiv auslassen.';
 		$f->checked = !empty($data['allow_demo_login']);
-		$fields[] = $f;
+		$fsAdvanced->add($f);
 
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');
@@ -833,7 +855,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->label = 'Demo-Benutzername';
 		$f->value = $data['login_user'] ?? 'redaktion';
 		$f->showIf = 'allow_demo_login=1';
-		$fields[] = $f;
+		$fsAdvanced->add($f);
 
 		/** @var InputfieldText $f */
 		$f = $modules->get('InputfieldText');
@@ -844,9 +866,22 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->attr('autocomplete', 'new-password');
 		$f->value = '';
 		$f->showIf = 'allow_demo_login=1';
-		$fields[] = $f;
+		$fsAdvanced->add($f);
 
-		return $fields;
+		/** @var InputfieldText $f */
+		$f = $modules->get('InputfieldText');
+		$f->name = 'base_path';
+		$f->label = 'URL-Pfad der Redaktion';
+		$f->description = 'Ohne führenden Slash, z. B. editorial → /editorial/';
+		$f->value = $data['base_path'] ?? self::BASE_PATH;
+		$fsAdvanced->add($f);
+
+		$sections = [$fsContent, $fsNav, $fsDesign];
+		if ($roleFieldCount > 0) {
+			$sections[] = $fsRoles;
+		}
+		$sections[] = $fsAdvanced;
+		return $sections;
 	}
 
 	public static function getModuleConfigInputfields(array $data): InputfieldWrapper {
