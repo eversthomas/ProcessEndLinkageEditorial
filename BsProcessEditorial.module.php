@@ -307,6 +307,13 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			return $values;
 		}
 
+		// Legacy-SVG: Datei und Config-Wert entfernen (Stored-XSS).
+		if ($existing !== '' && strtolower(pathinfo(basename($existing), PATHINFO_EXTENSION)) === 'svg') {
+			$this->deleteBrandLogoFile($existing);
+			$existing = '';
+			$values['brand_logo'] = '';
+		}
+
 		$file = $_FILES['brand_logo_file'] ?? null;
 		if (!is_array($file) || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
 			if (!array_key_exists('brand_logo', $values)) {
@@ -316,14 +323,36 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 
 		$ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
-		$allowed = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+		$allowed = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 		if (!in_array($ext, $allowed, true)) {
-			$this->error('Logo: erlaubt sind PNG, JPG, GIF, WebP, SVG.');
+			$this->error('Logo: erlaubt sind PNG, JPG, GIF und WebP.');
 			$values['brand_logo'] = $existing;
 			return $values;
 		}
 		if (($file['size'] ?? 0) > 2 * 1024 * 1024) {
 			$this->error('Logo darf maximal 2 MB groß sein.');
+			$values['brand_logo'] = $existing;
+			return $values;
+		}
+
+		// Content-Check: Endung allein reicht nicht (z. B. umbenanntes SVG).
+		$imageInfo = @getimagesize($file['tmp_name']);
+		$typeToExt = [
+			IMAGETYPE_PNG => 'png',
+			IMAGETYPE_JPEG => 'jpg',
+			IMAGETYPE_GIF => 'gif',
+			IMAGETYPE_WEBP => 'webp',
+		];
+		$detected = is_array($imageInfo) ? ($imageInfo[2] ?? null) : null;
+		if ($detected === null || !isset($typeToExt[$detected])) {
+			$this->error('Logo: Datei ist kein gültiges PNG-, JPG-, GIF- oder WebP-Bild.');
+			$values['brand_logo'] = $existing;
+			return $values;
+		}
+		$canonicalExt = $typeToExt[$detected];
+		$extNormalized = $ext === 'jpeg' ? 'jpg' : $ext;
+		if ($extNormalized !== $canonicalExt) {
+			$this->error('Logo: Dateiendung stimmt nicht mit dem Bildinhalt überein.');
 			$values['brand_logo'] = $existing;
 			return $values;
 		}
@@ -335,7 +364,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			return $values;
 		}
 
-		$filename = 'logo-' . time() . '.' . $ext;
+		$filename = 'logo-' . time() . '.' . $canonicalExt;
 		$target = $dir . $filename;
 		if (!@move_uploaded_file($file['tmp_name'], $target)) {
 			$this->error('Logo konnte nicht gespeichert werden.');
@@ -373,6 +402,12 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public function brandLogoUrl(): ?string {
 		$file = basename((string) $this->get('brand_logo'));
 		if ($file === '') {
+			return null;
+		}
+		// SVG nicht mehr ausliefern; vorhandene Datei entfernen (Stored-XSS über Asset-URL).
+		$ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+		if ($ext === 'svg') {
+			$this->deleteBrandLogoFile($file);
 			return null;
 		}
 		$path = $this->brandLogoDir() . $file;
@@ -556,9 +591,16 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		$logoFile = basename((string) ($data['brand_logo'] ?? ''));
 		$logoUrl = null;
+		$logoIsLegacySvg = false;
 		if ($logoFile !== '') {
+			$logoExt = strtolower(pathinfo($logoFile, PATHINFO_EXTENSION));
 			$logoPath = $this->brandLogoDir() . $logoFile;
-			if (is_file($logoPath)) {
+			if ($logoExt === 'svg') {
+				$logoIsLegacySvg = true;
+				if (is_file($logoPath)) {
+					$this->deleteBrandLogoFile($logoFile);
+				}
+			} elseif (is_file($logoPath)) {
 				$logoUrl = rtrim($this->wire()->config->urls->assets, '/')
 					. '/bs-processEditorial/brand/' . rawurlencode($logoFile);
 			}
@@ -567,14 +609,17 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f = $modules->get('InputfieldMarkup');
 		$f->name = 'brand_logo_ui';
 		$f->label = 'Kunden-Branding: Logo';
-		$f->description = 'PNG, JPG, GIF, WebP oder SVG, max. 2 MB. Wird im Header und in der Rail angezeigt.';
+		$f->description = 'PNG, JPG, GIF oder WebP, max. 2 MB. Wird im Header und in der Rail angezeigt.';
 		$html = '';
 		if ($logoUrl) {
 			$html .= '<p class="bpe-admin-logo-preview"><img src="'
 				. htmlspecialchars($logoUrl) . '" alt="Logo" style="max-height:64px;max-width:220px;background:#fff;padding:6px;border:1px solid #ddd;border-radius:4px;"></p>';
 			$html .= '<p><label><input type="checkbox" name="brand_logo_clear" value="1"> Logo entfernen</label></p>';
+		} elseif ($logoIsLegacySvg) {
+			$html .= '<p class="description">Vorhandenes SVG-Logo wird aus Sicherheitsgründen nicht mehr angezeigt. Bitte entfernen und als PNG/JPG/GIF/WebP neu hochladen.</p>';
+			$html .= '<p><label><input type="checkbox" name="brand_logo_clear" value="1"> Logo entfernen</label></p>';
 		}
-		$html .= '<input type="file" name="brand_logo_file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg">';
+		$html .= '<input type="file" name="brand_logo_file" accept="image/png,image/jpeg,image/gif,image/webp">';
 		$f->value = $html;
 		$fields[] = $f;
 

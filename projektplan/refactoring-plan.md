@@ -38,7 +38,7 @@ Nur bei Abweichungen kurz zurückmelden, sonst direkt mit Schritt 1 fortfahren. 
 
 ---
 
-## Schritt 1 — Test-/Mock-Inhalte entfernen
+## Schritt 1 — Test-/Mock-Inhalte entfernen ✅ erledigt
 
 **Ziel:** Alles, was reiner Test-/Demo-Inhalt ist, vollständig aus dem produktiven Modul entfernen.
 
@@ -49,6 +49,8 @@ Betroffen:
 - `data/schema-mock.json` **und** `projektplan/schema-mock.json` (identische Duplikate — beide entfernen)
 - Option `data_source = mock` sowie der `auto`-Fallback auf Mock in `src/Adapter/AdapterFactory.php` (Datenquelle wird dann ausschließlich `processwire`, kein Fallback mehr)
 - Checkbox `setup_mvp` ("Legacy: MVP-Testdatenmodell anlegen") in `BsProcessEditorial.module.php::buildConfigFields()` inkl. der zugehörigen Install-Logik in `___execute()`
+- `src/Setup/MvpInstaller.php` (nur von `setup_mvp` aufgerufen, konsequent mit entfernt)
+- `data/mock-records.json` (nur vom MockStore genutzt, reiner Testdaten-Rest, konsequent mit entfernt)
 
 Nicht in diesem Schritt: Formularstruktur, Config-Screen-Dopplung, Feldtyp-Entscheidung — nur Entfernen, keine Umbauten.
 
@@ -66,7 +68,9 @@ Nicht in diesem Schritt: sonstige Upload-Logik der Feld-Adapter (läuft bereits 
 
 ---
 
-## Schritt 3 — Doppelte Config-Oberfläche konsolidieren
+## Schritt 3 — Doppelte Config-Oberfläche konsolidieren ✅ erledigt (live verifiziert)
+
+**Befund aus Schritt 0 (Codeabgleich):** `getModuleConfigInputfields()` rendert bereits nicht mehr identisch zu `buildConfigFields()` — der native Modul-Screen zeigt nur noch Hinweistext + Link auf Setup → Redaktion. Von Tom live im Browser gegen das Akzeptanzkriterium geprüft und bestätigt.
 
 **Ziel:** Aktuell rendern sowohl der native ProcessWire-Modul-Konfigurationsbildschirm (`getModuleConfigInputfields()`) als auch die eigene Setup-Seite (`___execute()`) identisch dieselbe `buildConfigFields()`-Liste. Der native Screen soll nur noch Hinweistext + Link auf Setup → Redaktion zeigen, keine funktionalen Einstellungen mehr.
 
