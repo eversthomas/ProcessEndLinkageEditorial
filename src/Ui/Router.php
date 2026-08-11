@@ -420,6 +420,9 @@ class Router {
 			$name = $field['name'];
 			$type = $field['type'];
 
+			if ($type === 'unsupported') {
+				continue;
+			}
 			if ($type === 'checkbox') {
 				$data[$name] = (string) $input->post($name) === '1';
 				continue;

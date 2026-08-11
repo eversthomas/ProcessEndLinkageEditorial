@@ -9,6 +9,7 @@ use ProcessWire\BsProcessEditorial\FormEngine\Fields\PageReferenceField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\SelectField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\TextareaField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\TextField;
+use ProcessWire\BsProcessEditorial\FormEngine\Fields\UnsupportedField;
 use ProcessWire\BsProcessEditorial\Ui\Icons;
 
 /**
@@ -32,6 +33,7 @@ class FormRenderer {
 			new ImageField(),
 			new FileField(),
 			new PageReferenceField(),
+			new UnsupportedField(),
 		];
 	}
 
@@ -139,7 +141,13 @@ class FormRenderer {
 				return $renderer->render($field, $value, $errors);
 			}
 		}
-		return '<!-- unsupported field type: ' . $this->e($type) . ' -->';
+		// Fallback falls Schema-Typ fehlt: trotzdem sichtbarer Hinweis
+		$fallback = $field;
+		$fallback['type'] = 'unsupported';
+		if (empty($fallback['pwType'])) {
+			$fallback['pwType'] = $type !== '' ? $type : 'unbekannt';
+		}
+		return (new UnsupportedField())->render($fallback, $value, $errors);
 	}
 
 	protected function renderFieldWithValue(array $field, array $values, array $errors): string {

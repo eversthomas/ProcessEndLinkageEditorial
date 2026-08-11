@@ -24,11 +24,20 @@ class TemplateDiscovery {
 	}
 
 	/**
-	 * @return array<int, array{name: string, label: string, pages: int, fields: int, suggestedMode: string, kind: string}>
+	 * @return array<int, array{
+	 *   name: string,
+	 *   label: string,
+	 *   pages: int,
+	 *   fields: int,
+	 *   suggestedMode: string,
+	 *   kind: string,
+	 *   unsupportedFields: array<int, array{name: string, label: string, type: string}>
+	 * }>
 	 */
 	public function candidates(): array {
 		$templates = $this->module->wire()->templates;
 		$pages = $this->module->wire()->pages;
+		$adapter = new \ProcessWire\BsProcessEditorial\Adapter\ProcessWireAdapter($this->module);
 		$out = [];
 
 		foreach ($templates as $tpl) {
@@ -45,6 +54,7 @@ class TemplateDiscovery {
 				'fields' => $tpl->fields->count(),
 				'suggestedMode' => $mode,
 				'kind' => $mode === self::MODE_SINGLE ? 'Einzelseite' : 'Datensätze',
+				'unsupportedFields' => $adapter->unsupportedFieldsForTemplate($tpl->name),
 			];
 		}
 

@@ -115,20 +115,33 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			. '<strong>Datensätze</strong> = Listenansicht, <strong>Einzelseite</strong> = direktes Formular (z. B. Home). '
 			. 'Freigabe und Modus unten festlegen.</p>';
 		$out .= '<table class="AdminDataTable AdminDataList"><thead><tr>'
-			. '<th>Template</th><th>Label</th><th>Seiten</th><th>Felder</th><th>Vorschlag</th><th>Status</th>'
+			. '<th>Template</th><th>Label</th><th>Seiten</th><th>Felder</th>'
+			. '<th>Ohne Adapter</th><th>Vorschlag</th><th>Status</th>'
 			. '</tr></thead><tbody>';
 		if (!$candidates) {
-			$out .= '<tr><td colspan="6">Keine geeigneten Templates gefunden.</td></tr>';
+			$out .= '<tr><td colspan="7">Keine geeigneten Templates gefunden.</td></tr>';
 		}
 		foreach ($candidates as $item) {
 			$active = in_array($item['name'], $enabled, true);
 			$mode = $active ? $this->editorialMode($item['name']) : $item['suggestedMode'];
 			$modeLabel = $mode === 'single' ? 'Einzelseite' : 'Datensätze (Liste)';
+			$unsupported = $item['unsupportedFields'] ?? [];
+			if ($unsupported) {
+				$bits = [];
+				foreach ($unsupported as $uf) {
+					$bits[] = '<code>' . htmlspecialchars((string) ($uf['name'] ?? ''), ENT_QUOTES, 'UTF-8') . '</code>'
+						. ' <span class="detail">(' . htmlspecialchars((string) ($uf['type'] ?? ''), ENT_QUOTES, 'UTF-8') . ')</span>';
+				}
+				$unsupportedHtml = implode('<br>', $bits);
+			} else {
+				$unsupportedHtml = '—';
+			}
 			$out .= '<tr>'
 				. '<td><code>' . htmlspecialchars($item['name']) . '</code></td>'
 				. '<td>' . htmlspecialchars($item['label']) . '</td>'
 				. '<td>' . (int) $item['pages'] . '</td>'
 				. '<td>' . (int) $item['fields'] . '</td>'
+				. '<td>' . $unsupportedHtml . '</td>'
 				. '<td>' . htmlspecialchars($item['kind']) . ($active ? ' → <strong>' . htmlspecialchars($modeLabel) . '</strong>' : '') . '</td>'
 				. '<td>' . ($active ? '<strong>freigegeben</strong>' : '—') . '</td>'
 				. '</tr>';

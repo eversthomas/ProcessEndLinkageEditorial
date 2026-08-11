@@ -856,6 +856,20 @@ a {
   color: var(--bpe-danger);
 }
 
+.bpe-field--unsupported {
+  padding: 0.75rem 0.85rem;
+  border: 1px dashed var(--bpe-line);
+  border-radius: var(--bpe-radius);
+  background: color-mix(in srgb, var(--bpe-muted) 8%, var(--bpe-bg-panel));
+}
+
+.bpe-field__unsupported {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--bpe-muted);
+}
+
 .bpe-field--error .bpe-input {
   border-color: var(--bpe-danger);
 }
@@ -1105,6 +1119,18 @@ a {
   border-radius: 6px;
   border: 1px solid var(--bpe-line);
   background: #fafbfa;
+}
+
+.bpe-image-preview__img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  width: auto;
+  height: auto;
+  margin-bottom: 0.45rem;
+  border-radius: 4px;
+  object-fit: contain;
+  background: #fff;
 }
 
 .bpe-image-preview__name,

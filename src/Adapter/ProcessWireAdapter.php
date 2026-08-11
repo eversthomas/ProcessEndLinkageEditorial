@@ -73,6 +73,7 @@ class ProcessWireAdapter implements AdapterInterface {
 		foreach ($tpl->fields as $field) {
 			$adapter = $this->adapterFor($field);
 			if (!$adapter) {
+				$fields[] = $this->unsupportedFieldSchema($field);
 				continue;
 			}
 			$fields[] = $adapter->readSchema($field, $contextPage);
@@ -82,6 +83,62 @@ class ProcessWireAdapter implements AdapterInterface {
 			'label' => $this->templateLabel($tpl),
 			'fields' => $fields,
 		];
+	}
+
+	/**
+	 * Felder ohne Adapter (für Setup-Transparenz; keine Freigabe nötig).
+	 *
+	 * @return array<int, array{name: string, label: string, type: string}>
+	 */
+	public function unsupportedFieldsForTemplate(string $template): array {
+		$tpl = $this->module->wire()->templates->get($template);
+		if (!$tpl || !$tpl->id) {
+			return [];
+		}
+		$out = [];
+		foreach ($tpl->fields as $field) {
+			if ($this->adapterFor($field)) {
+				continue;
+			}
+			$out[] = [
+				'name' => $field->name,
+				'label' => (string) $field->getLabel(),
+				'type' => $this->fieldTypeLabel($field),
+			];
+		}
+		return $out;
+	}
+
+	/**
+	 * @return array{name: string, type: string, label: string, pwType: string, required: bool, panel: string}
+	 */
+	protected function unsupportedFieldSchema(Field $field): array {
+		$pwType = $this->fieldTypeLabel($field);
+		return [
+			'name' => $field->name,
+			'type' => 'unsupported',
+			'label' => (string) $field->getLabel(),
+			'pwType' => $pwType,
+			'required' => false,
+			'panel' => 'main',
+		];
+	}
+
+	protected function fieldTypeLabel(Field $field): string {
+		$type = $field->type;
+		if ($type) {
+			$info = $type->getModuleInfo();
+			$title = trim((string) ($info['title'] ?? ''));
+			if ($title !== '') {
+				return $title;
+			}
+			$class = $type->className();
+			if (str_starts_with($class, 'Fieldtype')) {
+				return substr($class, 9);
+			}
+			return $class;
+		}
+		return 'unbekannt';
 	}
 
 	public function listRecords(string $template): array {

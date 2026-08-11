@@ -116,6 +116,13 @@ class ImageFieldAdapter extends AbstractFieldAdapter {
 			return null;
 		}
 		$img = $images->first();
-		return $img ? $img->basename : null;
+		if (!$img) {
+			return null;
+		}
+		$thumb = $img->width(240);
+		return [
+			'name' => $img->basename,
+			'url' => $thumb ? (string) $thumb->url : (string) $img->url,
+		];
 	}
 }

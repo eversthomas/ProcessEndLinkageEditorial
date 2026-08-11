@@ -120,7 +120,7 @@ Nicht in diesem Schritt: visuelles Redesign der Redaktions-Oberfläche selbst (d
 
 - Aufteilung der "Gottklassen" `src/Ui/Router.php` (679 Zeilen) und `BsProcessEditorial.module.php` (824 Zeilen) in kleinere, verantwortungsklare Einheiten
 - Grundlegende Tests für die Adapter-Schicht
-- Strukturelles Redesign der Redaktions-Oberfläche (aktuell nur Farbe/Radius per Theme-Tokens austauschbar, Layout ist als PHP-generiertes HTML fest verdrahtet)
+- Strukturelles Redesign der Redaktions-Oberfläche (aktuell nur Farbe/Radius per Theme-Tokens austauschbar, Layout ist als PHP-generiertes HTML fest verdrahtet) — **Zielbild von Tom (Stand jetzt, noch nicht final):** Design entsteht separat als HTML-Mockup (aktuell mit Claude Design), wird später per Cursor als komplettes Struktur-Update integriert (kein Live-Umbau über Settings). Backend soll dabei nur Farben, Schriftfarben und Abstände beeinflussbar halten (Erweiterung des heutigen Theme-Token-Ansatzes, nicht grundlegend anders). Mögliche spätere Ergänzung, noch nicht entschieden: Entwickler ordnen Templates zusätzlich einer Daten-Art zu (Listen, Daten, Seiten, Termine, Beiträge), um unterschiedliche Darstellungsvarianten zu ermöglichen — bewusst zurückgestellt.
 
 ---
 
