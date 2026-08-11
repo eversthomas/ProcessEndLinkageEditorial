@@ -62,6 +62,10 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$this->clearAdminNavCache();
 			$session->setFor('bpe', 'nav_cleared_v5', 1);
 		}
+		if (!$session->getFor('bpe', 'svg_logo_purged_v1')) {
+			$this->purgeLegacyBrandLogoSvg();
+			$session->setFor('bpe', 'svg_logo_purged_v1', 1);
+		}
 	}
 
 	public function ___execute(): string {
@@ -297,6 +301,48 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	/**
 	 * Kundenlogo nach site/assets/bs-processEditorial/brand/ speichern.
 	 */
+	/**
+	 * Entfernt Legacy-SVG-Logos (Datei + Config).
+	 * Aufruf einmalig pro Session aus ready() (Flag svg_logo_purged_v1).
+	 */
+	protected function purgeLegacyBrandLogoSvg(): void {
+		$logo = basename((string) $this->get('brand_logo'));
+		$configHadSvg = $logo !== '' && strtolower(pathinfo($logo, PATHINFO_EXTENSION)) === 'svg';
+		$removedFile = false;
+
+		if ($configHadSvg) {
+			$this->deleteBrandLogoFile($logo);
+			$removedFile = true;
+		}
+
+		$dir = $this->brandLogoDir();
+		if (is_dir($dir)) {
+			foreach (glob($dir . '*.svg') ?: [] as $path) {
+				if (is_file($path)) {
+					@unlink($path);
+					$removedFile = true;
+				}
+			}
+		}
+
+		if (!$configHadSvg && !$removedFile) {
+			return;
+		}
+
+		if ($configHadSvg) {
+			$this->set('brand_logo', '');
+			$modules = $this->wire()->modules;
+			$data = $modules->getModuleConfigData($this);
+			if (!is_array($data)) {
+				$data = [];
+			}
+			if (($data['brand_logo'] ?? '') !== '') {
+				$data['brand_logo'] = '';
+				$modules->saveModuleConfigData($this, $data);
+			}
+		}
+	}
+
 	protected function processBrandLogoUpload(array $values, array $previous): array {
 		$input = $this->wire()->input;
 		$existing = (string) ($previous['brand_logo'] ?? '');
@@ -404,10 +450,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		if ($file === '') {
 			return null;
 		}
-		// SVG nicht mehr ausliefern; vorhandene Datei entfernen (Stored-XSS über Asset-URL).
-		$ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-		if ($ext === 'svg') {
-			$this->deleteBrandLogoFile($file);
+		// SVG wird in ready() entfernt; hier nur noch als Absicherung.
+		if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'svg') {
 			return null;
 		}
 		$path = $this->brandLogoDir() . $file;
@@ -591,16 +635,9 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		$logoFile = basename((string) ($data['brand_logo'] ?? ''));
 		$logoUrl = null;
-		$logoIsLegacySvg = false;
-		if ($logoFile !== '') {
-			$logoExt = strtolower(pathinfo($logoFile, PATHINFO_EXTENSION));
+		if ($logoFile !== '' && strtolower(pathinfo($logoFile, PATHINFO_EXTENSION)) !== 'svg') {
 			$logoPath = $this->brandLogoDir() . $logoFile;
-			if ($logoExt === 'svg') {
-				$logoIsLegacySvg = true;
-				if (is_file($logoPath)) {
-					$this->deleteBrandLogoFile($logoFile);
-				}
-			} elseif (is_file($logoPath)) {
+			if (is_file($logoPath)) {
 				$logoUrl = rtrim($this->wire()->config->urls->assets, '/')
 					. '/bs-processEditorial/brand/' . rawurlencode($logoFile);
 			}
@@ -614,9 +651,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		if ($logoUrl) {
 			$html .= '<p class="bpe-admin-logo-preview"><img src="'
 				. htmlspecialchars($logoUrl) . '" alt="Logo" style="max-height:64px;max-width:220px;background:#fff;padding:6px;border:1px solid #ddd;border-radius:4px;"></p>';
-			$html .= '<p><label><input type="checkbox" name="brand_logo_clear" value="1"> Logo entfernen</label></p>';
-		} elseif ($logoIsLegacySvg) {
-			$html .= '<p class="description">Vorhandenes SVG-Logo wird aus Sicherheitsgründen nicht mehr angezeigt. Bitte entfernen und als PNG/JPG/GIF/WebP neu hochladen.</p>';
 			$html .= '<p><label><input type="checkbox" name="brand_logo_clear" value="1"> Logo entfernen</label></p>';
 		}
 		$html .= '<input type="file" name="brand_logo_file" accept="image/png,image/jpeg,image/gif,image/webp">';

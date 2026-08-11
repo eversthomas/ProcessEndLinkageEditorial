@@ -10,13 +10,15 @@ Diese Datei entstand aus einer unabhängigen Code-Analyse (nicht aus den mitgeli
 
 bs-processEditorial soll dem Entwickler erlauben, in ProcessWire wie gewohnt Templates/Felder/Seiten anzulegen und über gezielte Backend-Einstellungen (Setup → Redaktion) zu bestimmen, **was** davon Redakteuren in einer eigenen, vom PW-Admin getrennten Oberfläche zugänglich ist und **wie** es dort dargestellt wird (Freigabe, Darstellungsmodus, Navigation, Rollen-Sichtbarkeit, Branding). Es ist explizit **kein** Eins-zu-eins-Spiegel des PW-Backends und **kein** vollautomatischer Zero-Touch-Mechanismus — die Freigabe durch den Entwickler ist bewusster Teil des Konzepts.
 
-Bekannte, in dieser Bereinigungsphase **nicht** zu behebende Lücke: Feldtypen ohne passenden Adapter werden beim Einlesen aktuell lautlos übersprungen (`ProcessWireAdapter::readSchema()`), ohne Hinweis im Setup. Das betrifft die Vollständigkeit der Freigabe, nicht die hier bearbeiteten Punkte — bewusst zurückgestellt, nicht vergessen.
+Bekannte Lücke, die jetzt als eigener Schritt behoben wird (siehe Schritt 4 unten), nicht mehr nur zurückgestellt: Feldtypen ohne passenden Adapter werden beim Einlesen aktuell lautlos übersprungen (`ProcessWireAdapter::readSchema()`), ohne Hinweis im Setup oder in der Redaktionsansicht.
 
 ---
 
-## 0. Blockierende Entscheidung (vor Schritt 3+)
+## 0. Entscheidung getroffen: umfassende Feldabdeckung statt Freeze
 
-**Offen, muss von Tom getroffen werden, nicht von Cursor:** Bleibt der aktuelle Funktionsumfang (13 Feldtypen, Menü-Builder, Theme-Tokens, Branding, Dashboard) als "MVP+" bestehen, oder wird auf die ursprünglich geplanten 6 Feldtypen zurückgeschnitten? Schritt 1 und 2 unten sind von dieser Entscheidung unabhängig und können sofort umgesetzt werden. Schritt 3 und 4 sollten erst nach dieser Entscheidung erfolgen, damit nicht an einer Formularstruktur gearbeitet wird, die sich danach nochmal ändert.
+**Ursprünglich offen, jetzt entschieden (Tom):** Ziel ist keine feste Obergrenze (6 oder 13), sondern schrittweise vollständige Abdeckung der ProcessWire-**Standard**feldtypen (kostenpflichtige ProFields-Module wie RepeaterMatrix/Table/Multiplier ausgenommen — der reguläre Core-Repeater zählt dazu und fehlt aktuell noch als Adapter). Konkreter nächster Bedarf ist noch nicht absehbar, da kein konkretes Folgeprojekt feststeht — neue Feldtypen kommen daher fortlaufend als isolierte, einzelne Adapter-Klassen dazu, sobald Bedarf entsteht. Das entblockiert Schritt 4/5 unten — die Formulargliederung ist von der genauen Feldtypen-Anzahl unabhängig.
+
+**Bereits bestätigt funktionsfähig (Live-Test durch Tom):** alle aktuell implementierten Feldtypen funktionieren grundsätzlich; Bild-Feld liefert dabei nur den Dateinamen als Text statt Vorschau (siehe Schritt 4 unten). Page-Reference ist entgegen ursprünglicher Annahme bereits vollständig implementiert. Repeater ist der bekannteste noch fehlende Core-Feldtyp.
 
 ---
 
@@ -58,11 +60,13 @@ Nicht in diesem Schritt: Formularstruktur, Config-Screen-Dopplung, Feldtyp-Entsc
 
 ---
 
-## Schritt 2 — Sicherheitsfix: Logo-Upload
+## Schritt 2 — Sicherheitsfix: Logo-Upload ✅ erledigt
 
 **Ziel:** SVG-Upload im Branding-Logo (`processBrandLogoUpload()` in `BsProcessEditorial.module.php`) absichern — aktuell nur Endungsprüfung, kein Content-/MIME-Check, Datei landet unter öffentlich erreichbarer URL (Stored-XSS-Risiko).
 
 Nicht in diesem Schritt: sonstige Upload-Logik der Feld-Adapter (läuft bereits sauber über PWs `WireUpload`) — nur der eigene Branding-Logo-Upload ist betroffen.
+
+**Umsetzung (live, Stand nach Fix):** Option (b) — SVG komplett aus erlaubten Formaten entfernt, PNG/JPG/GIF/WebP bekommen Content-Check per `getimagesize()` (Endung muss zu Bildinhalt passen). Legacy-SVGs (bereits hochgeladen, öffentlich erreichbar) werden automatisch beim ersten Request nach Deploy bereinigt (`purgeLegacyBrandLogoSvg()` in `ready()`), Config-Wert wird bei tatsächlichem Legacy-SVG dauerhaft über `saveModuleConfigData()` geleert. Scan läuft nur einmal pro Session ab (Session-Flag `svg_logo_purged_v1`, analog zum bestehenden `nav_cleared_v5`-Muster), nicht bei jedem Request.
 
 **Akzeptanzkriterium:** Hochgeladene SVGs werden entweder inhaltlich validiert/bereinigt oder SVG wird aus den erlaubten Formaten entfernt; bestehende Funktionalität (PNG/JPG/GIF/WebP) bleibt unverändert.
 
@@ -74,13 +78,28 @@ Nicht in diesem Schritt: sonstige Upload-Logik der Feld-Adapter (läuft bereits 
 
 **Ziel:** Aktuell rendern sowohl der native ProcessWire-Modul-Konfigurationsbildschirm (`getModuleConfigInputfields()`) als auch die eigene Setup-Seite (`___execute()`) identisch dieselbe `buildConfigFields()`-Liste. Der native Screen soll nur noch Hinweistext + Link auf Setup → Redaktion zeigen, keine funktionalen Einstellungen mehr.
 
-Nicht in diesem Schritt: inhaltliche Gliederung der Felder selbst (das ist Schritt 4).
+Nicht in diesem Schritt: inhaltliche Gliederung der Felder selbst (das ist Schritt 5).
 
 **Akzeptanzkriterium:** Einstellungen lassen sich nur noch über Setup → Redaktion ändern; nativer Modul-Screen zeigt lediglich einen Verweis; keine Funktionalität geht verloren.
 
 ---
 
-## Schritt 4 — Setup-Formular strukturieren
+## Schritt 4 — Transparenz für nicht unterstützte/unvollständige Felder
+
+**Ziel:** Statt Felder ohne passenden Adapter lautlos zu überspringen, sollen sie sichtbar als "noch nicht unterstützt" markiert werden — sowohl für den Entwickler (Setup) als auch für den Redakteur (Formular). Zusätzlich: Bild-Feld zeigt aktuell nur den Dateinamen als Text statt einer Vorschau.
+
+Konkret:
+- **Setup → Redaktion** (`TemplateDiscovery`/Entdeckte-Inhaltstypen-Tabelle): pro Template anzeigen, welche Felder erkannt, aber ohne passenden Adapter sind (Feldname + PW-Feldtyp).
+- **Redaktions-Formular** (`FormRenderer`/`ProcessWireAdapter::readSchema()`): statt `continue` bei fehlendem Adapter einen sichtbaren Platzhalter rendern, z. B. "Feld '{label}' (Typ {typ}) wird hier noch nicht unterstützt — bitte im PW-Backend pflegen".
+- **Bild-Vorschau**: `ImageField.php` um eine Thumbnail-Vorschau (`<img>`) statt reinem Dateinamen-Text ergänzen.
+
+Nicht in diesem Schritt: neue Feldtyp-Adapter selbst bauen (z. B. Repeater) — nur sichtbar machen, was fehlt bzw. unvollständig ist.
+
+**Akzeptanzkriterium:** Ein Template mit einem nicht unterstützten Feldtyp zeigt im Setup und im Redaktionsformular einen klaren Hinweis statt eines stillschweigend fehlenden Feldes; Bild-Feld zeigt eine Vorschau.
+
+---
+
+## Schritt 5 — Setup-Formular strukturieren
 
 **Ziel:** Das aktuell lineare, ungegliederte Formular (~20 Felder in einer Spalte) in klare Abschnitte gliedern, z. B.:
 1. Inhalte & Freigabe (Templates, Modus pro Typ)
@@ -89,7 +108,7 @@ Nicht in diesem Schritt: inhaltliche Gliederung der Felder selbst (das ist Schri
 4. Zugriff/Rollen (pro Rolle sichtbare Typen)
 5. Erweitert (Demo-Login, URL-Pfad)
 
-Voraussetzung: Schritt 1 (Testdaten raus) und Schritt 3 (Dopplung raus) sind abgeschlossen, und die Entscheidung aus Abschnitt 0 ist getroffen.
+Voraussetzung: Schritt 1 (Testdaten raus) und Schritt 3 (Dopplung raus) sind abgeschlossen. Schritt 4 (Transparenz) sollte idealerweise vorher laufen, ist aber keine harte Voraussetzung.
 
 Nicht in diesem Schritt: visuelles Redesign der Redaktions-Oberfläche selbst (das ist ein separates, späteres Thema) — hier geht es ausschließlich um den Entwickler-Settings-Screen unter Setup → Redaktion.
 
@@ -113,5 +132,5 @@ Nicht in diesem Schritt: visuelles Redesign der Redaktions-Oberfläche selbst (d
 | `README.md` (Root) | Projektüberblick + Offen-Liste "Vor der nächsten Session" | **Teilweise veraltet** — nennt z. B. weder die doppelte Config-Oberfläche noch die `setup_mvp`-Checkbox, die beide noch im Code sind. Wird erst **nach Abschluss dieser Bereinigungsphase** aktualisiert, nicht vorher als Stand-Referenz nutzen. |
 | `projektplan/PROJECT.md` | Stabile Architektur-/Stack-Übersicht, verweist für Status auf README.md | Stabil, unkritisch |
 | `projektplan/adapter-notes.md` | Referenzdokumentation der Adapter-Schicht (610 Zeilen) | Nur bei Bedarf konsultieren; laut eigener Anmerkung "nicht ohne Absprache ändern" — in dieser Phase nicht anfassen |
-| `projektplan/design/*.md` (forms.md, navigation.md, dashboards.md, list-views.md, workflow-states.md) | UX-Leitlinien für die **redaktionelle Oberfläche** (Ansicht der Redakteure) | Betreffen **nicht** den Entwickler-Settings-Screen (Setup → Redaktion), der in Schritt 3/4 bearbeitet wird — bei diesen Schritten nicht als Vorgabe heranziehen, sonst Vermischung zweier verschiedener UI-Ebenen |
+| `projektplan/design/*.md` (forms.md, navigation.md, dashboards.md, list-views.md, workflow-states.md) | UX-Leitlinien für die **redaktionelle Oberfläche** (Ansicht der Redakteure) | Betreffen **nicht** den Entwickler-Settings-Screen (Setup → Redaktion), der in Schritt 3/5 bearbeitet wird — bei diesen Schritten nicht als Vorgabe heranziehen, sonst Vermischung zweier verschiedener UI-Ebenen |
 | `projektplan/schema-mock.json`, `data/schema-mock.json` | Test-/Mock-Schema | Wird in Schritt 1 vollständig entfernt |
