@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-6de075bd-4787-4bf6-b8ac-002b17e576b5/styles.css">
+<script src="./image-slot.js"></script>
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+body { margin: 0; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, #201e1d 25%, transparent); }
+</style>
+</helmet>
+
+<div style="{{ shellStyle }}">
+
+  <div style="{{ overlayStyle }}" onClick="{{ closeMobileNav }}"></div>
+
+  <aside style="{{ sidebarStyle }}">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px 20px;border-bottom:2px solid var(--color-divider)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:28px;height:28px;background:var(--color-accent)"></div>
+        <span style="font-family:var(--font-heading);font-weight:700;font-size:17px;letter-spacing:-0.01em">Lindenau Redaktion</span>
+      </div>
+      <button type="button" aria-label="Schließen" onClick="{{ closeMobileNav }}" style="{{ mobileCloseBtnStyle }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    <nav style="flex:1;overflow-y:auto;padding:16px 12px 24px;display:flex;flex-direction:column;gap:4px">
+      <button type="button" onClick="{{ openDashboard }}" style="{{ navStyles.dashboard }}">
+        <span style="{{ navMarkers.dashboard }}"></span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"></path><path d="M5 10v10h14V10"></path></svg>
+        Start
+      </button>
+
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 45%, transparent);margin:18px 10px 6px">Inhalte</div>
+      <button type="button" onClick="{{ openEinrichtungen }}" style="{{ navStyles.einrichtungen }}">
+        <span style="{{ navMarkers.einrichtungen }}"></span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v18Z"></path><path d="M9 22v-4h6v4"></path><path d="M9 8h1M14 8h1M9 12h1M14 12h1"></path></svg>
+        Einrichtungen
+      </button>
+      <button type="button" onClick="{{ openAngebote }}" style="{{ navStyles.angebote }}">
+        <span style="{{ navMarkers.angebote }}"></span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+        Angebote
+      </button>
+      <button type="button" onClick="{{ openKontakte }}" style="{{ navStyles.kontakte }}">
+        <span style="{{ navMarkers.kontakte }}"></span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Kontakte
+      </button>
+      <button type="button" onClick="{{ openSeiten }}" style="{{ navStyles.seiten }}">
+        <span style="{{ navMarkers.seiten }}"></span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>
+        Seiten
+      </button>
+      <button type="button" onClick="{{ openBlog }}" style="{{ navStyles.blog }}">
+        <span style="{{ navMarkers.blog }}"></span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16"></path><path d="M4 2h13a2 2 0 0 1 2 2v18H8V4a2 2 0 0 0-2-2H4Z"></path><path d="M4 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2"></path><path d="M8 8h9M8 12h9M8 16h5"></path></svg>
+        Blog &amp; News
+      </button>
+
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 45%, transparent);margin:18px 10px 6px">Medien</div>
+      <button type="button" onClick="{{ openMedia }}" style="{{ navStyles.medien }}">
+        <span style="{{ navMarkers.medien }}"></span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="0"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg>
+        Mediathek
+      </button>
+
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 45%, transparent);margin:18px 10px 6px">Termine</div>
+      <button type="button" onClick="{{ openKalender }}" style="{{ navStyles.kalender }}">
+        <span style="{{ navMarkers.kalender }}"></span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="0"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+        Kalender
+      </button>
+    </nav>
+
+    <div style="padding:14px 20px;border-top:2px solid var(--color-divider);display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--color-neutral-300);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:13px">JB</div>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Julia Berger</div>
+        <div style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">Redakteurin</div>
+      </div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;height:100vh">
+    <header style="display:flex;align-items:center;gap:14px;padding:0 24px;height:56px;border-bottom:2px solid var(--color-divider);background:var(--color-bg);flex:none">
+      <button type="button" aria-label="Menü" onClick="{{ openMobileNav }}" style="{{ hamburgerStyle }}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+      <div style="position:relative;flex:1;max-width:440px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input class="input" placeholder="Suchen — Einrichtungen, Beiträge, Medien…" style="padding-left:32px;padding-right:56px" />
+        <span style="{{ kbdHintStyle }}">⌘K</span>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent-700)"></span>
+          Alle Änderungen gespeichert
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon" aria-label="Benachrichtigungen">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <main style="flex:1;overflow-y:auto;padding:{{ mainPadding }}">
+
+      <sc-if value="{{ viewIsDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="max-width:1180px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px">
+            <div>
+              <span style="display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Redaktion · Lindenau</span>
+              <h1 style="font-size:30px;margin-bottom:4px">Guten Tag, Julia</h1>
+              <p style="margin:0;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Dienstag, 11. August 2026 — hier ist, was heute wichtig ist.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button type="button" class="btn btn-secondary" onClick="{{ openAngebote }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+                Neue Einrichtung
+              </button>
+              <button type="button" class="btn btn-primary" onClick="{{ openBlogEdit }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+                Neuer Beitrag
+              </button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat({{ cardCols }},1fr);gap:12px;margin-bottom:32px">
+            <button type="button" onClick="{{ openEinrichtungen }}" style-hover="box-shadow:var(--shadow-md);transform:translateY(-1px)" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);cursor:pointer;background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s,transform 0.15s">
+              <div style="display:flex;align-items:center;justify-content:space-between;color:var(--color-accent-700)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v18Z"></path><path d="M9 22v-4h6v4"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M7 17 17 7M7 7h10v10"></path></svg>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:26px;margin-left:-0.02em;font-feature-settings:'tnum' 1">12</div>
+              <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Einrichtungen</div>
+            </button>
+            <button type="button" onClick="{{ openAngebote }}" style-hover="box-shadow:var(--shadow-md);transform:translateY(-1px)" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);cursor:pointer;background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s,transform 0.15s">
+              <div style="display:flex;align-items:center;justify-content:space-between;color:var(--color-accent-700)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="M12 22V12"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M7 17 17 7M7 7h10v10"></path></svg>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:26px;margin-left:-0.02em;font-feature-settings:'tnum' 1">34</div>
+              <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Angebote</div>
+            </button>
+            <button type="button" onClick="{{ openKontakte }}" style-hover="box-shadow:var(--shadow-md);transform:translateY(-1px)" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);cursor:pointer;background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s,transform 0.15s">
+              <div style="display:flex;align-items:center;justify-content:space-between;color:var(--color-accent-700)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M7 17 17 7M7 7h10v10"></path></svg>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:26px;margin-left:-0.02em;font-feature-settings:'tnum' 1">58</div>
+              <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Kontakte</div>
+            </button>
+            <button type="button" onClick="{{ openSeiten }}" style-hover="box-shadow:var(--shadow-md);transform:translateY(-1px)" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);cursor:pointer;background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s,transform 0.15s">
+              <div style="display:flex;align-items:center;justify-content:space-between;color:var(--color-accent-700)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M7 17 17 7M7 7h10v10"></path></svg>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:26px;margin-left:-0.02em;font-feature-settings:'tnum' 1">21</div>
+              <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Seiten</div>
+            </button>
+            <button type="button" onClick="{{ openBlog }}" style-hover="box-shadow:var(--shadow-md);transform:translateY(-1px)" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);cursor:pointer;background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s,transform 0.15s">
+              <div style="display:flex;align-items:center;justify-content:space-between;color:var(--color-accent-700)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16"></path><path d="M4 2h13a2 2 0 0 1 2 2v18H8V4a2 2 0 0 0-2-2H4Z"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M7 17 17 7M7 7h10v10"></path></svg>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:26px;margin-left:-0.02em;font-feature-settings:'tnum' 1">47</div>
+              <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Blog &amp; News</div>
+            </button>
+            <button type="button" onClick="{{ openKalender }}" style-hover="box-shadow:var(--shadow-md);transform:translateY(-1px)" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);cursor:pointer;background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s,transform 0.15s">
+              <div style="display:flex;align-items:center;justify-content:space-between;color:var(--color-accent-700)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M7 17 17 7M7 7h10v10"></path></svg>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:26px;margin-left:-0.02em;font-feature-settings:'tnum' 1">9</div>
+              <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Termine (anstehend)</div>
+            </button>
+            <button type="button" onClick="{{ openMedia }}" style-hover="box-shadow:var(--shadow-md);transform:translateY(-1px)" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);cursor:pointer;background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s,transform 0.15s">
+              <div style="display:flex;align-items:center;justify-content:space-between;color:var(--color-accent-700)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M7 17 17 7M7 7h10v10"></path></svg>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:26px;margin-left:-0.02em;font-feature-settings:'tnum' 1">312</div>
+              <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Mediendateien</div>
+            </button>
+            <button type="button" onClick="{{ openKontakte }}" style-hover="box-shadow:var(--shadow-md);transform:translateY(-1px)" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);cursor:pointer;background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s,transform 0.15s">
+              <div style="display:flex;align-items:center;justify-content:space-between;color:var(--color-accent-700)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M7 17 17 7M7 7h10v10"></path></svg>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:26px;margin-left:-0.02em;font-feature-settings:'tnum' 1">5</div>
+              <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 65%, transparent)">Kontaktanfragen (neu)</div>
+            </button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ dashLowerCols }};gap:32px;align-items:start">
+            <div>
+              <h3 style="font-size:16px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Zuletzt bearbeitet</h3>
+              <table class="table">
+                <thead><tr><th>Name</th><th>Typ</th><th>Status</th><th>Bearbeitet von</th><th>Aktualisiert</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ recentItems }}" as="r" hint-placeholder-count="5">
+                    <tr>
+                      <td style="font-weight:600">{{ r.name }}</td>
+                      <td class="text-muted">{{ r.type }}</td>
+                      <td><span class="tag {{ r.statusClass }}">{{ r.status }}</span></td>
+                      <td class="text-muted">{{ r.who }}</td>
+                      <td class="text-muted">{{ r.updated }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3 style="font-size:16px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Anstehende Termine</h3>
+              <div class="card" style="gap:14px">
+                <sc-for list="{{ upcomingEvents }}" as="e" hint-placeholder-count="3">
+                  <div style="display:flex;gap:10px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--color-divider)">
+                    <div style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);margin-top:6px;flex:none"></div>
+                    <div style="min-width:0">
+                      <div style="font-size:13px;font-weight:600">{{ e.title }}</div>
+                      <div style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ e.when }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+                <button type="button" class="btn btn-ghost" onClick="{{ openKalender }}" style="align-self:flex-start;padding-inline:0">Kalender öffnen →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsList }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1180px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+            <div>
+              <span style="display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Inhalte</span>
+              <h1 style="font-size:26px;margin:0">{{ activeList.title }}</h1>
+            </div>
+            <button type="button" class="btn btn-primary" onClick="{{ openEdit }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+              {{ activeList.newLabel }}
+            </button>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+            <div style="position:relative;width:240px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              <input class="input" placeholder="Filtern…" style="padding-left:30px" />
+            </div>
+            <div class="seg">
+              <label class="seg-opt"><input type="radio" name="statusfilter" checked />Alle</label>
+              <label class="seg-opt"><input type="radio" name="statusfilter" />Veröffentlicht</label>
+              <label class="seg-opt"><input type="radio" name="statusfilter" />Entwurf</label>
+            </div>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:24px"><input type="checkbox" /></th>
+                <th>Name</th><th>Kategorie</th><th>Status</th><th>{{ activeList.col4 }}</th><th>Aktualisiert</th><th style="width:70px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ activeList.rows }}" as="row" hint-placeholder-count="6">
+                <tr>
+                  <td><input type="checkbox" /></td>
+                  <td style="font-weight:600">{{ row.name }}</td>
+                  <td class="text-muted">{{ row.cat }}</td>
+                  <td><span class="tag {{ row.statusClass }}">{{ row.status }}</span></td>
+                  <td class="text-muted">{{ row.info }}</td>
+                  <td class="text-muted">{{ row.updated }}</td>
+                  <td>
+                    <div style="display:flex;gap:2px">
+                      <button type="button" class="btn btn-ghost btn-icon" aria-label="Bearbeiten" onClick="{{ openEdit }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                      </button>
+                      <button type="button" class="btn btn-ghost btn-icon" aria-label="Löschen">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"></path></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:13px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">
+            <span>{{ activeList.rows.length }} von {{ activeList.total }} Einträgen</span>
+            <div style="display:flex;gap:4px">
+              <button type="button" class="btn btn-secondary btn-icon" aria-label="Zurück"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+              <button type="button" class="btn btn-secondary btn-icon" aria-label="Weiter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg></button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsEdit }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1040px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <button type="button" class="btn btn-ghost" onClick="{{ openList }}" style="padding-inline:0;margin-bottom:10px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg>
+            Zurück zu {{ activeList.title }}
+          </button>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+            <h1 style="font-size:26px;margin:0">Kita Sonnenschein</h1>
+            <div style="display:flex;gap:10px">
+              <button type="button" class="btn btn-secondary">Vorschau</button>
+              <button type="button" class="btn btn-primary">Speichern</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ editCols }};gap:32px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div class="card">
+                <div class="card-kicker">Grunddaten</div>
+                <div style="display:grid;gap:14px;margin-top:6px">
+                  <div class="field"><label>Name</label><input class="input" value="Kita Sonnenschein" /></div>
+                  <div class="field"><label>Kategorie</label>
+                    <select class="input"><option>Kindertagesstätte</option><option>Beratungsstelle</option><option>Freizeiteinrichtung</option></select>
+                  </div>
+                  <div class="field"><label>Beschreibung</label>
+                    <textarea class="input" rows="4">Zweigruppige Kindertagesstätte im Stadtteil Lindenau-Nord mit Außenspielbereich und Ganztagsbetreuung für Kinder von 1 bis 6 Jahren.</textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-kicker">Kontakt &amp; Adresse</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px">
+                  <div class="field" style="grid-column:1/-1"><label>Straße &amp; Nr.</label><input class="input" value="Ahornweg 14" /></div>
+                  <div class="field"><label>PLZ</label><input class="input" value="04159" /></div>
+                  <div class="field"><label>Ort</label><input class="input" value="Lindenau-Nord" /></div>
+                  <div class="field"><label>Telefon</label><input class="input" value="0341 555 0142" /></div>
+                  <div class="field"><label>E-Mail</label><input class="input" value="sonnenschein@lindenau.de" /></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-kicker">Öffnungszeiten</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+                  <div class="field"><label>Mo – Fr</label><input class="input" value="07:00 – 17:00" /></div>
+                  <div class="field"><label>Sa / So</label><input class="input" value="Geschlossen" /></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-kicker">Titelbild</div>
+                <image-slot id="edit-facility-photo" shape="rect" style="width:100%;aspect-ratio:16/9;margin-top:6px" placeholder="Bild der Einrichtung ablegen"></image-slot>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div class="card">
+                <div class="card-kicker">Status</div>
+                <div style="display:grid;gap:6px;margin-top:6px">
+                  <label class="radio"><input type="radio" name="pubstatus" checked /><span class="dot"></span>Veröffentlicht</label>
+                  <label class="radio"><input type="radio" name="pubstatus" /><span class="dot"></span>Entwurf</label>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-kicker">Veröffentlichung planen</div>
+                <div class="field" style="margin-top:6px"><label>Datum &amp; Uhrzeit</label><input class="input" type="datetime-local" /></div>
+              </div>
+              <div class="card">
+                <div class="card-kicker">Sichtbarkeit</div>
+                <div class="field" style="margin-top:6px"><select class="input"><option>Öffentlich</option><option>Nur intern</option></select></div>
+              </div>
+              <p style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin:0">Zuletzt gespeichert vor 2 Stunden von Julia Berger</p>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsBlogEdit }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1040px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <button type="button" class="btn btn-ghost" onClick="{{ openBlog }}" style="padding-inline:0;margin-bottom:10px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg>
+            Zurück zu Blog &amp; News
+          </button>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+            <h1 style="font-size:26px;margin:0">Neuer Beitrag</h1>
+            <div style="display:flex;gap:10px">
+              <button type="button" class="btn btn-secondary">Als Entwurf speichern</button>
+              <button type="button" class="btn btn-primary">Veröffentlichen</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ editCols }};gap:32px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <input class="input" style="font-size:22px;font-family:var(--font-heading);font-weight:700;height:52px" value="Sommerfest im Familienzentrum" />
+              <div style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">lindenau-familie.de/aktuelles/sommerfest-im-familienzentrum</div>
+              <div style="border:1px solid var(--color-divider)">
+                <div style="display:flex;gap:2px;padding:6px;border-bottom:1px solid var(--color-divider)">
+                  <button type="button" class="btn btn-ghost btn-icon" aria-label="Fett"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h9a4 4 0 0 1 0 8H6zM6 4h8a4 4 0 0 1 0 8H6z"></path></svg></button>
+                  <button type="button" class="btn btn-ghost btn-icon" aria-label="Kursiv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 4h-9M14 20H5M15 4 9 20"></path></svg></button>
+                  <button type="button" class="btn btn-ghost btn-icon" aria-label="Link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"></path></svg></button>
+                  <button type="button" class="btn btn-ghost btn-icon" aria-label="Liste"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg></button>
+                </div>
+                <textarea class="input" rows="12" style="border:0" >Am 18. August feiern wir gemeinsam mit allen Familien unser Sommerfest im Garten des Familienzentrums Ost. Es gibt Spiele, Grillstationen und ein Programm für Kinder jeden Alters.
+
+Wir freuen uns auf einen schönen Nachmittag mit Ihnen!</textarea>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div class="card">
+                <div class="card-kicker">Titelbild</div>
+                <image-slot id="edit-blog-photo" shape="rect" style="width:100%;aspect-ratio:16/9;margin-top:6px" placeholder="Titelbild ablegen"></image-slot>
+              </div>
+              <div class="card">
+                <div class="card-kicker">Rubrik &amp; Tags</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                  <span class="tag tag-accent">Familienzentrum</span>
+                  <span class="tag tag-neutral">Veranstaltung</span>
+                  <span class="tag tag-outline">+ Tag</span>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-kicker">Veröffentlichung</div>
+                <div style="display:grid;gap:6px;margin-top:6px">
+                  <label class="radio"><input type="radio" name="blogstatus" checked /><span class="dot"></span>Sofort veröffentlichen</label>
+                  <label class="radio"><input type="radio" name="blogstatus" /><span class="dot"></span>Terminieren</label>
+                </div>
+                <div class="field" style="margin-top:10px"><label>Datum &amp; Uhrzeit</label><input class="input" type="datetime-local" /></div>
+              </div>
+              <div class="card">
+                <div class="card-kicker">Autor</div>
+                <p class="card-body" style="opacity:1;margin:6px 0 0">Sabine Cohrs</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsTree }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:900px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+            <div>
+              <span style="display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Inhalte</span>
+              <h1 style="font-size:26px;margin:0">Seiten</h1>
+            </div>
+            <button type="button" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+              Neue Seite
+            </button>
+          </div>
+          <p style="color:color-mix(in srgb, var(--color-text) 60%, transparent);margin-bottom:20px">Struktur der Website — hier legen Sie die Reihenfolge und Hierarchie der Frontendseiten fest.</p>
+
+          <div style="border:1px solid var(--color-divider)">
+            <sc-for list="{{ pageTree }}" as="p" hint-placeholder-count="8">
+              <div style="{{ p.rowStyle }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35;flex:none;cursor:grab"><circle cx="9" cy="6" r="1"></circle><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="18" r="1"></circle><circle cx="15" cy="6" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="18" r="1"></circle></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;flex:none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>
+                <span style="flex:1;font-weight:600;font-size:14px">{{ p.name }}</span>
+                <span class="tag {{ p.statusClass }}">{{ p.status }}</span>
+                <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:80px;text-align:right">{{ p.updated }}</span>
+                <button type="button" class="btn btn-ghost btn-icon" aria-label="Bearbeiten">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                </button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsMedia }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1180px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+            <div>
+              <span style="display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Medien</span>
+              <h1 style="font-size:26px;margin:0">Mediathek</h1>
+            </div>
+            <button type="button" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8 12 3 7 8"></path><path d="M12 3v12"></path></svg>
+              Hochladen
+            </button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+            <div style="position:relative;width:240px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              <input class="input" placeholder="Dateien durchsuchen…" style="padding-left:30px" />
+            </div>
+            <select class="input" style="width:160px"><option>Alle Typen</option><option>Bilder</option><option>Dokumente</option></select>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat({{ mediaCols }},1fr);gap:16px">
+            <sc-for list="{{ mediaItems }}" as="m" hint-placeholder-count="9">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <image-slot id="{{ m.id }}" shape="rect" style="width:100%;aspect-ratio:4/3" placeholder="Bild"></image-slot>
+                <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.name }}</div>
+                <div style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ m.meta }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsCalendar }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1180px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+            <div>
+              <span style="display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Termine</span>
+              <div style="display:flex;align-items:center;gap:14px">
+              <h1 style="font-size:26px;margin:0">{{ calMonthLabel }}</h1>
+              <div style="display:flex;gap:4px">
+                <button type="button" class="btn btn-secondary btn-icon" aria-label="Vorheriger Monat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+                <button type="button" class="btn btn-secondary btn-icon" aria-label="Nächster Monat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg></button>
+              </div>
+            </div>
+            </div>
+            <button type="button" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+              Neuer Termin
+            </button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ calGridCols }};gap:32px;align-items:start">
+            <div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--color-divider)">
+                <sc-for list="{{ calWeekdayLabels }}" as="wd" hint-placeholder-count="7">
+                  <div style="padding:8px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;text-align:center;color:color-mix(in srgb, var(--color-text) 55%, transparent);border-bottom:2px solid var(--color-divider)">{{ wd }}</div>
+                </sc-for>
+                <sc-for list="{{ calDays }}" as="d" hint-placeholder-count="35">
+                  <div style="{{ d.cellStyle }}">
+                    <span style="{{ d.numStyle }}">{{ d.num }}</span>
+                    <sc-for list="{{ d.events }}" as="ev" hint-placeholder-count="0">
+                      <div style="font-size:10.5px;padding:2px 5px;background:var(--color-accent-100);color:var(--color-accent-800);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ev }}</div>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <h3 style="font-size:16px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Anstehende Termine</h3>
+              <div class="card" style="gap:14px">
+                <sc-for list="{{ upcomingEvents }}" as="e" hint-placeholder-count="5">
+                  <div style="display:flex;gap:10px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--color-divider)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px;opacity:0.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                    <div style="min-width:0">
+                      <div style="font-size:13px;font-weight:600">{{ e.title }}</div>
+                      <div style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ e.when }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = {
+    view: 'dashboard',
+    activeCollection: 'einrichtungen',
+    mobileNavOpen: false,
+    isMobile: false,
+  };
+
+  componentDidMount() {
+    this.onResize = () => this.setState({ isMobile: window.innerWidth < 900 });
+    this.onResize();
+    window.addEventListener('resize', this.onResize);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.onResize);
+  }
+
+  go(view, collection) {
+    this.setState({ view, activeCollection: collection || this.state.activeCollection, mobileNavOpen: false });
+  }
+
+  collections() {
+    const tag = (s) => s === 'Veröffentlicht' ? 'tag-accent' : s === 'Geplant' ? 'tag-outline' : 'tag-neutral';
+    const withTag = (rows) => rows.map(r => ({ ...r, statusClass: tag(r.status) }));
+    return {
+      einrichtungen: {
+        title: 'Einrichtungen', newLabel: 'Neue Einrichtung', col4: 'Ort', total: 12,
+        rows: withTag([
+          { name: 'Kita Sonnenschein', cat: 'Kindertagesstätte', status: 'Veröffentlicht', info: 'Lindenau-Nord', updated: 'Heute' },
+          { name: 'Familienzentrum Ost', cat: 'Beratungsstelle', status: 'Veröffentlicht', info: 'Lindenau-Ost', updated: 'Gestern' },
+          { name: 'Kita Wichtelburg', cat: 'Kindertagesstätte', status: 'Entwurf', info: 'Lindenau-Süd', updated: 'Mo' },
+          { name: 'Jugendtreff Achse', cat: 'Freizeiteinrichtung', status: 'Veröffentlicht', info: 'Lindenau-West', updated: '12. Aug' },
+          { name: 'Beratungsstelle Eltern & Kind', cat: 'Beratungsstelle', status: 'Geplant', info: 'Lindenau-Nord', updated: '10. Aug' },
+          { name: 'Kita Regenbogen', cat: 'Kindertagesstätte', status: 'Veröffentlicht', info: 'Lindenau-Mitte', updated: '8. Aug' },
+        ]),
+      },
+      angebote: {
+        title: 'Angebote', newLabel: 'Neues Angebot', col4: 'Zielgruppe', total: 34,
+        rows: withTag([
+          { name: 'Krabbelgruppe 0–1 Jahre', cat: 'Kurs', status: 'Veröffentlicht', info: 'Eltern mit Babys', updated: 'Heute' },
+          { name: 'Elternkurs „Starke Eltern“', cat: 'Kurs', status: 'Veröffentlicht', info: 'Eltern', updated: 'Gestern' },
+          { name: 'Ferienbetreuung Sommer', cat: 'Programm', status: 'Entwurf', info: 'Kinder 6–12', updated: 'Mo' },
+          { name: 'Beratungsgespräch Erziehung', cat: 'Beratung', status: 'Veröffentlicht', info: 'Familien', updated: '9. Aug' },
+          { name: 'Musikgarten', cat: 'Kurs', status: 'Geplant', info: 'Kinder 1–3', updated: '5. Aug' },
+        ]),
+      },
+      kontakte: {
+        title: 'Kontakte', newLabel: 'Neuer Kontakt', col4: 'Organisation', total: 58,
+        rows: withTag([
+          { name: 'Sabine Cohrs', cat: 'Ansprechpartnerin', status: 'Veröffentlicht', info: 'Familienzentrum Ost', updated: 'Heute' },
+          { name: 'Dr. Markus Weil', cat: 'Kinderarzt', status: 'Veröffentlicht', info: 'Praxis am Markt', updated: 'Gestern' },
+          { name: 'Beratungsstelle Zentral', cat: 'Institution', status: 'Veröffentlicht', info: 'Lindenau-Mitte', updated: 'Mo' },
+          { name: 'Elke Brandt', cat: 'Ansprechpartnerin', status: 'Entwurf', info: 'Kita Wichtelburg', updated: '11. Aug' },
+        ]),
+      },
+      blog: {
+        title: 'Blog & News', newLabel: 'Neuer Beitrag', col4: 'Autor', total: 47,
+        rows: withTag([
+          { name: 'Neue Öffnungszeiten ab September', cat: 'News', status: 'Veröffentlicht', info: 'J. Berger', updated: '9. Aug' },
+          { name: 'Sommerfest im Familienzentrum', cat: 'Blog', status: 'Veröffentlicht', info: 'S. Cohrs', updated: '6. Aug' },
+          { name: 'Anmeldung Ferienbetreuung startet', cat: 'News', status: 'Geplant', info: 'J. Berger', updated: '14. Aug' },
+          { name: 'Neue Krabbelgruppe startet', cat: 'Blog', status: 'Entwurf', info: 'S. Cohrs', updated: '—' },
+        ]),
+      },
+    };
+  }
+
+  buildCalendar() {
+    const year = 2026, month = 7; // August
+    const first = new Date(year, month, 1);
+    const startOffset = (first.getDay() + 6) % 7; // Monday-first
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const eventsByDay = { 11: ['Teamsitzung Redaktion'], 12: ['Elternabend Kita Sonnenschein'], 14: ['Anmeldestart Ferienbetreuung'], 18: ['Sommerfest Familienzentrum'], 21: ['Offene Sprechstunde'] };
+    const cells = [];
+    for (let i = 0; i < startOffset; i++) cells.push({ num: '', events: [], cellStyle: this.dayCellStyle(false, false), numStyle: '' });
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isToday = d === 11;
+      cells.push({
+        num: d, events: eventsByDay[d] || [],
+        cellStyle: this.dayCellStyle(true, isToday),
+        numStyle: `font-size:12px;font-weight:${isToday ? 800 : 400};color:${isToday ? 'var(--color-accent-700)' : 'inherit'}`,
+      });
+    }
+    return cells;
+  }
+
+  dayCellStyle(filled, isToday) {
+    return `min-height:74px;padding:6px;border-right:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);background:${isToday ? 'var(--color-accent-100)' : 'transparent'};display:flex;flex-direction:column`;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const isMobile = s.isMobile;
+    const navKey = s.view === 'list' ? s.activeCollection : (s.view === 'blogEdit' ? 'blog' : (s.view === 'tree' ? 'seiten' : s.view));
+    const navItemStyle = (key) => {
+      const active = navKey === key;
+      return `display:flex;align-items:center;gap:10px;padding:8px 12px;border:0;background:transparent;color:${active ? 'var(--color-accent-700)' : 'var(--color-text)'};font-family:var(--font-body);font-size:14px;font-weight:${active ? 600 : 400};cursor:pointer;text-align:left;border-radius:var(--radius-sm);width:100%`;
+    };
+    const navMarkerStyle = (key) => `width:5px;height:5px;flex:none;background:var(--color-accent);opacity:${navKey === key ? 1 : 0}`;
+
+    const cols = this.collections();
+    const activeList = s.view === 'list' ? cols[s.activeCollection] : cols.blog;
+
+    const recentItems = [
+      { name: 'Kita Sonnenschein', type: 'Einrichtung', status: 'Veröffentlicht', statusClass: 'tag-accent', who: 'Julia', updated: 'vor 2 Std.' },
+      { name: 'Sommerfest im Familienzentrum', type: 'Blogbeitrag', status: 'Veröffentlicht', statusClass: 'tag-accent', who: 'Sabine', updated: 'vor 5 Std.' },
+      { name: 'Neue Öffnungszeiten ab September', type: 'News', status: 'Veröffentlicht', statusClass: 'tag-accent', who: 'Julia', updated: 'Gestern' },
+      { name: 'Musikgarten', type: 'Angebot', status: 'Geplant', statusClass: 'tag-outline', who: 'Julia', updated: 'Gestern' },
+      { name: 'Über uns', type: 'Seite', status: 'Entwurf', statusClass: 'tag-neutral', who: 'Sabine', updated: 'Mo' },
+    ];
+
+    const upcomingEvents = [
+      { title: 'Teamsitzung Redaktion', when: 'Heute, 09:00' },
+      { title: 'Elternabend Kita Sonnenschein', when: 'Morgen, 09:00' },
+      { title: 'Anmeldestart Ferienbetreuung', when: '14. Aug, ganztägig' },
+      { title: 'Sommerfest Familienzentrum', when: '18. Aug, 16:00' },
+      { title: 'Offene Sprechstunde', when: '21. Aug, 10:00' },
+    ];
+
+    const pageTree = [
+      { name: 'Startseite', status: 'Veröffentlicht', updated: '3. Aug', indent: 0 },
+      { name: 'Über uns', status: 'Entwurf', updated: 'Mo', indent: 1 },
+      { name: 'Angebote', status: 'Veröffentlicht', updated: '1. Aug', indent: 0 },
+      { name: 'Kindertagesstätten', status: 'Veröffentlicht', updated: '29. Jul', indent: 1 },
+      { name: 'Beratung', status: 'Veröffentlicht', updated: '29. Jul', indent: 1 },
+      { name: 'Aktuelles', status: 'Veröffentlicht', updated: '9. Aug', indent: 0 },
+      { name: 'Kontakt', status: 'Veröffentlicht', updated: '20. Jul', indent: 0 },
+      { name: 'Impressum & Datenschutz', status: 'Veröffentlicht', updated: '2. Jun', indent: 0 },
+    ].map(p => ({
+      ...p,
+      statusClass: p.status === 'Veröffentlicht' ? 'tag-accent' : 'tag-neutral',
+      rowStyle: `display:flex;align-items:center;gap:10px;padding:11px 14px${p.indent ? ' 14px 40px' : ''};border-bottom:1px solid var(--color-divider)`,
+    }));
+
+    const mediaItems = [
+      { id: 'med-1', name: 'aussenspielbereich.jpg', meta: '2.1 MB · JPG' },
+      { id: 'med-2', name: 'sommerfest-2025.jpg', meta: '3.4 MB · JPG' },
+      { id: 'med-3', name: 'teamfoto-familienzentrum.jpg', meta: '1.8 MB · JPG' },
+      { id: 'med-4', name: 'krabbelgruppe.jpg', meta: '2.6 MB · JPG' },
+      { id: 'med-5', name: 'grundriss-kita.pdf', meta: '640 KB · PDF' },
+      { id: 'med-6', name: 'logo-lindenau.png', meta: '86 KB · PNG' },
+      { id: 'med-7', name: 'musikgarten.jpg', meta: '2.9 MB · JPG' },
+      { id: 'med-8', name: 'jugendtreff-aussen.jpg', meta: '3.1 MB · JPG' },
+      { id: 'med-9', name: 'elternbrief-sept.pdf', meta: '210 KB · PDF' },
+    ];
+
+    return {
+      shellStyle: `display:flex;height:100vh;font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);overflow:hidden`,
+      overlayStyle: `position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:20;display:${isMobile && s.mobileNavOpen ? 'block' : 'none'}`,
+      sidebarStyle: isMobile
+        ? `position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--color-bg);border-right:2px solid var(--color-divider);display:flex;flex-direction:column;z-index:21;transform:translateX(${s.mobileNavOpen ? '0' : '-100%'});transition:transform 0.2s ease`
+        : `width:240px;flex:none;border-right:2px solid var(--color-divider);display:flex;flex-direction:column;height:100vh`,
+      mobileCloseBtnStyle: `border:0;background:transparent;cursor:pointer;padding:4px;display:${isMobile ? 'flex' : 'none'}`,
+      hamburgerStyle: `border:0;background:transparent;cursor:pointer;padding:4px;display:${isMobile ? 'flex' : 'none'}`,
+      closeMobileNav: () => this.setState({ mobileNavOpen: false }),
+      openMobileNav: () => this.setState({ mobileNavOpen: true }),
+      mainPadding: isMobile ? '20px 16px 40px' : '32px 40px 56px',
+      cardCols: isMobile ? 2 : 4,
+      dashLowerCols: isMobile ? '1fr' : '2fr 1fr',
+      editCols: isMobile ? '1fr' : '2fr 1fr',
+      calGridCols: isMobile ? '1fr' : '3fr 1fr',
+      mediaCols: isMobile ? 2 : 4,
+
+      navStyles: {
+        dashboard: navItemStyle('dashboard'),
+        einrichtungen: navItemStyle('einrichtungen'),
+        angebote: navItemStyle('angebote'),
+        kontakte: navItemStyle('kontakte'),
+        seiten: navItemStyle('seiten'),
+        blog: navItemStyle('blog'),
+        medien: navItemStyle('media'),
+        kalender: navItemStyle('calendar'),
+      },
+      navMarkers: {
+        dashboard: navMarkerStyle('dashboard'),
+        einrichtungen: navMarkerStyle('einrichtungen'),
+        angebote: navMarkerStyle('angebote'),
+        kontakte: navMarkerStyle('kontakte'),
+        seiten: navMarkerStyle('seiten'),
+        blog: navMarkerStyle('blog'),
+        medien: navMarkerStyle('media'),
+        kalender: navMarkerStyle('calendar'),
+      },
+      kbdHintStyle: `position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-family:var(--font-body);padding:2px 7px;border:1px solid var(--color-divider);color:color-mix(in srgb, var(--color-text) 55%, transparent);background:var(--color-surface)`,
+
+      openDashboard: () => this.go('dashboard'),
+      openEinrichtungen: () => this.go('list', 'einrichtungen'),
+      openAngebote: () => this.go('list', 'angebote'),
+      openKontakte: () => this.go('list', 'kontakte'),
+      openSeiten: () => this.go('tree'),
+      openBlog: () => this.go('list', 'blog'),
+      openMedia: () => this.go('media'),
+      openKalender: () => this.go('calendar'),
+      openList: () => this.setState({ view: 'list', mobileNavOpen: false }),
+      openEdit: () => this.setState({ view: 'edit', mobileNavOpen: false }),
+      openBlogEdit: () => this.setState({ view: 'blogEdit', mobileNavOpen: false }),
+
+      viewIsDashboard: s.view === 'dashboard',
+      viewIsList: s.view === 'list',
+      viewIsEdit: s.view === 'edit',
+      viewIsBlogEdit: s.view === 'blogEdit',
+      viewIsTree: s.view === 'tree',
+      viewIsMedia: s.view === 'media',
+      viewIsCalendar: s.view === 'calendar',
+
+      activeList,
+      recentItems,
+      upcomingEvents,
+      pageTree,
+      mediaItems,
+
+      calMonthLabel: 'August 2026',
+      calWeekdayLabels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+      calDays: this.buildCalendar(),
+    };
+  }
+}
+
+
+</script>
+</body>
+</html>

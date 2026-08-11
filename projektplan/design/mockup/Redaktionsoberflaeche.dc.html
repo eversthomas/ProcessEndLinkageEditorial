@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="stylesheet" href="_ds/broadsheet-b6a5a0b7-f254-4047-b6c8-d796a91d4a2e/styles.css">
+<script src="./image-slot.js"></script>
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+body { margin: 0; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, #201e1d 20%, transparent); }
+</style>
+</helmet>
+
+<div style="{{ shellStyle }}">
+
+  <div style="{{ overlayStyle }}" onClick="{{ closeMobileNav }}"></div>
+
+  <aside style="{{ sidebarStyle }}">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 24px 22px">
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span style="font-family:var(--font-heading);font-weight:600;font-size:19px;letter-spacing:-0.01em">Lindenau</span>
+        <span style="font-family:var(--font-heading);font-style:italic;font-size:14px;color:var(--color-accent-700)">Redaktion</span>
+      </div>
+      <button type="button" aria-label="Schließen" onClick="{{ closeMobileNav }}" style="{{ mobileCloseBtnStyle }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    <nav style="flex:1;overflow-y:auto;padding:8px 20px 24px;display:flex;flex-direction:column;gap:2px">
+      <button type="button" onClick="{{ openDashboard }}" style="{{ navStyles.dashboard }}">
+<span style="{{ navIconWrap.dashboard }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"></path><path d="M5 10v10h14V10"></path></svg>
+        </span>
+        Start
+      </button>
+
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;color:color-mix(in srgb, var(--color-text) 45%, transparent);margin:20px 12px 8px">Inhalte</div>
+      <button type="button" onClick="{{ openEinrichtungen }}" style="{{ navStyles.einrichtungen }}">
+<span style="{{ navIconWrap.einrichtungen }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v18Z"></path><path d="M9 22v-4h6v4"></path></svg>
+        </span>
+        Einrichtungen
+      </button>
+      <button type="button" onClick="{{ openAngebote }}" style="{{ navStyles.angebote }}">
+<span style="{{ navIconWrap.angebote }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+        </span>
+        Angebote
+      </button>
+      <button type="button" onClick="{{ openKontakte }}" style="{{ navStyles.kontakte }}">
+<span style="{{ navIconWrap.kontakte }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>
+        </span>
+        Kontakte
+      </button>
+      <button type="button" onClick="{{ openSeiten }}" style="{{ navStyles.seiten }}">
+<span style="{{ navIconWrap.seiten }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>
+        </span>
+        Seiten
+      </button>
+      <button type="button" onClick="{{ openBlog }}" style="{{ navStyles.blog }}">
+<span style="{{ navIconWrap.blog }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16"></path><path d="M4 2h13a2 2 0 0 1 2 2v18H8V4a2 2 0 0 0-2-2H4Z"></path><path d="M8 8h9M8 12h9M8 16h5"></path></svg>
+        </span>
+        Blog &amp; News
+      </button>
+
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;color:color-mix(in srgb, var(--color-text) 45%, transparent);margin:20px 12px 8px">Medien</div>
+      <button type="button" onClick="{{ openMedia }}" style="{{ navStyles.medien }}">
+<span style="{{ navIconWrap.media }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg>
+        </span>
+        Mediathek
+      </button>
+
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;color:color-mix(in srgb, var(--color-text) 45%, transparent);margin:20px 12px 8px">Termine</div>
+      <button type="button" onClick="{{ openKalender }}" style="{{ navStyles.kalender }}">
+<span style="{{ navIconWrap.calendar }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+        </span>
+        Kalender
+      </button>
+    </nav>
+
+    <div style="padding:18px 24px;display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;border-radius:50%;background:color-mix(in srgb, var(--color-accent) 14%, transparent);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:13px;color:var(--color-accent-800)">JB</div>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Julia Berger</div>
+        <div style="font-size:11.5px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent)">Redakteurin</div>
+      </div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;height:100vh">
+    <header style="display:flex;align-items:center;gap:14px;padding:0 32px;height:64px;background:var(--color-bg);flex:none">
+      <button type="button" aria-label="Menü" onClick="{{ openMobileNav }}" style="{{ hamburgerStyle }}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+      <div style="position:relative;flex:1;max-width:440px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input class="input" placeholder="Suchen — Einrichtungen, Beiträge, Medien…" style="padding-left:32px;padding-right:56px;font-style:italic" />
+        <span style="{{ kbdHintStyle }}">⌘K</span>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+        <div style="display:flex;align-items:center;gap:7px;font-size:12.5px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent)">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent)"></span>
+          Alle Änderungen gespeichert
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon" aria-label="Benachrichtigungen">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <main style="flex:1;overflow-y:auto;padding:{{ mainPadding }}">
+
+      <sc-if value="{{ viewIsDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="max-width:1180px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:36px">
+            <div>
+              <span style="display:block;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;color:var(--color-accent-700);margin-bottom:8px">Dienstag, 11. August 2026</span>
+              <h1 style="font-size:38px;margin-bottom:6px">Guten Tag, Julia</h1>
+              <p style="margin:0;color:color-mix(in srgb, var(--color-text) 62%, transparent);font-size:16px">Hier ist, was heute in der Redaktion wichtig ist.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button type="button" class="btn btn-secondary" onClick="{{ openEinrichtungen }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+                Neue Einrichtung
+              </button>
+              <button type="button" class="btn btn-primary" onClick="{{ openBlogEdit }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+                Neuer Beitrag
+              </button>
+            </div>
+          </div>
+
+          <h2 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin-bottom:4px">Inhalte im Überblick</h2>
+          <div style="margin-bottom:44px">
+            <button type="button" onClick="{{ openEinrichtungen }}" style="{{ overviewRowStyle }}">
+              <span style="{{ overviewNumStyle }}">01</span>
+              <span style="flex:1;font-family:var(--font-heading);font-size:19px">Einrichtungen</span>
+              <span style="font-size:13px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:150px">Kitas, Beratungsstellen</span>
+              <span style="{{ overviewCountStyle }}">12</span>
+            </button>
+            <button type="button" onClick="{{ openAngebote }}" style="{{ overviewRowStyle }}">
+              <span style="{{ overviewNumStyle }}">02</span>
+              <span style="flex:1;font-family:var(--font-heading);font-size:19px">Angebote</span>
+              <span style="font-size:13px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:150px">Kurse, Beratung, Programme</span>
+              <span style="{{ overviewCountStyle }}">34</span>
+            </button>
+            <button type="button" onClick="{{ openKontakte }}" style="{{ overviewRowStyle }}">
+              <span style="{{ overviewNumStyle }}">03</span>
+              <span style="flex:1;font-family:var(--font-heading);font-size:19px">Kontakte</span>
+              <span style="font-size:13px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:150px">Ansprechpersonen</span>
+              <span style="{{ overviewCountStyle }}">58</span>
+            </button>
+            <button type="button" onClick="{{ openSeiten }}" style="{{ overviewRowStyle }}">
+              <span style="{{ overviewNumStyle }}">04</span>
+              <span style="flex:1;font-family:var(--font-heading);font-size:19px">Seiten</span>
+              <span style="font-size:13px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:150px">Frontend-Struktur</span>
+              <span style="{{ overviewCountStyle }}">21</span>
+            </button>
+            <button type="button" onClick="{{ openBlog }}" style="{{ overviewRowStyle }}">
+              <span style="{{ overviewNumStyle }}">05</span>
+              <span style="flex:1;font-family:var(--font-heading);font-size:19px">Blog &amp; News</span>
+              <span style="font-size:13px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:150px">Beiträge, Meldungen</span>
+              <span style="{{ overviewCountStyle }}">47</span>
+            </button>
+            <button type="button" onClick="{{ openKalender }}" style="{{ overviewRowStyle }}">
+              <span style="{{ overviewNumStyle }}">06</span>
+              <span style="flex:1;font-family:var(--font-heading);font-size:19px">Termine</span>
+              <span style="font-size:13px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:150px">Anstehend diesen Monat</span>
+              <span style="{{ overviewCountStyle }}">9</span>
+            </button>
+            <button type="button" onClick="{{ openMedia }}" style="{{ overviewRowStyleLast }}">
+              <span style="{{ overviewNumStyle }}">07</span>
+              <span style="flex:1;font-family:var(--font-heading);font-size:19px">Mediendateien</span>
+              <span style="font-size:13px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:150px">Bilder, Dokumente</span>
+              <span style="{{ overviewCountStyle }}">312</span>
+            </button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ dashLowerCols }};gap:48px;align-items:start">
+            <div>
+              <h2 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin-bottom:14px">Zuletzt bearbeitet</h2>
+              <table class="table">
+                <thead><tr><th>Name</th><th>Typ</th><th>Status</th><th>Bearbeitet von</th><th>Aktualisiert</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ recentItems }}" as="r" hint-placeholder-count="5">
+                    <tr>
+                      <td style="font-family:var(--font-heading)">{{ r.name }}</td>
+                      <td class="text-muted">{{ r.type }}</td>
+                      <td><span class="tag {{ r.statusClass }}">{{ r.status }}</span></td>
+                      <td class="text-muted">{{ r.who }}</td>
+                      <td class="text-muted">{{ r.updated }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h2 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin-bottom:14px">Anstehende Termine</h2>
+              <div style="display:flex;flex-direction:column;gap:18px">
+                <sc-for list="{{ upcomingEvents }}" as="e" hint-placeholder-count="3">
+                  <div style="display:flex;gap:12px;align-items:baseline">
+                    <span style="font-family:var(--font-heading);font-style:italic;color:var(--color-accent-700);font-size:14px">{{ e.day }}</span>
+                    <div style="min-width:0">
+                      <div style="font-size:14px;font-family:var(--font-heading)">{{ e.title }}</div>
+                      <div style="font-size:12px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ e.when }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+                <button type="button" class="btn btn-ghost" onClick="{{ openKalender }}" style="align-self:flex-start;padding-inline:0;margin-top:4px">Kalender öffnen →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsList }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1180px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px">
+            <div>
+              <span style="display:block;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;color:var(--color-accent-700);margin-bottom:8px">Inhalte</span>
+              <h1 style="font-size:32px;margin:0">{{ activeList.title }}</h1>
+            </div>
+            <button type="button" class="btn btn-primary" onClick="{{ openEdit }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+              {{ activeList.newLabel }}
+            </button>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px">
+            <div style="position:relative;width:240px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              <input class="input" placeholder="Filtern…" style="padding-left:30px;font-style:italic" />
+            </div>
+            <div class="seg">
+              <label class="seg-opt"><input type="radio" name="statusfilter" checked />Alle</label>
+              <label class="seg-opt"><input type="radio" name="statusfilter" />Veröffentlicht</label>
+              <label class="seg-opt"><input type="radio" name="statusfilter" />Entwurf</label>
+            </div>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:24px"><input type="checkbox" /></th>
+                <th>Name</th><th>Kategorie</th><th>Status</th><th>{{ activeList.col4 }}</th><th>Aktualisiert</th><th style="width:70px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ activeList.rows }}" as="row" hint-placeholder-count="6">
+                <tr>
+                  <td><input type="checkbox" /></td>
+                  <td style="font-family:var(--font-heading)">{{ row.name }}</td>
+                  <td class="text-muted">{{ row.cat }}</td>
+                  <td><span class="tag {{ row.statusClass }}">{{ row.status }}</span></td>
+                  <td class="text-muted">{{ row.info }}</td>
+                  <td class="text-muted">{{ row.updated }}</td>
+                  <td>
+                    <div style="display:flex;gap:2px">
+                      <button type="button" class="btn btn-ghost btn-icon" aria-label="Bearbeiten" onClick="{{ openEdit }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                      </button>
+                      <button type="button" class="btn btn-ghost btn-icon" aria-label="Löschen">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"></path></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;font-size:13px;font-style:italic;color:color-mix(in srgb, var(--color-text) 60%, transparent)">
+            <span>{{ activeList.rows.length }} von {{ activeList.total }} Einträgen</span>
+            <div style="display:flex;gap:4px">
+              <button type="button" class="btn btn-secondary btn-icon" aria-label="Zurück"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+              <button type="button" class="btn btn-secondary btn-icon" aria-label="Weiter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg></button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsEdit }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1040px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <button type="button" class="btn btn-ghost" onClick="{{ openList }}" style="padding-inline:0;margin-bottom:14px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg>
+            Zurück zu {{ activeList.title }}
+          </button>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:32px">
+            <h1 style="font-size:32px;margin:0">Kita Sonnenschein</h1>
+            <div style="display:flex;gap:10px">
+              <button type="button" class="btn btn-secondary">Vorschau</button>
+              <button type="button" class="btn btn-primary">Speichern</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ editCols }};gap:56px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:36px">
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:16px">Grunddaten</h3>
+                <div style="display:grid;gap:16px">
+                  <div class="field"><label>Name</label><input class="input" value="Kita Sonnenschein" /></div>
+                  <div class="field"><label>Kategorie</label>
+                    <select class="input"><option>Kindertagesstätte</option><option>Beratungsstelle</option><option>Freizeiteinrichtung</option></select>
+                  </div>
+                  <div class="field"><label>Beschreibung</label>
+                    <textarea class="input" rows="4">Zweigruppige Kindertagesstätte im Stadtteil Lindenau-Nord mit Außenspielbereich und Ganztagsbetreuung für Kinder von 1 bis 6 Jahren.</textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:16px">Kontakt &amp; Adresse</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                  <div class="field" style="grid-column:1/-1"><label>Straße &amp; Nr.</label><input class="input" value="Ahornweg 14" /></div>
+                  <div class="field"><label>PLZ</label><input class="input" value="04159" /></div>
+                  <div class="field"><label>Ort</label><input class="input" value="Lindenau-Nord" /></div>
+                  <div class="field"><label>Telefon</label><input class="input" value="0341 555 0142" /></div>
+                  <div class="field"><label>E-Mail</label><input class="input" value="sonnenschein@lindenau.de" /></div>
+                </div>
+              </div>
+
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:16px">Öffnungszeiten</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div class="field"><label>Mo – Fr</label><input class="input" value="07:00 – 17:00" /></div>
+                  <div class="field"><label>Sa / So</label><input class="input" value="Geschlossen" /></div>
+                </div>
+              </div>
+
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:16px">Titelbild</h3>
+                <div class="halftone" style="aspect-ratio:16/9">
+                  <image-slot id="edit-facility-photo" shape="rect" style="width:100%;height:100%" placeholder="Bild der Einrichtung ablegen"></image-slot>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:32px">
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:14px">Status</h3>
+                <div style="display:grid;gap:8px">
+                  <label class="radio"><input type="radio" name="pubstatus" checked /><span class="dot"></span>Veröffentlicht</label>
+                  <label class="radio"><input type="radio" name="pubstatus" /><span class="dot"></span>Entwurf</label>
+                </div>
+              </div>
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:14px">Veröffentlichung planen</h3>
+                <div class="field"><label>Datum &amp; Uhrzeit</label><input class="input" type="datetime-local" /></div>
+              </div>
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:14px">Sichtbarkeit</h3>
+                <div class="field"><select class="input"><option>Öffentlich</option><option>Nur intern</option></select></div>
+              </div>
+              <p style="font-size:12.5px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin:0">Zuletzt gespeichert vor 2 Stunden von Julia Berger</p>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsBlogEdit }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1040px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <button type="button" class="btn btn-ghost" onClick="{{ openBlog }}" style="padding-inline:0;margin-bottom:14px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg>
+            Zurück zu Blog &amp; News
+          </button>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:32px">
+            <h1 style="font-size:32px;margin:0">Neuer Beitrag</h1>
+            <div style="display:flex;gap:10px">
+              <button type="button" class="btn btn-secondary">Als Entwurf speichern</button>
+              <button type="button" class="btn btn-primary">Veröffentlichen</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ editCols }};gap:56px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:18px">
+              <input class="input" style="font-size:26px;font-family:var(--font-heading);height:56px;font-weight:600" value="Sommerfest im Familienzentrum" />
+              <div style="font-size:12.5px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent)">lindenau-familie.de/aktuelles/sommerfest-im-familienzentrum</div>
+              <div>
+                <div style="display:flex;gap:2px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--color-divider)">
+                  <button type="button" class="btn btn-ghost btn-icon" aria-label="Fett"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h9a4 4 0 0 1 0 8H6zM6 4h8a4 4 0 0 1 0 8H6z"></path></svg></button>
+                  <button type="button" class="btn btn-ghost btn-icon" aria-label="Kursiv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M19 4h-9M14 20H5M15 4 9 20"></path></svg></button>
+                  <button type="button" class="btn btn-ghost btn-icon" aria-label="Link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"></path></svg></button>
+                  <button type="button" class="btn btn-ghost btn-icon" aria-label="Liste"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg></button>
+                </div>
+                <textarea class="input" rows="12" style="border:0;background:transparent;padding-left:0;font-size:16px;line-height:1.7">Am 18. August feiern wir gemeinsam mit allen Familien unser Sommerfest im Garten des Familienzentrums Ost. Es gibt Spiele, Grillstationen und ein Programm für Kinder jeden Alters.
+
+Wir freuen uns auf einen schönen Nachmittag mit Ihnen!</textarea>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:32px">
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:14px">Titelbild</h3>
+                <div class="halftone" style="aspect-ratio:16/9">
+                  <image-slot id="edit-blog-photo" shape="rect" style="width:100%;height:100%" placeholder="Titelbild ablegen"></image-slot>
+                </div>
+              </div>
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:14px">Rubrik &amp; Tags</h3>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <span class="tag tag-accent">Familienzentrum</span>
+                  <span class="tag tag-neutral">Veranstaltung</span>
+                  <span class="tag tag-outline">+ Tag</span>
+                </div>
+              </div>
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:14px">Veröffentlichung</h3>
+                <div style="display:grid;gap:8px;margin-bottom:14px">
+                  <label class="radio"><input type="radio" name="blogstatus" checked /><span class="dot"></span>Sofort veröffentlichen</label>
+                  <label class="radio"><input type="radio" name="blogstatus" /><span class="dot"></span>Terminieren</label>
+                </div>
+                <div class="field"><label>Datum &amp; Uhrzeit</label><input class="input" type="datetime-local" /></div>
+              </div>
+              <div>
+                <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:var(--color-accent-700);margin-bottom:14px">Autor</h3>
+                <p style="margin:0;font-size:14px">Sabine Cohrs</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsTree }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:900px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+            <div>
+              <span style="display:block;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;color:var(--color-accent-700);margin-bottom:8px">Inhalte</span>
+              <h1 style="font-size:32px;margin:0">Seiten</h1>
+            </div>
+            <button type="button" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+              Neue Seite
+            </button>
+          </div>
+          <p style="color:color-mix(in srgb, var(--color-text) 60%, transparent);margin-bottom:28px;font-size:15px">Struktur der Website — hier legen Sie die Reihenfolge und Hierarchie der Frontendseiten fest.</p>
+
+          <div>
+            <sc-for list="{{ pageTree }}" as="p" hint-placeholder-count="8">
+              <div style="{{ p.rowStyle }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35;flex:none;cursor:grab"><circle cx="9" cy="6" r="1"></circle><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="18" r="1"></circle><circle cx="15" cy="6" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="18" r="1"></circle></svg>
+                <span style="flex:1;font-family:var(--font-heading);font-size:16px">{{ p.name }}</span>
+                <span class="tag {{ p.statusClass }}">{{ p.status }}</span>
+                <span style="font-size:12px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent);width:80px;text-align:right">{{ p.updated }}</span>
+                <button type="button" class="btn btn-ghost btn-icon" aria-label="Bearbeiten">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                </button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsMedia }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1180px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px">
+            <div>
+              <span style="display:block;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;color:var(--color-accent-700);margin-bottom:8px">Medien</span>
+              <h1 style="font-size:32px;margin:0">Mediathek</h1>
+            </div>
+            <button type="button" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8 12 3 7 8"></path><path d="M12 3v12"></path></svg>
+              Hochladen
+            </button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+            <div style="position:relative;width:240px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              <input class="input" placeholder="Dateien durchsuchen…" style="padding-left:30px;font-style:italic" />
+            </div>
+            <select class="input" style="width:160px"><option>Alle Typen</option><option>Bilder</option><option>Dokumente</option></select>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat({{ mediaCols }},1fr);gap:24px">
+            <sc-for list="{{ mediaItems }}" as="m" hint-placeholder-count="9">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div class="halftone" style="aspect-ratio:4/3">
+                  <image-slot id="{{ m.id }}" shape="rect" style="width:100%;height:100%" placeholder="Bild"></image-slot>
+                </div>
+                <div style="font-size:13px;font-family:var(--font-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.name }}</div>
+                <div style="font-size:11.5px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ m.meta }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewIsCalendar }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1180px;margin:0 auto;animation:fadeIn 0.25s ease">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px">
+            <div>
+              <span style="display:block;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;color:var(--color-accent-700);margin-bottom:8px">Termine</span>
+              <div style="display:flex;align-items:center;gap:14px">
+                <h1 style="font-size:32px;margin:0">{{ calMonthLabel }}</h1>
+                <div style="display:flex;gap:4px">
+                  <button type="button" class="btn btn-secondary btn-icon" aria-label="Vorheriger Monat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+                  <button type="button" class="btn btn-secondary btn-icon" aria-label="Nächster Monat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg></button>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+              Neuer Termin
+            </button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ calGridCols }};gap:48px;align-items:start">
+            <div style="min-width:0">
+              <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr))">
+                <sc-for list="{{ calWeekdayLabels }}" as="wd" hint-placeholder-count="7">
+                  <div style="padding:8px 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-style:italic;text-align:center;color:color-mix(in srgb, var(--color-text) 55%, transparent);border-bottom:1px solid var(--color-divider)">{{ wd }}</div>
+                </sc-for>
+                <sc-for list="{{ calDays }}" as="d" hint-placeholder-count="35">
+                  <div style="{{ d.cellStyle }};min-width:0">
+                    <span style="{{ d.numStyle }}">{{ d.num }}</span>
+                    <sc-for list="{{ d.events }}" as="ev" hint-placeholder-count="0">
+                      <div style="font-size:10.5px;font-style:italic;color:var(--color-accent-800);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">{{ ev }}</div>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="min-width:0">
+              <h2 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;font-style:italic;font-weight:400;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin-bottom:16px">Anstehende Termine</h2>
+              <div style="display:flex;flex-direction:column;gap:18px">
+                <sc-for list="{{ upcomingEvents }}" as="e" hint-placeholder-count="5">
+                  <div style="display:flex;gap:12px;align-items:baseline">
+                    <span style="font-family:var(--font-heading);font-style:italic;color:var(--color-accent-700);font-size:14px">{{ e.day }}</span>
+                    <div style="min-width:0">
+                      <div style="font-size:14px;font-family:var(--font-heading)">{{ e.title }}</div>
+                      <div style="font-size:12px;font-style:italic;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ e.when }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    view: 'dashboard',
+    activeCollection: 'einrichtungen',
+    mobileNavOpen: false,
+    isMobile: false,
+  };
+
+  componentDidMount() {
+    this.onResize = () => this.setState({ isMobile: window.innerWidth < 900 });
+    this.onResize();
+    window.addEventListener('resize', this.onResize);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.onResize);
+  }
+
+  go(view, collection) {
+    this.setState({ view, activeCollection: collection || this.state.activeCollection, mobileNavOpen: false });
+  }
+
+  collections() {
+    const tag = (s) => s === 'Veröffentlicht' ? 'tag-accent' : s === 'Geplant' ? 'tag-accent-2' : 'tag-neutral';
+    const withTag = (rows) => rows.map(r => ({ ...r, statusClass: tag(r.status) }));
+    return {
+      einrichtungen: {
+        title: 'Einrichtungen', newLabel: 'Neue Einrichtung', col4: 'Ort', total: 12,
+        rows: withTag([
+          { name: 'Kita Sonnenschein', cat: 'Kindertagesstätte', status: 'Veröffentlicht', info: 'Lindenau-Nord', updated: 'Heute' },
+          { name: 'Familienzentrum Ost', cat: 'Beratungsstelle', status: 'Veröffentlicht', info: 'Lindenau-Ost', updated: 'Gestern' },
+          { name: 'Kita Wichtelburg', cat: 'Kindertagesstätte', status: 'Entwurf', info: 'Lindenau-Süd', updated: 'Mo' },
+          { name: 'Jugendtreff Achse', cat: 'Freizeiteinrichtung', status: 'Veröffentlicht', info: 'Lindenau-West', updated: '12. Aug' },
+          { name: 'Beratungsstelle Eltern & Kind', cat: 'Beratungsstelle', status: 'Geplant', info: 'Lindenau-Nord', updated: '10. Aug' },
+          { name: 'Kita Regenbogen', cat: 'Kindertagesstätte', status: 'Veröffentlicht', info: 'Lindenau-Mitte', updated: '8. Aug' },
+        ]),
+      },
+      angebote: {
+        title: 'Angebote', newLabel: 'Neues Angebot', col4: 'Zielgruppe', total: 34,
+        rows: withTag([
+          { name: 'Krabbelgruppe 0–1 Jahre', cat: 'Kurs', status: 'Veröffentlicht', info: 'Eltern mit Babys', updated: 'Heute' },
+          { name: 'Elternkurs „Starke Eltern“', cat: 'Kurs', status: 'Veröffentlicht', info: 'Eltern', updated: 'Gestern' },
+          { name: 'Ferienbetreuung Sommer', cat: 'Programm', status: 'Entwurf', info: 'Kinder 6–12', updated: 'Mo' },
+          { name: 'Beratungsgespräch Erziehung', cat: 'Beratung', status: 'Veröffentlicht', info: 'Familien', updated: '9. Aug' },
+          { name: 'Musikgarten', cat: 'Kurs', status: 'Geplant', info: 'Kinder 1–3', updated: '5. Aug' },
+        ]),
+      },
+      kontakte: {
+        title: 'Kontakte', newLabel: 'Neuer Kontakt', col4: 'Organisation', total: 58,
+        rows: withTag([
+          { name: 'Sabine Cohrs', cat: 'Ansprechpartnerin', status: 'Veröffentlicht', info: 'Familienzentrum Ost', updated: 'Heute' },
+          { name: 'Dr. Markus Weil', cat: 'Kinderarzt', status: 'Veröffentlicht', info: 'Praxis am Markt', updated: 'Gestern' },
+          { name: 'Beratungsstelle Zentral', cat: 'Institution', status: 'Veröffentlicht', info: 'Lindenau-Mitte', updated: 'Mo' },
+          { name: 'Elke Brandt', cat: 'Ansprechpartnerin', status: 'Entwurf', info: 'Kita Wichtelburg', updated: '11. Aug' },
+        ]),
+      },
+      blog: {
+        title: 'Blog & News', newLabel: 'Neuer Beitrag', col4: 'Autor', total: 47,
+        rows: withTag([
+          { name: 'Neue Öffnungszeiten ab September', cat: 'News', status: 'Veröffentlicht', info: 'J. Berger', updated: '9. Aug' },
+          { name: 'Sommerfest im Familienzentrum', cat: 'Blog', status: 'Veröffentlicht', info: 'S. Cohrs', updated: '6. Aug' },
+          { name: 'Anmeldung Ferienbetreuung startet', cat: 'News', status: 'Geplant', info: 'J. Berger', updated: '14. Aug' },
+          { name: 'Neue Krabbelgruppe startet', cat: 'Blog', status: 'Entwurf', info: 'S. Cohrs', updated: '—' },
+        ]),
+      },
+    };
+  }
+
+  buildCalendar() {
+    const year = 2026, month = 7;
+    const first = new Date(year, month, 1);
+    const startOffset = (first.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const eventsByDay = { 11: ['Teamsitzung Redaktion'], 12: ['Elternabend Kita Sonnenschein'], 14: ['Anmeldestart Ferienbetreuung'], 18: ['Sommerfest Familienzentrum'], 21: ['Offene Sprechstunde'] };
+    const cells = [];
+    for (let i = 0; i < startOffset; i++) cells.push({ num: '', events: [], cellStyle: this.dayCellStyle(false), numStyle: '' });
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isToday = d === 11;
+      cells.push({
+        num: d, events: eventsByDay[d] || [],
+        cellStyle: this.dayCellStyle(isToday),
+        numStyle: `font-family:var(--font-heading);font-size:13px;font-style:${isToday ? 'italic' : 'normal'};color:${isToday ? 'var(--color-accent-700)' : 'inherit'}`,
+      });
+    }
+    return cells;
+  }
+
+  dayCellStyle(isToday) {
+    return `min-height:76px;padding:8px 6px;border-bottom:1px solid var(--color-divider);background:${isToday ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : 'transparent'};display:flex;flex-direction:column`;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const isMobile = s.isMobile;
+    const navKey = s.view === 'list' ? s.activeCollection : (s.view === 'blogEdit' ? 'blog' : (s.view === 'tree' ? 'seiten' : s.view));
+    const navItemStyle = (key) => {
+      const active = navKey === key;
+      return `display:flex;align-items:center;gap:11px;padding:8px 12px;border:0;background:transparent;color:${active ? 'var(--color-accent-700)' : 'var(--color-text)'};font-family:var(--font-heading);font-size:15px;font-style:${active ? 'italic' : 'normal'};font-weight:${active ? 600 : 400};cursor:pointer;text-align:left;width:100%`;
+    };
+
+    const cols = this.collections();
+    const activeList = s.view === 'list' ? cols[s.activeCollection] : cols.blog;
+
+    const recentItems = [
+      { name: 'Kita Sonnenschein', type: 'Einrichtung', status: 'Veröffentlicht', statusClass: 'tag-accent', who: 'Julia', updated: 'vor 2 Std.' },
+      { name: 'Sommerfest im Familienzentrum', type: 'Blogbeitrag', status: 'Veröffentlicht', statusClass: 'tag-accent', who: 'Sabine', updated: 'vor 5 Std.' },
+      { name: 'Neue Öffnungszeiten ab September', type: 'News', status: 'Veröffentlicht', statusClass: 'tag-accent', who: 'Julia', updated: 'Gestern' },
+      { name: 'Musikgarten', type: 'Angebot', status: 'Geplant', statusClass: 'tag-accent-2', who: 'Julia', updated: 'Gestern' },
+      { name: 'Über uns', type: 'Seite', status: 'Entwurf', statusClass: 'tag-neutral', who: 'Sabine', updated: 'Mo' },
+    ];
+
+    const upcomingEvents = [
+      { day: '11.', title: 'Teamsitzung Redaktion', when: 'Heute, 09:00' },
+      { day: '12.', title: 'Elternabend Kita Sonnenschein', when: 'Morgen, 09:00' },
+      { day: '14.', title: 'Anmeldestart Ferienbetreuung', when: 'ganztägig' },
+      { day: '18.', title: 'Sommerfest Familienzentrum', when: '16:00' },
+      { day: '21.', title: 'Offene Sprechstunde', when: '10:00' },
+    ];
+
+    const pageTree = [
+      { name: 'Startseite', status: 'Veröffentlicht', updated: '3. Aug', indent: 0 },
+      { name: 'Über uns', status: 'Entwurf', updated: 'Mo', indent: 1 },
+      { name: 'Angebote', status: 'Veröffentlicht', updated: '1. Aug', indent: 0 },
+      { name: 'Kindertagesstätten', status: 'Veröffentlicht', updated: '29. Jul', indent: 1 },
+      { name: 'Beratung', status: 'Veröffentlicht', updated: '29. Jul', indent: 1 },
+      { name: 'Aktuelles', status: 'Veröffentlicht', updated: '9. Aug', indent: 0 },
+      { name: 'Kontakt', status: 'Veröffentlicht', updated: '20. Jul', indent: 0 },
+      { name: 'Impressum & Datenschutz', status: 'Veröffentlicht', updated: '2. Jun', indent: 0 },
+    ].map(p => ({
+      ...p,
+      statusClass: p.status === 'Veröffentlicht' ? 'tag-accent' : 'tag-neutral',
+      rowStyle: `display:flex;align-items:center;gap:12px;padding:13px 0${p.indent ? ' 13px 32px' : ''};border-bottom:1px solid var(--color-divider)`,
+    }));
+
+    const mediaItems = [
+      { id: 'med-1', name: 'aussenspielbereich.jpg', meta: '2.1 MB · JPG' },
+      { id: 'med-2', name: 'sommerfest-2025.jpg', meta: '3.4 MB · JPG' },
+      { id: 'med-3', name: 'teamfoto-familienzentrum.jpg', meta: '1.8 MB · JPG' },
+      { id: 'med-4', name: 'krabbelgruppe.jpg', meta: '2.6 MB · JPG' },
+      { id: 'med-5', name: 'grundriss-kita.pdf', meta: '640 KB · PDF' },
+      { id: 'med-6', name: 'logo-lindenau.png', meta: '86 KB · PNG' },
+      { id: 'med-7', name: 'musikgarten.jpg', meta: '2.9 MB · JPG' },
+      { id: 'med-8', name: 'jugendtreff-aussen.jpg', meta: '3.1 MB · JPG' },
+      { id: 'med-9', name: 'elternbrief-sept.pdf', meta: '210 KB · PDF' },
+    ];
+
+    return {
+      shellStyle: `display:flex;height:100vh;font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);overflow:hidden`,
+      overlayStyle: `position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:20;display:${isMobile && s.mobileNavOpen ? 'block' : 'none'}`,
+      sidebarStyle: isMobile
+        ? `position:fixed;top:0;left:0;bottom:0;width:264px;background:var(--color-surface);display:flex;flex-direction:column;z-index:21;transform:translateX(${s.mobileNavOpen ? '0' : '-100%'});transition:transform 0.2s ease`
+        : `width:248px;flex:none;background:var(--color-surface);display:flex;flex-direction:column;height:100vh`,
+      mobileCloseBtnStyle: `border:0;background:transparent;cursor:pointer;padding:4px;display:${isMobile ? 'flex' : 'none'}`,
+      hamburgerStyle: `border:0;background:transparent;cursor:pointer;padding:4px;display:${isMobile ? 'flex' : 'none'}`,
+      closeMobileNav: () => this.setState({ mobileNavOpen: false }),
+      openMobileNav: () => this.setState({ mobileNavOpen: true }),
+      mainPadding: isMobile ? '24px 18px 44px' : '40px 48px 64px',
+      dashLowerCols: isMobile ? '1fr' : '2fr 1fr',
+      editCols: isMobile ? '1fr' : '2fr 1fr',
+      calGridCols: isMobile ? '1fr' : '3fr 1fr',
+      mediaCols: isMobile ? 2 : 4,
+
+      navIconWrap: {
+        dashboard: `display:flex;width:16px;color:${navKey === 'dashboard' ? 'var(--color-accent-700)' : 'inherit'}`,
+        einrichtungen: `display:flex;width:16px;color:${navKey === 'einrichtungen' ? 'var(--color-accent-700)' : 'inherit'}`,
+        angebote: `display:flex;width:16px;color:${navKey === 'angebote' ? 'var(--color-accent-700)' : 'inherit'}`,
+        kontakte: `display:flex;width:16px;color:${navKey === 'kontakte' ? 'var(--color-accent-700)' : 'inherit'}`,
+        seiten: `display:flex;width:16px;color:${navKey === 'seiten' ? 'var(--color-accent-700)' : 'inherit'}`,
+        blog: `display:flex;width:16px;color:${navKey === 'blog' ? 'var(--color-accent-700)' : 'inherit'}`,
+        media: `display:flex;width:16px;color:${navKey === 'media' ? 'var(--color-accent-700)' : 'inherit'}`,
+        calendar: `display:flex;width:16px;color:${navKey === 'calendar' ? 'var(--color-accent-700)' : 'inherit'}`,
+      },
+      navStyles: {
+        dashboard: navItemStyle('dashboard'),
+        einrichtungen: navItemStyle('einrichtungen'),
+        angebote: navItemStyle('angebote'),
+        kontakte: navItemStyle('kontakte'),
+        seiten: navItemStyle('seiten'),
+        blog: navItemStyle('blog'),
+        medien: navItemStyle('media'),
+        kalender: navItemStyle('calendar'),
+      },
+      kbdHintStyle: `position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-family:var(--font-body);font-style:normal;padding:2px 7px;border:1px solid var(--color-divider);border-radius:var(--radius-sm);color:color-mix(in srgb, var(--color-text) 55%, transparent);background:var(--color-surface)`,
+
+      overviewRowStyle: `display:flex;align-items:baseline;gap:18px;width:100%;padding:14px 16px;margin-bottom:6px;border:1px solid var(--color-divider);border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-sm);text-align:left;cursor:pointer`,
+      overviewRowStyleLast: `display:flex;align-items:baseline;gap:18px;width:100%;padding:14px 16px;border:1px solid var(--color-divider);border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-sm);text-align:left;cursor:pointer`,
+      overviewNumStyle: `font-family:var(--font-heading);font-style:italic;font-size:13px;color:var(--color-accent-700);width:22px`,
+      overviewCountStyle: `font-family:var(--font-heading);font-size:24px;font-feature-settings:'pnum' 1;color:var(--color-text)`,
+
+      openDashboard: () => this.go('dashboard'),
+      openEinrichtungen: () => this.go('list', 'einrichtungen'),
+      openAngebote: () => this.go('list', 'angebote'),
+      openKontakte: () => this.go('list', 'kontakte'),
+      openSeiten: () => this.go('tree'),
+      openBlog: () => this.go('list', 'blog'),
+      openMedia: () => this.go('media'),
+      openKalender: () => this.go('calendar'),
+      openList: () => this.setState({ view: 'list', mobileNavOpen: false }),
+      openEdit: () => this.setState({ view: 'edit', mobileNavOpen: false }),
+      openBlogEdit: () => this.setState({ view: 'blogEdit', mobileNavOpen: false }),
+
+      viewIsDashboard: s.view === 'dashboard',
+      viewIsList: s.view === 'list',
+      viewIsEdit: s.view === 'edit',
+      viewIsBlogEdit: s.view === 'blogEdit',
+      viewIsTree: s.view === 'tree',
+      viewIsMedia: s.view === 'media',
+      viewIsCalendar: s.view === 'calendar',
+
+      activeList,
+      recentItems,
+      upcomingEvents,
+      pageTree,
+      mediaItems,
+
+      calMonthLabel: 'August 2026',
+      calWeekdayLabels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+      calDays: this.buildCalendar(),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
