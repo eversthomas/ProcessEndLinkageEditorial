@@ -43,7 +43,7 @@ class TextField extends AbstractFieldRenderer {
 
 		$html = $this->wrapperStart($field, $errors);
 		$html .= sprintf(
-			'<input type="%s" class="bpe-input" id="%s" name="%s" value="%s" placeholder="%s"%s>',
+			'<input type="%s" class="input bpe-input" id="%s" name="%s" value="%s" placeholder="%s"%s>',
 			$this->escape($inputType),
 			$this->escape($id),
 			$this->escape($field['name']),

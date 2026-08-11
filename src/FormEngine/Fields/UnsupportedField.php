@@ -18,7 +18,7 @@ class UnsupportedField extends AbstractFieldRenderer {
 			$pwType
 		);
 
-		$html = '<div class="bpe-field bpe-field--unsupported" data-field="'
+		$html = '<div class="field bpe-field bpe-field--unsupported" data-field="'
 			. $this->escape((string) ($field['name'] ?? '')) . '">';
 		$html .= '<p class="bpe-field__unsupported" role="status">' . $this->escape($message) . '</p>';
 		$html .= '</div>';

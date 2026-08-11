@@ -16,7 +16,7 @@ class CheckboxField extends AbstractFieldRenderer {
 		}
 
 		$hasError = !empty($errors[$name]);
-		$classes = 'bpe-field bpe-field--checkbox' . ($hasError ? ' bpe-field--error' : '');
+		$classes = 'field bpe-field bpe-field--checkbox' . ($hasError ? ' bpe-field--error' : '');
 
 		$html = '<div class="' . $classes . '" data-field="' . $this->escape($name) . '">';
 		$html .= '<input type="hidden" name="' . $this->escape($name) . '" value="0">';

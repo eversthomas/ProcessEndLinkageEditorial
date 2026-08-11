@@ -202,11 +202,16 @@ class Router {
 			$templates,
 			fn(string $tpl, string $id) => $this->url('t/' . $tpl . '/' . $id)
 		);
+		$userName = $this->auth->displayName() ?: 'Redaktion';
+		$first = preg_split('/\s+/', trim($userName))[0] ?? $userName;
 		$content = $dash->render([
-			'title' => 'Übersicht',
-			'lead' => 'Zuletzt bearbeitet und Schnellzugriff auf Ihre Inhaltstypen.',
+			'skin' => 'daten',
+			'title' => 'Guten Tag, ' . $first,
+			'lead' => 'Hier ist, was in der Redaktion wichtig ist.',
+			'kicker' => $this->dashboardKicker(),
 			'tiles' => $tiles,
 			'recent' => $recent,
+			'userName' => $userName,
 		]);
 		return $this->shell($content, [
 			'title' => 'Übersicht',
@@ -214,6 +219,7 @@ class Router {
 			'treeTitle' => 'Navigation',
 			'treeHtml' => $this->renderGlobalTree(['node' => 'overview']),
 			'flash' => $this->takeFlash(),
+			'designSkin' => 'daten',
 		]);
 	}
 
@@ -229,8 +235,10 @@ class Router {
 		);
 		$label = $node['label'] ?? $node['id'];
 		$content = $dash->render([
+			'skin' => 'daten',
 			'title' => $label,
 			'lead' => 'Inhaltstypen in diesem Bereich.',
+			'kicker' => 'Bereich',
 			'tiles' => $tiles,
 			'recent' => $recent,
 		]);
@@ -246,7 +254,22 @@ class Router {
 			'treeTitle' => $section['label'] ?? 'Inhalte',
 			'treeHtml' => $treeHtml,
 			'flash' => $this->takeFlash(),
+			'designSkin' => 'daten',
 		]);
+	}
+
+	protected function dashboardKicker(): string {
+		$days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+		$months = [
+			1 => 'Januar', 2 => 'Februar', 3 => 'März', 4 => 'April', 5 => 'Mai', 6 => 'Juni',
+			7 => 'Juli', 8 => 'August', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Dezember',
+		];
+		$ts = time();
+		$d = (int) date('w', $ts);
+		$day = (int) date('j', $ts);
+		$m = (int) date('n', $ts);
+		$y = (int) date('Y', $ts);
+		return $days[$d] . ', ' . $day . '. ' . $months[$m] . ' ' . $y;
 	}
 
 	/**
@@ -278,9 +301,11 @@ class Router {
 				'label' => $label,
 				'icon' => $icon,
 				'mode' => $mode,
+				'datatype' => $this->module->editorialDatatype($tpl),
 				'count' => $count,
 				'url' => $this->url('t/' . $tpl),
 				'newUrl' => $mode === 'list' ? $this->url('t/' . $tpl . '/new') : null,
+				'hint' => $mode === 'single' ? 'Einzelseite' : 'Datensätze',
 			];
 		}
 		return $tiles;
@@ -302,14 +327,17 @@ class Router {
 	protected function getList(string $template): string {
 		$schema = $this->adapter->readSchema($template);
 		$records = $this->adapter->listRecords($template);
+		$skin = $this->designSkinForTemplate($template);
 		$list = new ListView();
 		$content = $list->render($schema, $records, [
+			'skin' => $skin,
 			'newUrl' => $this->url('t/' . $template . '/new'),
 			'editUrl' => fn(string $id) => $this->url('t/' . $template . '/' . $id),
 		]);
 		return $this->shell($content, $this->shellContextForTemplate($template, $schema['label'] ?? $template, [
 			'flash' => $this->takeFlash(),
 			'active' => ['template' => $template],
+			'designSkin' => $skin,
 		]));
 	}
 
@@ -330,6 +358,7 @@ class Router {
 		$title = $single
 			? $listLabel
 			: ($isNew ? $listLabel . ' anlegen' : ($values['title'] ?? 'Bearbeiten'));
+		$skin = $this->designSkinForTemplate($template);
 
 		$formErrors = $errors;
 		$formError = $formErrors['_form'] ?? null;
@@ -346,9 +375,11 @@ class Router {
 			: ($isNew ? $this->url('t/' . $template . '/new') : $this->url('t/' . $template . '/' . $id));
 
 		$content .= $form->renderForm($schema, $values, $formErrors, [
+			'skin' => $skin,
 			'action' => $actionUrl,
 			'title' => $title,
 			'cancelUrl' => $single ? null : $this->url('t/' . $template),
+			'listLabel' => $listLabel,
 			'csrf' => $this->csrfField(),
 			'submitLabel' => 'Speichern',
 			'previewUrl' => $values['url'] ?? null,
@@ -370,6 +401,7 @@ class Router {
 			'flash' => $this->takeFlash(),
 			'active' => ['template' => $template, 'record' => $id],
 			'needsTinyMce' => $needsTiny,
+			'designSkin' => $skin,
 		]));
 	}
 
@@ -549,6 +581,10 @@ class Router {
 	protected function shell(string $content, array $vars): string {
 		$shell = new ShellView();
 		$theme = $this->themeCss();
+		$designSkin = (string) ($vars['designSkin'] ?? 'daten');
+		if ($designSkin !== 'daten') {
+			$designSkin = 'legacy';
+		}
 		return $shell->render(array_merge([
 			'baseUrl' => $this->module->baseUrl(),
 			'assetUrl' => $this->module->moduleUrl() . 'assets/',
@@ -563,17 +599,60 @@ class Router {
 			'treeCollapsed' => false,
 			'brandName' => $this->module->brandName(),
 			'brandLogoUrl' => $this->module->brandLogoUrl(),
+			'designSkin' => $designSkin,
 		], $vars));
+	}
+
+	/** Broadsheet-Skin nur wenn Template Daten-Art „Daten“ hat. */
+	protected function designSkinForTemplate(string $template): string {
+		return $this->module->hasDatatypeView($template) ? 'daten' : 'legacy';
 	}
 
 	protected function themeCss(): string {
 		$accent = (string) ($this->module->get('theme_accent') ?: '#1f6b4a');
 		$rail = (string) ($this->module->get('theme_rail_bg') ?: '#1c1f1d');
 		$radius = (string) ($this->module->get('theme_radius') ?: '8');
+		$text = (string) ($this->module->get('theme_text_color') ?: '#201e1d');
+		$muted = (string) ($this->module->get('theme_muted_color') ?: '#6b736e');
+		$spacingKey = (string) ($this->module->get('theme_spacing') ?: 'normal');
+
 		$accent = preg_match('/^#[0-9a-fA-F]{3,8}$/', $accent) ? $accent : '#1f6b4a';
 		$rail = preg_match('/^#[0-9a-fA-F]{3,8}$/', $rail) ? $rail : '#1c1f1d';
+		$text = preg_match('/^#[0-9a-fA-F]{3,8}$/', $text) ? $text : '#201e1d';
+		$muted = preg_match('/^#[0-9a-fA-F]{3,8}$/', $muted) ? $muted : '#6b736e';
 		$radius = preg_match('/^\d+(\.\d+)?$/', $radius) ? $radius : '8';
-		return ':root{--bpe-accent:' . $accent . ';--bpe-rail-bg:' . $rail . ';--bpe-radius:' . $radius . 'px;}';
+		$space = match ($spacingKey) {
+			'compact' => '7.5',
+			'generous' => '12.5',
+			default => '10',
+		};
+		$radiusNum = (float) $radius;
+		$radiusMd = max(2, $radiusNum - 2);
+		$radiusSm = max(2, $radiusNum - 4);
+
+		// --bpe-* bleibt Settings-Schicht (theme_* Config); Broadsheet-Namen sind Aliase darauf.
+		return ':root{'
+			. '--bpe-accent:' . $accent . ';'
+			. '--bpe-rail-bg:' . $rail . ';'
+			. '--bpe-radius:' . $radius . 'px;'
+			. '--bpe-ink:' . $text . ';'
+			. '--bpe-muted:' . $muted . ';'
+			. '--bpe-space:' . $space . 'px;'
+			. '--color-accent:var(--bpe-accent);'
+			. '--color-text:var(--bpe-ink);'
+			. '--color-bg:var(--bpe-bg);'
+			. '--color-surface:var(--bpe-bg-panel);'
+			. '--color-divider:var(--bpe-line);'
+			. '--radius-lg:var(--bpe-radius);'
+			. '--radius-md:' . $radiusMd . 'px;'
+			. '--radius-sm:' . $radiusSm . 'px;'
+			. '--space-1:calc(var(--bpe-space)*0.5);'
+			. '--space-2:var(--bpe-space);'
+			. '--space-3:calc(var(--bpe-space)*1.5);'
+			. '--space-4:calc(var(--bpe-space)*2);'
+			. '--space-6:calc(var(--bpe-space)*3);'
+			. '--space-8:calc(var(--bpe-space)*4);'
+			. '}';
 	}
 
 	protected function resolveSingletonId(string $template): ?string {

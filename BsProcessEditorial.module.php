@@ -35,15 +35,28 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('data_source', 'processwire');
 		$this->set('editorial_templates', []);
 		$this->set('editorial_modes', []);
+		$this->set('editorial_datatypes', []);
 		$this->set('role_templates', []);
 		$this->set('editorial_nav', '');
 		$this->set('theme_accent', '#1f6b4a');
 		$this->set('theme_rail_bg', '#1c1f1d');
 		$this->set('theme_radius', '8');
+		$this->set('theme_text_color', '#201e1d');
+		$this->set('theme_muted_color', '#6b736e');
+		$this->set('theme_spacing', 'normal');
 		$this->set('brand_name', '');
 		$this->set('brand_logo', '');
 		$this->set('allow_demo_login', 0);
 	}
+
+	/** @var array<string, string> */
+	public const DATATYPE_LABELS = [
+		'daten' => 'Daten',
+		'blog' => 'Blog',
+		'news' => 'News',
+		'termine' => 'Termine',
+		'seiten' => 'Seiten',
+	];
 
 	public function init(): void {
 		$this->registerAutoloader();
@@ -116,15 +129,20 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			. 'Freigabe und Modus unten festlegen.</p>';
 		$out .= '<table class="AdminDataTable AdminDataList"><thead><tr>'
 			. '<th>Template</th><th>Label</th><th>Seiten</th><th>Felder</th>'
-			. '<th>Ohne Adapter</th><th>Vorschlag</th><th>Status</th>'
+			. '<th>Ohne Adapter</th><th>Daten-Art</th><th>Vorschlag</th><th>Status</th>'
 			. '</tr></thead><tbody>';
 		if (!$candidates) {
-			$out .= '<tr><td colspan="7">Keine geeigneten Templates gefunden.</td></tr>';
+			$out .= '<tr><td colspan="8">Keine geeigneten Templates gefunden.</td></tr>';
 		}
 		foreach ($candidates as $item) {
 			$active = in_array($item['name'], $enabled, true);
 			$mode = $active ? $this->editorialMode($item['name']) : $item['suggestedMode'];
 			$modeLabel = $mode === 'single' ? 'Einzelseite' : 'Datensätze (Liste)';
+			$datatype = $active ? $this->editorialDatatype($item['name']) : 'daten';
+			$datatypeLabel = self::DATATYPE_LABELS[$datatype] ?? 'Daten';
+			if ($active && $datatype !== 'daten') {
+				$datatypeLabel .= ' <span class="detail">(Ansicht noch generisch)</span>';
+			}
 			$unsupported = $item['unsupportedFields'] ?? [];
 			if ($unsupported) {
 				$bits = [];
@@ -142,6 +160,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 				. '<td>' . (int) $item['pages'] . '</td>'
 				. '<td>' . (int) $item['fields'] . '</td>'
 				. '<td>' . $unsupportedHtml . '</td>'
+				. '<td>' . ($active ? $datatypeLabel : '—') . '</td>'
 				. '<td>' . htmlspecialchars($item['kind']) . ($active ? ' → <strong>' . htmlspecialchars($modeLabel) . '</strong>' : '') . '</td>'
 				. '<td>' . ($active ? '<strong>freigegeben</strong>' : '—') . '</td>'
 				. '</tr>';
@@ -208,10 +227,39 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	}
 
 	/**
-	 * Formularwerte + mode__/role__*-Felder zu speicherbarer Config normalisieren.
+	 * Daten-Art: daten | blog | news | termine | seiten
+	 */
+	public function editorialDatatype(string $template): string {
+		$types = $this->get('editorial_datatypes');
+		if (!is_array($types)) {
+			$types = [];
+		}
+		$raw = (string) ($types[$template] ?? 'daten');
+		return array_key_exists($raw, self::DATATYPE_LABELS) ? $raw : 'daten';
+	}
+
+	/**
+	 * @return array<string, string> template => datatype key
+	 */
+	public function editorialDatatypes(): array {
+		$out = [];
+		foreach ($this->editorialTemplateNames() as $name) {
+			$out[$name] = $this->editorialDatatype($name);
+		}
+		return $out;
+	}
+
+	/** Ob für diese Daten-Art das Broadsheet-/Daten-Rendering greift. */
+	public function hasDatatypeView(string $template): bool {
+		return $this->editorialDatatype($template) === 'daten';
+	}
+
+	/**
+	 * Formularwerte + mode__/datatype__/role__*-Felder zu speicherbarer Config normalisieren.
 	 */
 	protected function normalizeConfigValues(array $values, array $previous): array {
 		$modes = is_array($previous['editorial_modes'] ?? null) ? $previous['editorial_modes'] : [];
+		$datatypes = is_array($previous['editorial_datatypes'] ?? null) ? $previous['editorial_datatypes'] : [];
 		$roleTemplates = is_array($previous['role_templates'] ?? null) ? $previous['role_templates'] : [];
 
 		foreach ($values as $key => $value) {
@@ -220,6 +268,15 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 				$tpl = substr($key, 6);
 				if ($tpl !== '') {
 					$modes[$tpl] = ((string) $value === 'single') ? 'single' : 'list';
+				}
+				unset($values[$key]);
+				continue;
+			}
+			if (str_starts_with($key, 'datatype__')) {
+				$tpl = substr($key, 10);
+				if ($tpl !== '') {
+					$raw = (string) $value;
+					$datatypes[$tpl] = array_key_exists($raw, self::DATATYPE_LABELS) ? $raw : 'daten';
 				}
 				unset($values[$key]);
 				continue;
@@ -244,11 +301,14 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
 		$cleanModes = [];
+		$cleanDatatypes = [];
 		foreach ($templates as $tpl) {
 			if ($tpl === '') {
 				continue;
 			}
 			$cleanModes[$tpl] = $modes[$tpl] ?? $discovery->suggestMode($tpl);
+			$dt = (string) ($datatypes[$tpl] ?? 'daten');
+			$cleanDatatypes[$tpl] = array_key_exists($dt, self::DATATYPE_LABELS) ? $dt : 'daten';
 		}
 
 		$cleanRoles = [];
@@ -267,6 +327,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 
 		$values['editorial_modes'] = $cleanModes;
+		$values['editorial_datatypes'] = $cleanDatatypes;
 		$values['editorial_templates'] = $templates;
 		$values['role_templates'] = $cleanRoles;
 		$values['allow_demo_login'] = !empty($values['allow_demo_login']) ? 1 : 0;
@@ -299,8 +360,18 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			(string) ($values['theme_rail_bg'] ?? ''),
 			(string) ($previous['theme_rail_bg'] ?? '#1c1f1d')
 		);
+		$values['theme_text_color'] = $this->normalizeHexColor(
+			(string) ($values['theme_text_color'] ?? ''),
+			(string) ($previous['theme_text_color'] ?? '#201e1d')
+		);
+		$values['theme_muted_color'] = $this->normalizeHexColor(
+			(string) ($values['theme_muted_color'] ?? ''),
+			(string) ($previous['theme_muted_color'] ?? '#6b736e')
+		);
 		$radius = trim((string) ($values['theme_radius'] ?? '8'));
 		$values['theme_radius'] = preg_match('/^\d+(\.\d+)?$/', $radius) ? $radius : '8';
+		$spacing = (string) ($values['theme_spacing'] ?? 'normal');
+		$values['theme_spacing'] = in_array($spacing, ['compact', 'normal', 'generous'], true) ? $spacing : 'normal';
 
 		$values['brand_name'] = trim((string) ($values['brand_name'] ?? ''));
 		// Logo-Dateiname bleibt in processBrandLogoUpload erhalten/aktualisiert
@@ -670,6 +741,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$fsContent->add($f);
 
 		$modes = is_array($data['editorial_modes'] ?? null) ? $data['editorial_modes'] : [];
+		$datatypes = is_array($data['editorial_datatypes'] ?? null) ? $data['editorial_datatypes'] : [];
 		foreach ($selected as $name) {
 			$name = (string) $name;
 			if ($name === '') {
@@ -684,6 +756,18 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$mf->addOption('single', 'Einzelseite (ohne Liste)');
 			$mf->value = $modes[$name] ?? $discovery->suggestMode($name);
 			$fsContent->add($mf);
+
+			/** @var InputfieldSelect $df */
+			$df = $modules->get('InputfieldSelect');
+			$df->name = 'datatype__' . $name;
+			$df->label = 'Daten-Art: ' . $name;
+			$df->description = 'Steuert die redaktionelle Ansicht. Nur „Daten“ hat derzeit eine spezialisierte Oberfläche; andere Arten nutzen vorerst die generische Liste/Formular.';
+			foreach (self::DATATYPE_LABELS as $key => $label) {
+				$df->addOption($key, $label);
+			}
+			$dt = (string) ($datatypes[$name] ?? 'daten');
+			$df->value = array_key_exists($dt, self::DATATYPE_LABELS) ? $dt : 'daten';
+			$fsContent->add($df);
 		}
 
 		// —— 2. Navigation ——
@@ -783,6 +867,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		foreach ([
 			['theme_accent', 'Theme: Akzentfarbe', '#1f6b4a'],
 			['theme_rail_bg', 'Theme: Rail-Hintergrund', '#1c1f1d'],
+			['theme_text_color', 'Theme: Textfarbe', '#201e1d'],
+			['theme_muted_color', 'Theme: Gedämpfte Textfarbe', '#6b736e'],
 		] as [$name, $label, $default]) {
 			/** @var InputfieldText $f */
 			$f = $modules->get('InputfieldText');
@@ -800,6 +886,18 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->name = 'theme_radius';
 		$f->label = 'Theme: Radius (px)';
 		$f->value = $data['theme_radius'] ?? '8';
+		$fsDesign->add($f);
+
+		/** @var InputfieldSelect $f */
+		$f = $modules->get('InputfieldSelect');
+		$f->name = 'theme_spacing';
+		$f->label = 'Theme: Abstände';
+		$f->description = 'Wirkt auf die Basis-Abstände der Redaktionsoberfläche (kompakt / normal / großzügig).';
+		$f->addOption('compact', 'Kompakt');
+		$f->addOption('normal', 'Normal');
+		$f->addOption('generous', 'Großzügig');
+		$spacing = (string) ($data['theme_spacing'] ?? 'normal');
+		$f->value = in_array($spacing, ['compact', 'normal', 'generous'], true) ? $spacing : 'normal';
 		$fsDesign->add($f);
 
 		// —— 4. Zugriff/Rollen ——

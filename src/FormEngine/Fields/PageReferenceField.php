@@ -14,7 +14,7 @@ class PageReferenceField extends AbstractFieldRenderer {
 
 		$selectName = $this->escape($field['name']) . ($multiple ? '[]' : '');
 		$html .= sprintf(
-			'<select class="bpe-input bpe-input--select" id="%s" name="%s"%s%s>',
+			'<select class="input bpe-input bpe-input--select" id="%s" name="%s"%s%s>',
 			$this->escape($id),
 			$selectName,
 			$multiple ? ' multiple' : '',

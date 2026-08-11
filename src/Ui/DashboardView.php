@@ -1,14 +1,105 @@
 <?php namespace ProcessWire\BsProcessEditorial\Ui;
 
 use ProcessWire\BsProcessEditorial\Adapter\AdapterInterface;
-use ProcessWire\BsProcessEditorial\Setup\NavConfig;
 
 /**
- * Dashboard-Übersicht: Kacheln + zuletzt bearbeitet.
+ * Dashboard-Übersicht: Broadsheet (Daten) oder Legacy-Kacheln.
  */
 class DashboardView {
 
 	public function render(array $options): string {
+		$skin = ($options['skin'] ?? 'daten') === 'legacy' ? 'legacy' : 'daten';
+		if ($skin === 'daten') {
+			return $this->renderDaten($options);
+		}
+		return $this->renderLegacy($options);
+	}
+
+	protected function renderDaten(array $options): string {
+		$title = $options['title'] ?? 'Übersicht';
+		$lead = $options['lead'] ?? '';
+		$kicker = $options['kicker'] ?? '';
+		$tiles = $options['tiles'] ?? [];
+		$recent = $options['recent'] ?? [];
+
+		$html = '<div class="bpe-daten">';
+		$html .= '<header class="bpe-daten__header bpe-daten__header--dash">';
+		$html .= '<div>';
+		if ($kicker !== '') {
+			$html .= '<span class="bpe-daten__kicker">' . $this->e($kicker) . '</span>';
+		}
+		$html .= '<h1>' . $this->e($title) . '</h1>';
+		if ($lead !== '') {
+			$html .= '<p class="bpe-daten__lead">' . $this->e($lead) . '</p>';
+		}
+		$html .= '</div>';
+		$primaryNew = null;
+		foreach ($tiles as $tile) {
+			if (!empty($tile['newUrl'])) {
+				$primaryNew = $tile;
+				break;
+			}
+		}
+		if ($primaryNew) {
+			$html .= '<div class="bpe-daten__actions">';
+			$html .= '<a class="btn btn-primary" href="' . $this->e($primaryNew['newUrl']) . '">'
+				. Icons::svg('plus', 'bpe-icon bpe-icon--sm')
+				. ' Neu: ' . $this->e($primaryNew['label'] ?? '') . '</a>';
+			$html .= '</div>';
+		}
+		$html .= '</header>';
+
+		if ($tiles) {
+			$html .= '<h2 class="bpe-daten__section-title">Inhalte im Überblick</h2>';
+			$html .= '<div class="bpe-overview">';
+			$i = 0;
+			foreach ($tiles as $tile) {
+				$i++;
+				$url = $tile['url'] ?? '#';
+				$count = $tile['count'];
+				$hint = (string) ($tile['hint'] ?? '');
+				$dt = (string) ($tile['datatype'] ?? 'daten');
+				if ($dt !== 'daten') {
+					$hint = ($hint !== '' ? $hint . ' · ' : '') . 'Ansicht noch generisch';
+				}
+				$html .= '<a class="bpe-overview__row" href="' . $this->e($url) . '">';
+				$html .= '<span class="bpe-overview__num">' . sprintf('%02d', $i) . '</span>';
+				$html .= '<span class="bpe-overview__label">' . $this->e($tile['label'] ?? '') . '</span>';
+				$html .= '<span class="bpe-overview__hint">' . $this->e($hint) . '</span>';
+				$html .= '<span class="bpe-overview__count">' . ($count === null ? '—' : (int) $count) . '</span>';
+				$html .= '</a>';
+			}
+			$html .= '</div>';
+		}
+
+		$html .= '<div class="bpe-daten__lower">';
+		$html .= '<div>';
+		$html .= '<h2 class="bpe-daten__section-title">Zuletzt bearbeitet</h2>';
+		if (!$recent) {
+			$html .= '<p class="text-muted">Noch keine bearbeiteten Einträge in Ihren Inhaltstypen.</p>';
+		} else {
+			$html .= '<table class="table"><thead><tr>';
+			$html .= '<th>Name</th><th>Typ</th><th>Status</th><th>Aktualisiert</th>';
+			$html .= '</tr></thead><tbody>';
+			foreach ($recent as $item) {
+				$status = (string) ($item['status'] ?? 'published');
+				$published = $status !== 'unpublished';
+				$html .= '<tr>';
+				$html .= '<td style="font-family:var(--font-heading)"><a href="'
+					. $this->e($item['url'] ?? '#') . '">' . $this->e($item['title'] ?? 'Ohne Titel') . '</a></td>';
+				$html .= '<td class="text-muted">' . $this->e($item['typeLabel'] ?? '') . '</td>';
+				$html .= '<td><span class="tag ' . ($published ? 'tag-accent' : 'tag-neutral') . '">'
+					. ($published ? 'Veröffentlicht' : 'Entwurf') . '</span></td>';
+				$html .= '<td class="text-muted">' . $this->e($item['modifiedLabel'] ?? '') . '</td>';
+				$html .= '</tr>';
+			}
+			$html .= '</tbody></table>';
+		}
+		$html .= '</div></div></div>';
+		return $html;
+	}
+
+	protected function renderLegacy(array $options): string {
 		$title = $options['title'] ?? 'Übersicht';
 		$lead = $options['lead'] ?? 'Was zuletzt bearbeitet wurde und woran Sie weiterarbeiten können.';
 		$tiles = $options['tiles'] ?? [];
@@ -74,7 +165,7 @@ class DashboardView {
 
 	/**
 	 * @param string[] $templates
-	 * @return array<int, array{title: string, url: string, typeLabel: string, modifiedLabel: string, modified: string}>
+	 * @return array<int, array{title: string, url: string, typeLabel: string, modifiedLabel: string, modified: string, status: string}>
 	 */
 	public function collectRecent(AdapterInterface $adapter, array $templates, callable $editUrl, int $limit = 8): array {
 		$all = [];
@@ -89,6 +180,7 @@ class DashboardView {
 						'typeLabel' => $label,
 						'modified' => (string) ($record['modified'] ?? ''),
 						'modifiedLabel' => $this->relative((string) ($record['modified'] ?? '')),
+						'status' => (string) ($record['status'] ?? 'published'),
 					];
 				}
 			} catch (\Throwable $e) {

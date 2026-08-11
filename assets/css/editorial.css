@@ -1,21 +1,22 @@
-/* Editorial UI — filigrane 4-Spalten-Shell (kein Build-Step) */
+/* Editorial UI — Shell + Legacy-Views. Tokens/Broadsheet: broadsheet.css (zuerst laden). */
 
 :root {
-  --bpe-bg: #f4f5f4;
-  --bpe-bg-panel: #ffffff;
-  --bpe-ink: #1a1d1b;
+  --bpe-bg: #f3f2f2;
+  --bpe-bg-panel: #eae9e9;
+  --bpe-ink: #201e1d;
   --bpe-muted: #6b736e;
-  --bpe-line: #e2e6e3;
+  --bpe-line: color-mix(in srgb, #201e1d 16%, transparent);
   --bpe-accent: #1f6b4a;
-  --bpe-accent-soft: #e7f3ee;
+  --bpe-accent-soft: color-mix(in srgb, var(--bpe-accent) 12%, transparent);
   --bpe-danger: #9b2c2c;
   --bpe-danger-soft: #f8e4e4;
-  --bpe-ok: #1f6b4a;
+  --bpe-ok: var(--bpe-accent);
   --bpe-rail-bg: #1c1f1d;
   --bpe-sidebar-bg: #f0f2f0;
   --bpe-radius: 8px;
-  --bpe-font: "Source Serif 4", "Iowan Old Style", Palatino, Georgia, serif;
-  --bpe-sans: "Source Sans 3", "Segoe UI", "Helvetica Neue", sans-serif;
+  --bpe-space: 10px;
+  --bpe-font: "Open Sans", system-ui, sans-serif;
+  --bpe-sans: "Open Sans", system-ui, sans-serif;
   --bpe-rail-w: 5.5rem;
   --bpe-rail-w-expanded: 12.5rem;
   --bpe-sidebar-w: 16.5rem;
@@ -1229,4 +1230,246 @@ a {
     flex-direction: column;
     gap: 0.2rem;
   }
+}
+
+/* —— Broadsheet / Daten-Art „Daten“ content layouts —— */
+@keyframes bpe-fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bpe-daten {
+  max-width: 1180px;
+  margin: 0 auto;
+  animation: bpe-fadeIn 0.25s ease;
+}
+
+.bpe-daten--form {
+  max-width: 1040px;
+}
+
+.bpe-daten__kicker {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-style: italic;
+  color: var(--color-accent-700);
+  margin-bottom: 8px;
+}
+
+.bpe-daten__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.bpe-daten__header h1 {
+  font-size: 32px;
+  margin: 0;
+}
+
+.bpe-daten__header--dash h1 {
+  font-size: 38px;
+  margin-bottom: 6px;
+}
+
+.bpe-daten__lead {
+  margin: 0;
+  color: color-mix(in srgb, var(--color-text) 62%, transparent);
+  font-size: 16px;
+}
+
+.bpe-daten__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bpe-daten__section-title {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-style: italic;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 0 0 14px;
+}
+
+.bpe-overview {
+  margin-bottom: 44px;
+}
+
+.bpe-overview__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  margin: 0 0 8px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-decoration: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.bpe-overview__row:hover {
+  background: color-mix(in srgb, var(--color-text) 4%, var(--color-surface));
+}
+
+.bpe-overview__num {
+  font-family: var(--font-heading);
+  font-style: italic;
+  color: var(--color-accent-700);
+  font-size: 14px;
+  width: 2rem;
+  flex: none;
+}
+
+.bpe-overview__label {
+  flex: 1;
+  font-family: var(--font-heading);
+  font-size: 19px;
+}
+
+.bpe-overview__hint {
+  font-size: 13px;
+  font-style: italic;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  width: 150px;
+  flex: none;
+}
+
+.bpe-overview__count {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.bpe-daten__lower {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .bpe-daten__lower {
+    grid-template-columns: 1fr;
+  }
+  .bpe-overview__hint {
+    display: none;
+  }
+}
+
+.bpe-daten__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  font-size: 13px;
+  font-style: italic;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.bpe-form-daten__back {
+  padding-inline: 0;
+  margin-bottom: 14px;
+}
+
+.bpe-form-daten__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.7fr);
+  gap: 56px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .bpe-form-daten__layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+.bpe-form-daten__main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.bpe-form-daten__title-block .input {
+  font-size: 26px;
+  font-family: var(--font-heading);
+  min-height: 56px;
+  font-weight: 600;
+}
+
+.bpe-form-daten__permalink {
+  font-size: 12.5px;
+  font-style: italic;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 8px 0 0;
+  word-break: break-all;
+}
+
+.bpe-form-daten__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.bpe-form-daten__meta-title {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--color-accent-700);
+  margin: 0 0 14px;
+}
+
+.bpe-form-daten__saved {
+  font-size: 12.5px;
+  font-style: italic;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 0;
+}
+
+/* Dual-class: Broadsheet .field/.input neben Legacy .bpe-* */
+.field.bpe-field > label,
+.field.bpe-field .bpe-field__label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+
+body[data-design="daten"] .bpe-input {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+
+body[data-design="daten"] .bpe-main {
+  padding: 28px 32px 48px;
+}
+
+body[data-design="daten"] .bpe-flash--ok {
+  border-radius: var(--radius-md);
 }

@@ -11,7 +11,7 @@ class SelectField extends AbstractFieldRenderer {
 		$current = (string) ($value ?? '');
 		$html = $this->wrapperStart($field, $errors);
 		$html .= sprintf(
-			'<select class="bpe-input bpe-input--select" id="%s" name="%s"%s>',
+			'<select class="input bpe-input bpe-input--select" id="%s" name="%s"%s>',
 			$this->escape($id),
 			$this->escape($field['name']),
 			!empty($field['required']) ? ' required' : ''

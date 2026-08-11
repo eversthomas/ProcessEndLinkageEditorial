@@ -12,7 +12,7 @@ class DatetimeField extends AbstractFieldRenderer {
 		$inputType = $includeTime ? 'datetime-local' : 'date';
 		$html = $this->wrapperStart($field, $errors);
 		$html .= sprintf(
-			'<input type="%s" class="bpe-input" id="%s" name="%s" value="%s"%s>',
+			'<input type="%s" class="input bpe-input" id="%s" name="%s" value="%s"%s>',
 			$this->escape($inputType),
 			$this->escape($id),
 			$this->escape($field['name']),

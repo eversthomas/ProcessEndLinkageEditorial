@@ -15,7 +15,7 @@ abstract class AbstractFieldRenderer implements FieldRendererInterface {
 		$name = $field['name'];
 		$hasError = !empty($errors[$name]);
 		$required = !empty($field['required']);
-		$classes = 'bpe-field' . ($hasError ? ' bpe-field--error' : '');
+		$classes = 'field bpe-field' . ($hasError ? ' bpe-field--error' : '');
 		$html = '<div class="' . $classes . '" data-field="' . $this->escape($name) . '">';
 		$html .= '<label class="bpe-field__label" for="' . $this->escape($id) . '">';
 		$html .= $this->escape($field['label'] ?? $name);

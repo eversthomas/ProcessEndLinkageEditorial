@@ -37,7 +37,7 @@ class ImageField extends AbstractFieldRenderer {
 		}
 
 		$html .= sprintf(
-			'<input type="file" class="bpe-input bpe-input--file" id="%s" name="%s" accept="%s"%s>',
+			'<input type="file" class="input bpe-input bpe-input--file" id="%s" name="%s" accept="%s"%s>',
 			$this->escape($id),
 			$this->escape($name),
 			$this->escape($accept),

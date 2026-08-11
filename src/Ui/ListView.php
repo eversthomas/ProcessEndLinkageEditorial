@@ -1,11 +1,106 @@
 <?php namespace ProcessWire\BsProcessEditorial\Ui;
 
 /**
- * Listenansicht — Spalten aus Schema (3–5), „Neu“ prominent, leerer Zustand.
+ * Listenansicht — Broadsheet (Daten) oder Legacy-Tabelle.
  */
 class ListView {
 
 	public function render(array $schema, array $records, array $options = []): string {
+		$skin = ($options['skin'] ?? 'legacy') === 'daten' ? 'daten' : 'legacy';
+		if ($skin === 'daten') {
+			return $this->renderDaten($schema, $records, $options);
+		}
+		return $this->renderLegacy($schema, $records, $options);
+	}
+
+	protected function renderDaten(array $schema, array $records, array $options): string {
+		$label = $schema['label'] ?? $schema['template'];
+		$newUrl = $options['newUrl'] ?? '#';
+		$editUrl = $options['editUrl'] ?? fn($id) => '#';
+		$columns = $this->listColumns($schema);
+		$col4Field = $columns[1] ?? null;
+		$col4Label = $col4Field['label'] ?? ($col4Field['name'] ?? 'Info');
+		$catField = $this->categoryField($schema, $columns);
+
+		$count = count($records);
+		$newLabel = 'Neu anlegen';
+
+		$html = '<div class="bpe-daten">';
+		$html .= '<header class="bpe-daten__header">';
+		$html .= '<div>';
+		$html .= '<span class="bpe-daten__kicker">Inhalte</span>';
+		$html .= '<h1>' . $this->e($label) . '</h1>';
+		$html .= '</div>';
+		$html .= '<a class="btn btn-primary" href="' . $this->e($newUrl) . '">'
+			. Icons::svg('plus', 'bpe-icon bpe-icon--sm') . ' ' . $this->e($newLabel) . '</a>';
+		$html .= '</header>';
+
+		if (empty($records)) {
+			$html .= '<div class="card">';
+			$html .= '<p class="card-title">Noch leer</p>';
+			$html .= '<p class="card-body">Legen Sie den ersten Eintrag an — er erscheint dann in dieser Liste.</p>';
+			$html .= '<a class="btn btn-primary" href="' . $this->e($newUrl) . '">Ersten Eintrag anlegen</a>';
+			$html .= '</div></div>';
+			return $html;
+		}
+
+		$html .= '<table class="table">';
+		$html .= '<thead><tr>';
+		$html .= '<th>Name</th>';
+		$html .= '<th>Kategorie</th>';
+		$html .= '<th>Status</th>';
+		$html .= '<th>' . $this->e($col4Label) . '</th>';
+		$html .= '<th>Aktualisiert</th>';
+		$html .= '<th style="width:70px"></th>';
+		$html .= '</tr></thead><tbody>';
+
+		foreach ($records as $record) {
+			$id = (string) ($record['id'] ?? '');
+			$url = is_callable($editUrl) ? $editUrl($id) : str_replace('{id}', $id, (string) $editUrl);
+			$name = trim((string) ($record['title'] ?? ''));
+			if ($name === '') {
+				$name = 'Ohne Titel';
+			}
+			$status = (string) ($record['status'] ?? 'published');
+			$published = $status !== 'unpublished';
+			$statusLabel = $published ? 'Veröffentlicht' : 'Entwurf';
+			$statusClass = $published ? 'tag-accent' : 'tag-neutral';
+
+			$cat = '—';
+			if ($catField) {
+				$cat = $this->formatCell($catField, $record[$catField['name']] ?? null, $schema);
+				if (trim(strip_tags($cat)) === '' || $cat === '—') {
+					$cat = '—';
+				}
+			}
+
+			$info = '—';
+			if ($col4Field) {
+				$info = $this->formatCell($col4Field, $record[$col4Field['name']] ?? null, $schema, true);
+			}
+
+			$updated = $this->relative((string) ($record['modified'] ?? ''));
+
+			$html .= '<tr>';
+			$html .= '<td style="font-family:var(--font-heading)"><a href="' . $this->e($url) . '">'
+				. $this->e($name) . '</a></td>';
+			$html .= '<td class="text-muted">' . ($cat === '—' ? '—' : $cat) . '</td>';
+			$html .= '<td><span class="tag ' . $statusClass . '">' . $this->e($statusLabel) . '</span></td>';
+			$html .= '<td class="text-muted">' . $info . '</td>';
+			$html .= '<td class="text-muted">' . $this->e($updated) . '</td>';
+			$html .= '<td><a class="btn btn-ghost btn-icon" href="' . $this->e($url) . '" aria-label="Bearbeiten">'
+				. Icons::svg('pencil', 'bpe-icon bpe-icon--sm') . '</a></td>';
+			$html .= '</tr>';
+		}
+
+		$html .= '</tbody></table>';
+		$html .= '<div class="bpe-daten__foot"><span>'
+			. $count . ' von ' . $count . ' Einträgen</span></div>';
+		$html .= '</div>';
+		return $html;
+	}
+
+	protected function renderLegacy(array $schema, array $records, array $options): string {
 		$label = $schema['label'] ?? $schema['template'];
 		$newUrl = $options['newUrl'] ?? '#';
 		$editUrl = $options['editUrl'] ?? fn($id) => '#';
@@ -95,10 +190,23 @@ class ListView {
 		return $cols;
 	}
 
-	protected function formatCell(array $field, mixed $value, array $schema): string {
+	/** Kategorie-Spalte: erstes select, sonst zweites Listenspalten-Feld. */
+	protected function categoryField(array $schema, array $columns): ?array {
+		foreach ($schema['fields'] ?? [] as $field) {
+			if (($field['type'] ?? '') === 'select' && ($field['name'] ?? '') !== 'title') {
+				return $field;
+			}
+		}
+		return $columns[1] ?? null;
+	}
+
+	protected function formatCell(array $field, mixed $value, array $schema, bool $plain = false): string {
 		$type = $field['type'] ?? 'text';
 		if ($type === 'checkbox') {
 			$on = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+			if ($plain) {
+				return $on ? 'Ja' : 'Nein';
+			}
 			$class = $on ? 'bpe-badge bpe-badge--ok' : 'bpe-badge bpe-badge--muted';
 			return '<span class="' . $class . '">' . ($on ? 'Ja' : 'Nein') . '</span>';
 		}
@@ -127,6 +235,24 @@ class ListView {
 		}
 		$text = trim((string) ($value ?? ''));
 		return $text !== '' ? $this->e($text) : '—';
+	}
+
+	protected function relative(string $iso): string {
+		$ts = strtotime($iso);
+		if ($ts === false) {
+			return $iso !== '' ? $iso : '—';
+		}
+		$diff = time() - $ts;
+		if ($diff < 60) {
+			return 'gerade eben';
+		}
+		if ($diff < 3600) {
+			return 'vor ' . (int) floor($diff / 60) . ' Min.';
+		}
+		if ($diff < 86400) {
+			return 'vor ' . (int) floor($diff / 3600) . ' Std.';
+		}
+		return date('d.m.Y', $ts);
 	}
 
 	protected function e(mixed $value): string {

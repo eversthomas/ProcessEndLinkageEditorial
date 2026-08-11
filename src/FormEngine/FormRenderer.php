@@ -38,6 +38,115 @@ class FormRenderer {
 	}
 
 	public function renderForm(array $schema, array $values = [], array $errors = [], array $options = []): string {
+		$skin = ($options['skin'] ?? 'legacy') === 'daten' ? 'daten' : 'legacy';
+		if ($skin === 'daten') {
+			return $this->renderFormDaten($schema, $values, $errors, $options);
+		}
+		return $this->renderFormLegacy($schema, $values, $errors, $options);
+	}
+
+	protected function renderFormDaten(array $schema, array $values, array $errors, array $options): string {
+		$action = $options['action'] ?? '';
+		$title = $options['title'] ?? ($schema['label'] ?? $schema['template']);
+		$submitLabel = $options['submitLabel'] ?? 'Speichern';
+		$csrf = $options['csrf'] ?? '';
+		$savedAt = $options['savedAt'] ?? null;
+		$previewUrl = $options['previewUrl'] ?? null;
+		$cancelUrl = $options['cancelUrl'] ?? null;
+		$listLabel = $options['listLabel'] ?? ($schema['label'] ?? $schema['template']);
+		$status = $values['status'] ?? ($options['status'] ?? 'published');
+		$showPublish = array_key_exists('showPublish', $options) ? (bool) $options['showPublish'] : true;
+
+		[$mainFields, $metaFields] = $this->splitFields($schema['fields'] ?? [], $options);
+		$titleField = null;
+		$mainRest = [];
+		foreach ($mainFields as $field) {
+			if (($field['name'] ?? '') === 'title' && $titleField === null) {
+				$titleField = $field;
+			} else {
+				$mainRest[] = $field;
+			}
+		}
+
+		$html = '<form class="bpe-daten bpe-daten--form bpe-form-daten" method="post" action="'
+			. $this->e($action) . '" enctype="multipart/form-data" novalidate>';
+		if ($csrf !== '') {
+			$html .= $csrf;
+		}
+		if (!empty($values['id'])) {
+			$html .= '<input type="hidden" name="id" value="' . $this->e($values['id']) . '">';
+		}
+
+		if ($cancelUrl) {
+			$html .= '<a class="btn btn-ghost bpe-form-daten__back" href="' . $this->e($cancelUrl) . '">'
+				. Icons::svg('chevron-left', 'bpe-icon bpe-icon--sm')
+				. ' Zurück zu ' . $this->e($listLabel) . '</a>';
+		}
+
+		$html .= '<header class="bpe-daten__header">';
+		$html .= '<h1>' . $this->e($title) . '</h1>';
+		$html .= '<div class="bpe-daten__actions">';
+		if ($previewUrl) {
+			$html .= '<a class="btn btn-secondary" href="' . $this->e($previewUrl) . '" target="_blank" rel="noopener">Vorschau</a>';
+		}
+		$html .= '<button type="submit" name="bpe_action" value="save" class="btn btn-primary">'
+			. $this->e($submitLabel) . '</button>';
+		$html .= '</div></header>';
+
+		$html .= '<div class="bpe-form-daten__layout">';
+		$html .= '<div class="bpe-form-daten__main">';
+
+		if ($titleField) {
+			$html .= '<div class="bpe-form-daten__title-block">';
+			$name = $titleField['name'];
+			$id = 'field-' . preg_replace('/[^a-z0-9_-]/i', '', $name);
+			$val = array_key_exists($name, $values) ? $values[$name] : '';
+			$html .= '<div class="field bpe-field" data-field="' . $this->e($name) . '">';
+			$html .= '<label class="bpe-field__label" for="' . $this->e($id) . '">'
+				. $this->e($titleField['label'] ?? 'Titel') . '</label>';
+			$html .= '<input type="text" class="input bpe-input" id="' . $this->e($id) . '" name="'
+				. $this->e($name) . '" value="' . $this->e($val) . '"'
+				. (!empty($titleField['required']) ? ' required' : '') . '>';
+			if (!empty($errors[$name])) {
+				$html .= '<p class="bpe-field__error" role="alert">' . $this->e($errors[$name]) . '</p>';
+			}
+			$html .= '</div>';
+			if (!empty($values['url'])) {
+				$html .= '<p class="bpe-form-daten__permalink">' . $this->e($values['url']) . '</p>';
+			}
+			$html .= '</div>';
+		}
+
+		foreach ($mainRest as $field) {
+			$html .= $this->renderFieldWithValue($field, $values, $errors);
+		}
+		if (!$titleField && !$mainRest) {
+			$html .= '<p class="text-muted">Keine Inhaltsfelder in diesem Template.</p>';
+		}
+		$html .= '</div>';
+
+		$html .= '<aside class="bpe-form-daten__meta" aria-label="Details">';
+		if ($metaFields) {
+			$html .= '<div>';
+			$html .= '<h3 class="bpe-form-daten__meta-title">Details</h3>';
+			foreach ($metaFields as $field) {
+				$html .= $this->renderFieldWithValue($field, $values, $errors);
+			}
+			$html .= '</div>';
+		}
+		if ($showPublish) {
+			$html .= $this->renderPublishBlockDaten($status);
+		}
+		if ($savedAt) {
+			$html .= '<p class="bpe-form-daten__saved">Zuletzt gespeichert: '
+				. $this->e($this->relativeTime($savedAt)) . '</p>';
+		}
+		$html .= '</aside>';
+		$html .= '</div></form>';
+		return $html;
+	}
+
+	protected function renderFormLegacy(array $schema, array $values, array $errors, array $options): string {
 		$action = $options['action'] ?? '';
 		$title = $options['title'] ?? ($schema['label'] ?? $schema['template']);
 		$submitLabel = $options['submitLabel'] ?? 'Speichern';
@@ -117,6 +226,28 @@ class FormRenderer {
 		return $html;
 	}
 
+	protected function renderPublishBlockDaten(string $status): string {
+		$published = $status === 'published';
+		$html = '<div>';
+		$html .= '<h3 class="bpe-form-daten__meta-title">Status</h3>';
+		$html .= '<div style="display:grid;gap:8px">';
+		$html .= '<label class="radio"><input type="radio" name="status" value="published"'
+			. ($published ? ' checked' : '') . ' /><span class="dot"></span>Veröffentlicht</label>';
+		$html .= '<label class="radio"><input type="radio" name="status" value="unpublished"'
+			. (!$published ? ' checked' : '') . ' /><span class="dot"></span>Entwurf</label>';
+		$html .= '</div>';
+		$html .= '<div style="margin-top:14px;display:grid;gap:8px">';
+		if ($published) {
+			$html .= '<button type="submit" name="bpe_action" value="unpublish" class="btn btn-ghost">Zurück auf Entwurf</button>';
+		} else {
+			$html .= '<button type="submit" name="bpe_action" value="publish" class="btn btn-primary">Veröffentlichen</button>';
+		}
+		$html .= '</div>';
+		$html .= '<p class="bpe-form-daten__saved" style="margin-top:12px">Zeitplan festlegen (demnächst)</p>';
+		$html .= '</div>';
+		return $html;
+	}
+
 	protected function renderPublishBlock(string $status): string {
 		$published = $status === 'published';
 		$html = '<div class="bpe-publish">';
@@ -141,7 +272,6 @@ class FormRenderer {
 				return $renderer->render($field, $value, $errors);
 			}
 		}
-		// Fallback falls Schema-Typ fehlt: trotzdem sichtbarer Hinweis
 		$fallback = $field;
 		$fallback['type'] = 'unsupported';
 		if (empty($fallback['pwType'])) {

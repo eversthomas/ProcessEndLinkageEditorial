@@ -26,6 +26,10 @@ class ShellView {
 		$brandName = (string) ($vars['brandName'] ?? 'Redaktion');
 		$brandLogoUrl = $vars['brandLogoUrl'] ?? null;
 		$brandInitial = mb_strtoupper(mb_substr($brandName, 0, 1));
+		$designSkin = (string) ($vars['designSkin'] ?? 'legacy');
+		if ($designSkin !== 'daten') {
+			$designSkin = 'legacy';
+		}
 
 		ob_start();
 		?>
@@ -35,12 +39,13 @@ class ShellView {
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?= $this->e($title) ?> · <?= $this->e($brandName) ?></title>
+	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/broadsheet.css">
 	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/editorial.css">
 	<?php if ($themeStyle): ?>
 	<style id="bpe-theme"><?= $themeStyle ?></style>
 	<?php endif; ?>
 </head>
-<body class="bpe-body" data-bpe-shell>
+<body class="bpe-body<?= $designSkin === 'daten' ? ' bpe-skin-daten' : '' ?>" data-bpe-shell data-design="<?= $this->e($designSkin) ?>">
 	<div class="bpe-shell" data-rail="expanded" data-tree="<?= $treeCollapsed ? 'collapsed' : 'open' ?>">
 		<aside class="bpe-rail" aria-label="Hauptmodule">
 			<div class="bpe-rail__top">
