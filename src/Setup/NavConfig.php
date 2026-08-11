@@ -6,6 +6,10 @@ use ProcessWire\BsProcessEditorial;
  * Entwickler-konfigurierbare Menühierarchie für die Redaktion.
  *
  * Knotentypen: dashboard | section | group | template
+ *
+ * `editorial_nav` ist ein Struktur-Overlay (Reihenfolge, Gruppen, Icons).
+ * Template-Mitgliedschaft kommt aus `editorial_templates` und wird beim
+ * Lesen/Speichern automatisch abgeglichen.
  */
 class NavConfig {
 
@@ -27,7 +31,38 @@ class NavConfig {
 		if (!is_array($raw) || $raw === []) {
 			return $this->migrateFromTemplates();
 		}
-		return $this->normalizeTree($raw);
+		$tree = $this->normalizeTree($raw);
+		return $this->reconcileMissingTemplates($tree);
+	}
+
+	/**
+	 * Hängt freigegebene Templates, die im Baum fehlen, in die Default-Gruppe ein.
+	 *
+	 * @param array<int, array<string, mixed>> $tree
+	 * @param string[]|null $templates Freigabe-Liste; default = aktuelle Modul-Config
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function reconcileMissingTemplates(array $tree, ?array $templates = null): array {
+		$templates = $templates ?? $this->module->editorialTemplateNames();
+		$templates = array_values(array_filter(array_map('strval', $templates), fn(string $t) => $t !== ''));
+
+		if ($tree === []) {
+			return $this->migrateFromTemplates($templates);
+		}
+
+		$tree = $this->normalizeTree($tree);
+		$present = $this->collectTemplates($tree);
+		$missing = [];
+		foreach ($templates as $name) {
+			if (!in_array($name, $present, true)) {
+				$missing[] = $name;
+			}
+		}
+		if ($missing === []) {
+			return $tree;
+		}
+
+		return $this->appendTemplatesToDefaultGroup($tree, $missing);
 	}
 
 	/**
@@ -156,19 +191,18 @@ class NavConfig {
 	}
 
 	/**
+	 * @param string[]|null $templates
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function migrateFromTemplates(): array {
-		$templates = $this->module->editorialTemplateNames();
+	protected function migrateFromTemplates(?array $templates = null): array {
+		$templates ??= $this->module->editorialTemplateNames();
 		$children = [];
 		foreach ($templates as $name) {
-			$children[] = [
-				'id' => 'tpl-' . $name,
-				'type' => 'template',
-				'template' => $name,
-				'label' => $name,
-				'icon' => 'file-text',
-			];
+			$name = trim((string) $name);
+			if ($name === '') {
+				continue;
+			}
+			$children[] = $this->templateNode($name);
 		}
 		return [
 			[
@@ -192,6 +226,68 @@ class NavConfig {
 					],
 				],
 			],
+		];
+	}
+
+	/**
+	 * @param array<int, array<string, mixed>> $tree
+	 * @param string[] $templateNames
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function appendTemplatesToDefaultGroup(array $tree, array $templateNames): array {
+		$nodes = [];
+		foreach ($templateNames as $name) {
+			$nodes[] = $this->templateNode($name);
+		}
+
+		foreach ($tree as $i => $node) {
+			if (($node['type'] ?? '') !== 'section') {
+				continue;
+			}
+			$children = $node['children'] ?? [];
+			foreach ($children as $j => $child) {
+				if (($child['type'] ?? '') !== 'group') {
+					continue;
+				}
+				$child['children'] = array_merge($child['children'] ?? [], $nodes);
+				$children[$j] = $child;
+				$node['children'] = $children;
+				$tree[$i] = $node;
+				return $tree;
+			}
+			// Section ohne Gruppe → Default-Gruppe anlegen
+			$children[] = [
+				'id' => 'content-all',
+				'type' => 'group',
+				'label' => 'Alle Inhalte',
+				'icon' => 'folder',
+				'children' => $nodes,
+			];
+			$node['children'] = $children;
+			$tree[$i] = $node;
+			return $tree;
+		}
+
+		// Keine Section → migrateFromTemplates-Struktur für die fehlenden Templates anhängen
+		$fallback = $this->migrateFromTemplates($templateNames);
+		foreach ($fallback as $node) {
+			if (($node['type'] ?? '') === 'section') {
+				$tree[] = $node;
+			}
+		}
+		return $tree;
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	protected function templateNode(string $name): array {
+		return [
+			'id' => 'tpl-' . $name,
+			'type' => 'template',
+			'template' => $name,
+			'label' => $name,
+			'icon' => 'file-text',
 		];
 	}
 

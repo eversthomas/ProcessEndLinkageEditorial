@@ -1,0 +1,113 @@
+# Bereinigung vor Weiterentwicklung — bs-processEditorial
+
+**Zweck dieser Datei:** Verbindlicher, aktueller Arbeitsplan für die Stabilisierungsphase, bevor neue Funktionalität gebaut wird. Diese Datei ist für die Dauer dieser Arbeit die **einzige Quelle für "was ist als Nächstes dran"** — nicht die Offen-Liste in der Root-README.md, die an mehreren Stellen bereits hinter dem tatsächlichen Codestand zurückliegt (siehe Abschnitt "Verhältnis der Projektdateien" unten).
+
+Diese Datei entstand aus einer unabhängigen Code-Analyse (nicht aus den mitgelieferten Projekt-MDs abgeleitet).
+
+---
+
+## Ziel des Moduls (zur Einordnung, nicht Teil der Bereinigung)
+
+bs-processEditorial soll dem Entwickler erlauben, in ProcessWire wie gewohnt Templates/Felder/Seiten anzulegen und über gezielte Backend-Einstellungen (Setup → Redaktion) zu bestimmen, **was** davon Redakteuren in einer eigenen, vom PW-Admin getrennten Oberfläche zugänglich ist und **wie** es dort dargestellt wird (Freigabe, Darstellungsmodus, Navigation, Rollen-Sichtbarkeit, Branding). Es ist explizit **kein** Eins-zu-eins-Spiegel des PW-Backends und **kein** vollautomatischer Zero-Touch-Mechanismus — die Freigabe durch den Entwickler ist bewusster Teil des Konzepts.
+
+Bekannte, in dieser Bereinigungsphase **nicht** zu behebende Lücke: Feldtypen ohne passenden Adapter werden beim Einlesen aktuell lautlos übersprungen (`ProcessWireAdapter::readSchema()`), ohne Hinweis im Setup. Das betrifft die Vollständigkeit der Freigabe, nicht die hier bearbeiteten Punkte — bewusst zurückgestellt, nicht vergessen.
+
+---
+
+## 0. Blockierende Entscheidung (vor Schritt 3+)
+
+**Offen, muss von Tom getroffen werden, nicht von Cursor:** Bleibt der aktuelle Funktionsumfang (13 Feldtypen, Menü-Builder, Theme-Tokens, Branding, Dashboard) als "MVP+" bestehen, oder wird auf die ursprünglich geplanten 6 Feldtypen zurückgeschnitten? Schritt 1 und 2 unten sind von dieser Entscheidung unabhängig und können sofort umgesetzt werden. Schritt 3 und 4 sollten erst nach dieser Entscheidung erfolgen, damit nicht an einer Formularstruktur gearbeitet wird, die sich danach nochmal ändert.
+
+---
+
+## Schritt 0 — Kurzer Codeabgleich vor der ersten Änderung
+
+Bevor irgendetwas geändert wird: kurz prüfen, ob der aktuelle Repo-Stand noch zu den Annahmen dieses Plans passt (diese Analyse basiert auf einem Snapshot, der zwischenzeitlich veraltet sein kann). Konkret bestätigen oder Abweichung melden:
+- Existieren `MockAdapter.php`, `MockStore.php`, `SchemaLoader.php`, beide `schema-mock.json`, die `setup_mvp`-Checkbox sowie der Mock-Fallback in `AdapterFactory` unverändert wie beschrieben?
+- Rendert `getModuleConfigInputfields()` weiterhin identisch zu `buildConfigFields()` wie in Schritt 3 angenommen?
+
+Nur bei Abweichungen kurz zurückmelden, sonst direkt mit Schritt 1 fortfahren. Kein eigenständiger Umbau in diesem Schritt.
+
+---
+
+## Arbeitsprinzip
+
+- **Ein Schritt pro Cursor-Session.** Nicht mehrere Punkte in einer Session bearbeiten lassen — das hat in der Vergangenheit bereits zu unkontrolliertem Scope-Zuwachs geführt (13 statt 6 Feldtypen in einer einzigen Session).
+- Nach jedem Schritt: Tom prüft und bestätigt manuell, bevor der nächste Schritt beauftragt wird.
+- Jeder Schritt unten hat ein explizites "Nicht in diesem Schritt" — das ist bewusst, um Cursor keinen Interpretationsspielraum für Zusatzumfang zu geben.
+
+---
+
+## Schritt 1 — Test-/Mock-Inhalte entfernen
+
+**Ziel:** Alles, was reiner Test-/Demo-Inhalt ist, vollständig aus dem produktiven Modul entfernen.
+
+Betroffen:
+- `src/Adapter/MockAdapter.php`
+- `src/Mock/MockStore.php`
+- `src/Schema/SchemaLoader.php` (lädt ausschließlich die Mock-Datei — mit Mock-Adapter zusammen entfernen)
+- `data/schema-mock.json` **und** `projektplan/schema-mock.json` (identische Duplikate — beide entfernen)
+- Option `data_source = mock` sowie der `auto`-Fallback auf Mock in `src/Adapter/AdapterFactory.php` (Datenquelle wird dann ausschließlich `processwire`, kein Fallback mehr)
+- Checkbox `setup_mvp` ("Legacy: MVP-Testdatenmodell anlegen") in `BsProcessEditorial.module.php::buildConfigFields()` inkl. der zugehörigen Install-Logik in `___execute()`
+
+Nicht in diesem Schritt: Formularstruktur, Config-Screen-Dopplung, Feldtyp-Entscheidung — nur Entfernen, keine Umbauten.
+
+**Akzeptanzkriterium:** Modul funktioniert weiterhin fehlerfrei mit `data_source = processwire`; keine Restverweise auf Mock/Schema-Mock im Code; Setup-Formular enthält keine Testdaten-Option mehr.
+
+---
+
+## Schritt 2 — Sicherheitsfix: Logo-Upload
+
+**Ziel:** SVG-Upload im Branding-Logo (`processBrandLogoUpload()` in `BsProcessEditorial.module.php`) absichern — aktuell nur Endungsprüfung, kein Content-/MIME-Check, Datei landet unter öffentlich erreichbarer URL (Stored-XSS-Risiko).
+
+Nicht in diesem Schritt: sonstige Upload-Logik der Feld-Adapter (läuft bereits sauber über PWs `WireUpload`) — nur der eigene Branding-Logo-Upload ist betroffen.
+
+**Akzeptanzkriterium:** Hochgeladene SVGs werden entweder inhaltlich validiert/bereinigt oder SVG wird aus den erlaubten Formaten entfernt; bestehende Funktionalität (PNG/JPG/GIF/WebP) bleibt unverändert.
+
+---
+
+## Schritt 3 — Doppelte Config-Oberfläche konsolidieren
+
+**Ziel:** Aktuell rendern sowohl der native ProcessWire-Modul-Konfigurationsbildschirm (`getModuleConfigInputfields()`) als auch die eigene Setup-Seite (`___execute()`) identisch dieselbe `buildConfigFields()`-Liste. Der native Screen soll nur noch Hinweistext + Link auf Setup → Redaktion zeigen, keine funktionalen Einstellungen mehr.
+
+Nicht in diesem Schritt: inhaltliche Gliederung der Felder selbst (das ist Schritt 4).
+
+**Akzeptanzkriterium:** Einstellungen lassen sich nur noch über Setup → Redaktion ändern; nativer Modul-Screen zeigt lediglich einen Verweis; keine Funktionalität geht verloren.
+
+---
+
+## Schritt 4 — Setup-Formular strukturieren
+
+**Ziel:** Das aktuell lineare, ungegliederte Formular (~20 Felder in einer Spalte) in klare Abschnitte gliedern, z. B.:
+1. Inhalte & Freigabe (Templates, Modus pro Typ)
+2. Navigation (Menü-Builder, JSON-Fallback)
+3. Design/Branding (Farben, Radius, Firmenname, Logo)
+4. Zugriff/Rollen (pro Rolle sichtbare Typen)
+5. Erweitert (Demo-Login, URL-Pfad)
+
+Voraussetzung: Schritt 1 (Testdaten raus) und Schritt 3 (Dopplung raus) sind abgeschlossen, und die Entscheidung aus Abschnitt 0 ist getroffen.
+
+Nicht in diesem Schritt: visuelles Redesign der Redaktions-Oberfläche selbst (das ist ein separates, späteres Thema) — hier geht es ausschließlich um den Entwickler-Settings-Screen unter Setup → Redaktion.
+
+**Akzeptanzkriterium:** Formular ist in benannte Abschnitte/Fieldsets gegliedert; keine funktionale Änderung an den Feldern selbst.
+
+---
+
+## Später, nicht Teil dieser Bereinigungsphase
+
+- Aufteilung der "Gottklassen" `src/Ui/Router.php` (679 Zeilen) und `BsProcessEditorial.module.php` (824 Zeilen) in kleinere, verantwortungsklare Einheiten
+- Grundlegende Tests für die Adapter-Schicht
+- Strukturelles Redesign der Redaktions-Oberfläche (aktuell nur Farbe/Radius per Theme-Tokens austauschbar, Layout ist als PHP-generiertes HTML fest verdrahtet)
+
+---
+
+## Verhältnis der Projektdateien (zur Orientierung, auch für Cursor)
+
+| Datei | Rolle | Aktualität |
+|---|---|---|
+| **Diese Datei** (`refactoring-plan.md`) | Verbindlicher Arbeitsplan für die aktuelle Bereinigungsphase — maßgeblich für "was jetzt dran ist" | Aktuell, aus unabhängiger Code-Analyse |
+| `README.md` (Root) | Projektüberblick + Offen-Liste "Vor der nächsten Session" | **Teilweise veraltet** — nennt z. B. weder die doppelte Config-Oberfläche noch die `setup_mvp`-Checkbox, die beide noch im Code sind. Wird erst **nach Abschluss dieser Bereinigungsphase** aktualisiert, nicht vorher als Stand-Referenz nutzen. |
+| `projektplan/PROJECT.md` | Stabile Architektur-/Stack-Übersicht, verweist für Status auf README.md | Stabil, unkritisch |
+| `projektplan/adapter-notes.md` | Referenzdokumentation der Adapter-Schicht (610 Zeilen) | Nur bei Bedarf konsultieren; laut eigener Anmerkung "nicht ohne Absprache ändern" — in dieser Phase nicht anfassen |
+| `projektplan/design/*.md` (forms.md, navigation.md, dashboards.md, list-views.md, workflow-states.md) | UX-Leitlinien für die **redaktionelle Oberfläche** (Ansicht der Redakteure) | Betreffen **nicht** den Entwickler-Settings-Screen (Setup → Redaktion), der in Schritt 3/4 bearbeitet wird — bei diesen Schritten nicht als Vorgabe heranziehen, sonst Vermischung zweier verschiedener UI-Ebenen |
+| `projektplan/schema-mock.json`, `data/schema-mock.json` | Test-/Mock-Schema | Wird in Schritt 1 vollständig entfernt |

@@ -12,7 +12,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 12,
+			'version' => 13,
 			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE und Publish.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
@@ -267,15 +267,17 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
 		try {
 			if (is_string($navRaw) && trim($navRaw) !== '') {
-				$tree = $navConfig->parseAndValidate($navRaw, $templates);
-				$values['editorial_nav'] = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-			} elseif (is_array($navRaw) && $navRaw !== []) {
-				$tree = $navConfig->parseAndValidate($navRaw, $templates);
-				$values['editorial_nav'] = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+				$decoded = json_decode($navRaw, true);
+				$tree = is_array($decoded) ? $decoded : [];
+			} elseif (is_array($navRaw)) {
+				$tree = $navRaw;
 			} else {
-				// Leer = Runtime-Migration aus freigegebenen Templates
-				$values['editorial_nav'] = '';
+				$tree = [];
 			}
+			// Freigabe ist Quelle der Template-Mitgliedschaft; Nav nur Struktur-Overlay
+			$tree = $navConfig->reconcileMissingTemplates($tree, $templates);
+			$tree = $navConfig->parseAndValidate($tree, $templates);
+			$values['editorial_nav'] = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 		} catch (\InvalidArgumentException $e) {
 			$values['editorial_nav'] = $previous['editorial_nav'] ?? '';
 			$this->error($e->getMessage());
@@ -615,7 +617,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->name = 'editorial_templates';
 		$f->label = 'Redaktionelle Templates (Freigabe)';
-		$f->description = 'Was Redakteure sehen dürfen. Reihenfolge = Navigation.';
+		$f->description = 'Was Redakteure sehen dürfen. Neu freigegebene Typen erscheinen automatisch unter „Inhalte“ (Default-Gruppe); Reihenfolge/Gruppen im Menü-Builder.';
 		$f->setAttribute('size', 10);
 		$optionNames = [];
 		foreach ($discovery->optionsForSelect() as $name => $label) {
@@ -689,7 +691,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f = $modules->get('InputfieldMarkup');
 		$f->name = 'editorial_nav_builder';
 		$f->label = 'Menühierarchie';
-		$f->description = 'Visuell Sections, Gruppen und Templates zuordnen. Speichern übernimmt die Struktur.';
+		$f->description = 'Visuell Sections, Gruppen, Reihenfolge und Icons. Neu freigegebene Templates erscheinen automatisch in der Default-Gruppe.';
 		$f->value = $builder->renderMarkup($navTree, $tplLabels);
 		$fields[] = $f;
 
@@ -697,7 +699,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f = $modules->get('InputfieldTextarea');
 		$f->name = 'editorial_nav';
 		$f->label = 'Menühierarchie (JSON)';
-		$f->description = 'Power-User: wird vom Builder synchron gehalten. Typen: dashboard, section, group, template.';
+		$f->description = 'Power-User für Struktur (Reihenfolge, Gruppen, Icons). Template-Mitgliedschaft folgt der Freigabe oben — fehlende werden ergänzt, nicht freigegebene beim Speichern entfernt.';
 		$f->rows = 12;
 		$f->collapsed = Inputfield::collapsedYes;
 		$f->value = $navJson;
@@ -801,24 +803,19 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	}
 
 	public static function getModuleConfigInputfields(array $data): InputfieldWrapper {
-		/** @var BsProcessEditorial $module */
-		$module = wire('modules')->getModule('BsProcessEditorial', ['noPermissionCheck' => true]);
 		$wrapper = new InputfieldWrapper();
 
 		/** @var InputfieldMarkup $info */
 		$info = wire('modules')->get('InputfieldMarkup');
-		$info->label = 'Hinweis';
+		$info->label = 'Konfiguration';
 		$setup = wire('pages')->get('template=admin, name=' . self::ADMIN_PAGE_NAME);
 		$url = $setup->id ? $setup->url : wire('config')->urls->admin . 'setup/';
-		$info->value = '<p>Einstellungen unter <a href="'
-			. htmlspecialchars($url) . '"><strong>Setup → Redaktion</strong></a>.</p>';
+		$info->value = '<p>Alle Redaktions-Einstellungen (Templates, Menü, Branding, Theme) '
+			. 'werden unter <a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8')
+			. '"><strong>Setup → Redaktion</strong></a> gepflegt. '
+			. 'Dieser Modul-Bildschirm enthält keine funktionalen Felder mehr.</p>';
 		$wrapper->add($info);
 
-		if ($module instanceof self) {
-			foreach ($module->buildConfigFields($data) as $field) {
-				$wrapper->add($field);
-			}
-		}
 		return $wrapper;
 	}
 }
