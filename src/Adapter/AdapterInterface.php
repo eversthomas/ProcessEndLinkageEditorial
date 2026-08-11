@@ -15,7 +15,7 @@ interface AdapterInterface {
 	/** Ob dieser Adapter den Inhaltstyp bedienen kann */
 	public function supportsTemplate(string $template): bool;
 
-	/** Schema im Format von schema-mock.json */
+	/** Schema als Array (template + fields) für die Form-Engine */
 	public function readSchema(string $template): array;
 
 	/** Alle Datensätze für Listenansicht */

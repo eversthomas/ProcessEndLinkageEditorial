@@ -10,7 +10,7 @@ abstract class AbstractFieldAdapter {
 
 	abstract public function supports(Field $field): bool;
 
-	/** schema-mock.json-kompatibles Feld-Array */
+	/** Feld-Schema-Array für die Form-Engine */
 	abstract public function readSchema(Field $field, Page $page): array;
 
 	/**

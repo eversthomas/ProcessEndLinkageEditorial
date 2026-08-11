@@ -32,7 +32,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('login_user', 'redaktion');
 		$this->set('login_pass', 'redaktion');
 		$this->set('base_path', self::BASE_PATH);
-		$this->set('data_source', 'auto');
+		$this->set('data_source', 'processwire');
 		$this->set('editorial_templates', []);
 		$this->set('editorial_modes', []);
 		$this->set('role_templates', []);
@@ -43,7 +43,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('brand_name', '');
 		$this->set('brand_logo', '');
 		$this->set('allow_demo_login', 0);
-		$this->set('setup_mvp', 0);
 	}
 
 	public function init(): void {
@@ -52,7 +51,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$base = preg_quote(trim((string) $this->get('base_path') ?: self::BASE_PATH, '/'), '!');
 		$this->addHook("!^/{$base}(?:/(.*))?/?$!", $this, 'handleRequest');
 		$this->addHookBefore('Modules::saveConfig', $this, 'hookBeforeSaveConfig');
-		$this->addHookAfter('Modules::saveConfig', $this, 'hookAfterSaveConfig');
 	}
 
 	public function ready(): void {
@@ -87,13 +85,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 				}
 				$values = $this->normalizeConfigValues($values, $configData);
 				$values = $this->processBrandLogoUpload($values, $configData);
-				if (!empty($values['setup_mvp'])) {
-					$installer = new \ProcessWire\BsProcessEditorial\Setup\MvpInstaller($this);
-					foreach ($installer->install() as $msg) {
-						$this->message($msg);
-					}
-					$values['setup_mvp'] = 0;
-				}
 				$modules->saveModuleConfigData($this, $values);
 				foreach ($values as $key => $value) {
 					$this->set($key, $value);
@@ -435,24 +426,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$event->arguments(1, $data);
 	}
 
-	public function hookAfterSaveConfig(HookEvent $event): void {
-		$className = $event->arguments(0);
-		if ($className !== $this->className()) {
-			return;
-		}
-		$data = $event->arguments(1);
-		if (!is_array($data) || empty($data['setup_mvp'])) {
-			return;
-		}
-		$installer = new \ProcessWire\BsProcessEditorial\Setup\MvpInstaller($this);
-		foreach ($installer->install() as $msg) {
-			$this->message($msg);
-		}
-		$data['setup_mvp'] = 0;
-		$event->arguments(1, $data);
-		$this->wire()->modules->saveModuleConfigData($this, $data);
-	}
-
 	protected function registerAutoloader(): void {
 		static $registered = false;
 		if ($registered) {
@@ -728,17 +701,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->value = $data['theme_radius'] ?? '8';
 		$fields[] = $f;
 
-		/** @var InputfieldSelect $f */
-		$f = $modules->get('InputfieldSelect');
-		$f->name = 'data_source';
-		$f->label = 'Datenquelle';
-		$f->description = 'auto = ProcessWire, sobald mindestens ein freigegebenes Template existiert.';
-		$f->addOption('auto', 'Automatisch');
-		$f->addOption('mock', 'Mock (schema-mock.json)');
-		$f->addOption('processwire', 'ProcessWire');
-		$f->value = $data['data_source'] ?? 'auto';
-		$fields[] = $f;
-
 		// Rolle → Inhaltstypen
 		$roleMap = is_array($data['role_templates'] ?? null) ? $data['role_templates'] : [];
 		$tplOptions = [];
@@ -790,13 +752,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->attr('autocomplete', 'new-password');
 		$f->value = '';
 		$f->showIf = 'allow_demo_login=1';
-		$fields[] = $f;
-
-		/** @var InputfieldCheckbox $f */
-		$f = $modules->get('InputfieldCheckbox');
-		$f->name = 'setup_mvp';
-		$f->label = 'Legacy: MVP-Testdatenmodell „einrichtung“ anlegen';
-		$f->checked = false;
 		$fields[] = $f;
 
 		return $fields;

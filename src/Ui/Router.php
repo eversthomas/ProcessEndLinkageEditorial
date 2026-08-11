@@ -2,7 +2,6 @@
 
 use ProcessWire\BsProcessEditorial;
 use ProcessWire\BsProcessEditorial\Adapter\AdapterInterface;
-use ProcessWire\BsProcessEditorial\Adapter\ProcessWireAdapter;
 use ProcessWire\BsProcessEditorial\Auth\EditorialAuth;
 use ProcessWire\BsProcessEditorial\Auth\TemplateAccess;
 use ProcessWire\BsProcessEditorial\FormEngine\FormRenderer;
@@ -354,7 +353,7 @@ class Router {
 			'submitLabel' => 'Speichern',
 			'previewUrl' => $values['url'] ?? null,
 			'status' => $values['status'] ?? 'published',
-			'showPublish' => !$isNew || $this->adapter instanceof ProcessWireAdapter,
+			'showPublish' => true,
 			'breadcrumb' => $single ? [
 				['label' => 'Inhalte', 'url' => $this->url('nav/content')],
 				['label' => $listLabel],
@@ -554,7 +553,7 @@ class Router {
 			'userName' => $this->auth->displayName(),
 			'isDemo' => $this->auth->isDemoSession(),
 			'railItems' => $this->navConfig->railItems($this->allowedTemplates),
-			'dataSource' => $this->adapter instanceof ProcessWireAdapter ? 'ProcessWire' : 'Mock',
+			'dataSource' => 'ProcessWire',
 			'themeStyle' => $theme,
 			'tinyMceUrl' => $this->tinyMceUrl(),
 			'needsTinyMce' => false,
