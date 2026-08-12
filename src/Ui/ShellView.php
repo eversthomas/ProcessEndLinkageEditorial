@@ -109,13 +109,12 @@ class ShellView {
 			<?php endif; ?>
 		</aside>
 
-		<button type="button" class="bpe-tree-expand" data-bpe-tree-toggle data-tooltip="Navigation einblenden" title="Navigation einblenden" aria-label="Navigation einblenden">
-			<?= Icons::svg('chevrons-right') ?>
-		</button>
-
 		<div class="bpe-stage">
 			<header class="bpe-topbar">
 				<div class="bpe-topbar__left">
+					<button type="button" class="bpe-tree-expand" data-bpe-tree-toggle data-tooltip="Navigation einblenden" title="Navigation einblenden" aria-label="Navigation einblenden">
+						<?= Icons::svg('chevrons-right') ?>
+					</button>
 					<a class="bpe-topbar__branding" href="<?= $this->e($baseUrl) ?>">
 						<?php if ($brandLogoUrl): ?>
 							<img class="bpe-topbar__logo" src="<?= $this->e($brandLogoUrl) ?>" alt="<?= $this->e($brandName) ?>">
