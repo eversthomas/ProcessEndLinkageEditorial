@@ -685,6 +685,11 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$form->attr('action', './');
 		$form->attr('enctype', 'multipart/form-data');
 
+		$this->wire()->modules->get('JqueryWireTabs');
+		$this->wire()->config->scripts->add(
+			$this->moduleUrl() . 'assets/js/admin-settings.js?v=1'
+		);
+
 		foreach ($this->buildConfigFields($data) as $field) {
 			$form->add($field);
 		}
@@ -972,7 +977,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		/** @var InputfieldWrapper $tabInhalte */
 		$tabInhalte = $modules->get('InputfieldWrapper');
-		$tabInhalte->attr('class', 'WireTab');
+		$tabInhalte->addClass('WireTab');
 		$tabInhalte->attr('title', 'Inhalte & Freigabe');
 		$tabInhalte->attr('id', 'bpe-tab-inhalte');
 		/** @var InputfieldMarkup $f */
@@ -984,21 +989,21 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		/** @var InputfieldWrapper $tabNav */
 		$tabNav = $modules->get('InputfieldWrapper');
-		$tabNav->attr('class', 'WireTab');
+		$tabNav->addClass('WireTab');
 		$tabNav->attr('title', 'Navigation');
 		$tabNav->attr('id', 'bpe-tab-navigation');
 		$tabNav->add($fsNav);
 
 		/** @var InputfieldWrapper $tabDesign */
 		$tabDesign = $modules->get('InputfieldWrapper');
-		$tabDesign->attr('class', 'WireTab');
+		$tabDesign->addClass('WireTab');
 		$tabDesign->attr('title', 'Design & Branding');
 		$tabDesign->attr('id', 'bpe-tab-design');
 		$tabDesign->add($fsDesign);
 
 		/** @var InputfieldWrapper $tabSystem */
 		$tabSystem = $modules->get('InputfieldWrapper');
-		$tabSystem->attr('class', 'WireTab');
+		$tabSystem->addClass('WireTab');
 		$tabSystem->attr('title', 'Zugriff & System');
 		$tabSystem->attr('id', 'bpe-tab-system');
 		/** @var InputfieldMarkup $f */
