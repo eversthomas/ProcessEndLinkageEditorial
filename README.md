@@ -29,7 +29,7 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 
 ---
 
-## Umgesetzt (Stand 11.08.2026)
+## Umgesetzt (Stand 12.08.2026)
 
 ### Kern & Zugang
 - Process-Modul, Autoload, Setup-Seite **Setup → Redaktion**
@@ -41,23 +41,30 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 - Grobe Rechte: Rolle → sichtbare Templates
 
 ### Setup / Entwickler
+- Setup-Formular in **4 Tabs** (ProcessWire `WireTab`):
+  1. **Inhalte & Freigabe** — Discovery-Tabelle, Template-Freigabe, Darstellungsmodus, Daten-Art
+  2. **Navigation** — visueller Menü-Builder + JSON-Fallback
+  3. **Design & Branding** — Firmenname, Logo, Theme-Tokens
+  4. **Zugriff & System** — Rollen-Mapping, Demo-Login, URL-Pfad
 - Template-Discovery + Freigabe (`editorial_templates`)
 - Darstellungsmodus pro Template: Liste | Einzelseite
-- **Ohne Adapter:** Spalte in der Discovery-Tabelle (Feldname + PW-Feldtyp), wenn Templates Felder ohne passenden Adapter haben
-- Setup-Formular in **Fieldsets**: Inhalte & Freigabe · Navigation · Design/Branding · Zugriff/Rollen · Erweitert
-- Visueller **Menü-Builder** (Sections / Gruppen / Templates / Icons) + JSON-Fallback — bewusste Entscheidung, damit der Entwickler Navigation/Hierarchie pro Kundenprojekt selbst festlegen kann
-- Theme-Tokens (Akzent, Rail, Radius) inkl. Farbpicker
-- Kunden-Branding: Firmenname + Logo (PNG/JPG/GIF/WebP, Content-Check; **kein SVG**; Legacy-SVGs werden beim Request bereinigt)
+- **Daten-Art** pro Template: Daten (Default) · Blog · News · Termine · Seiten — steuert die redaktionelle Ansicht; nur „Daten“ hat derzeit die spezialisierte Broadsheet-Oberfläche
+- **Ohne Adapter:** Spalte in der Discovery-Tabelle (Feldname + PW-Feldtyp)
+- Visueller **Menü-Builder** (Sections / Gruppen / Templates / Icons) + JSON-Fallback
+- Theme-Tokens: Akzent, Rail, Text, gedämpfte Textfarbe, Radius, Abstände (kompakt/normal/großzügig) inkl. Farbpicker
+- Kunden-Branding: Firmenname + Logo (PNG/JPG/GIF/WebP, Content-Check; **kein SVG**)
 - Datenquelle: ausschließlich ProcessWire (kein Mock-Adapter mehr)
-- Geister-Templates: leere Defaults statt hart verdrahteter Test-Templates; Nav/Routen nur bei existierendem Template; freundliche Fehlerseite statt Stacktrace im Kernpfad
+- Geister-Templates: leere Defaults; Nav/Routen nur bei existierendem Template
 
 ### Redaktions-UX
-- 4-Spalten-Shell: Icon-Rail (Toggle + Tooltips) | Inhaltsbaum | Header/Main/Footer
+- 4-Spalten-Shell: Icon-Rail (Toggle) | Inhaltsbaum (einklappbar) | Header/Main/Footer
+- **Broadsheet-Design** (Open Sans, Mockup-Komponenten) für Templates mit Daten-Art „Daten“ — Dashboard, Liste, Formular
+- Andere Daten-Arten: generische Liste/Formular (unverändert, ohne Fehler)
 - Dashboard (Schnellzugriff, zuletzt bearbeitet)
-- Baum: nur Gruppen/Typen + Anzahl — keine Einzelsätze
+- Baum: Gruppen/Typen + Anzahl
 - Listen + Formulare; Details-Sidebar; Publish (veröffentlicht / Entwurf)
-- Felder ohne Adapter: sichtbarer Platzhalter im Formular („noch nicht unterstützt — bitte im PW-Backend pflegen“)
-- Bildfelder: Thumbnail-Vorschau im Formular
+- Felder ohne Adapter: Platzhalter im Formular
+- Bildfelder: Thumbnail-Vorschau
 - Vorschau-Link (Frontend-URL), Flash-Feedback
 
 ### Feldtypen (Adapter + Form-Engine)
@@ -115,20 +122,19 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 
 ## Offen — Reihenfolge für den nächsten Chat
 
-1. Pflichtfeld-Kennzeichnung um sichtbaren Text ergänzen (aktuell nur `*` + `title`-Tooltip)
-2. **Listen: Suche / Filter / Sortierung**
-3. **Löschen / Papierkorb** für Datensätze
-4. **Medienbibliothek** (statt nur Upload am Feld)
-5. **Autosave** + robusteres Speichern-Feedback
-6. **Zeitplanung** veröffentlichen (aktuell Stub)
-7. **Rechte feiner** (anlegen/löschen vs. nur bearbeiten)
-8. **Sicherheit Go-Live:** Rate-Limit/Lockout, Session-Timeout, kurze Security-Checkliste
-9. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
-10. **Workflow** jenseits Publish/Entwurf
-11. **Weitere Feldtypen** bei Bedarf — zuerst typischerweise **Repeater** (Core), danach weitere Standardtypen
-12. Strukturelles Redesign der Redaktions-Oberfläche (separates HTML-Mockup → später integrieren; siehe `refactoring-plan.md` „Später“)
-13. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests
-14. Repo öffentlich / Doku für Dritte (wenn gewünscht)
+1. **Listen: Suche / Filter / Sortierung**
+2. **Löschen / Papierkorb** für Datensätze
+3. **Medienbibliothek** (statt nur Upload am Feld)
+4. **Autosave** + robusteres Speichern-Feedback
+5. **Zeitplanung** veröffentlichen (aktuell Stub)
+6. **Rechte feiner** (anlegen/löschen vs. nur bearbeiten)
+7. **Sicherheit Go-Live:** Rate-Limit/Lockout, Session-Timeout, kurze Security-Checkliste
+8. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
+9. **Workflow** jenseits Publish/Entwurf
+10. **Daten-Arten** Blog/News/Termine/Seiten — eigene Ansichten (Design steht als Mockup bereit)
+11. **Weitere Feldtypen** bei Bedarf — zuerst typischerweise **Repeater** (Core)
+12. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests
+13. Repo öffentlich / Doku für Dritte (wenn gewünscht)
 
 ---
 
@@ -148,10 +154,11 @@ Löschen/Zusammenlegen der Planungsdateien lohnt erst vor Open-Source oder wenn 
 ## Kurz testen
 
 1. Module → BsProcessEditorial installiert / Cache ok  
-2. Setup → Redaktion: Templates freigeben, Menü speichern, Branding setzen (Fieldsets prüfen)  
+2. Setup → Redaktion: Tabs durchgehen (Inhalte · Navigation · Design · System), speichern, Branding setzen  
 3. User mit Rolle `editorial` oder Superuser → `/editorial/`  
-4. Inhaltstyp öffnen, speichern, Publish prüfen; Bildfeld auf Thumbnail-Vorschau prüfen  
-5. Optional: Template mit nicht unterstütztem Feldtyp → Hinweis in Setup-Tabelle und Formular-Platzhalter  
+4. Template mit Daten-Art „Daten“: Broadsheet-Design prüfen; anderes Template (z. B. Blog): generische Ansicht  
+5. Inhalte-Spalte ein-/ausklappen; Publish und Bildfeld-Vorschau prüfen  
+6. Optional: nicht unterstützter Feldtyp → Hinweis in Discovery-Tabelle und Formular-Platzhalter  
 
 ### Deploy-Hinweis (Linux / Subdomain)
 

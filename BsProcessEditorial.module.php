@@ -115,24 +115,31 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 
 		$form = $this->buildSettingsForm($configData);
+
+		$out = '<div class="bpe-admin">';
+		$out .= $form->render();
+		$out .= '</div>';
+		return $out;
+	}
+
+	/** HTML: Link zur Redaktion + Discovery-Tabelle für Tab „Inhalte & Freigabe“. */
+	protected function renderDiscoveryTableHtml(): string {
 		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
 		$candidates = $discovery->candidates();
 		$enabled = $this->editorialTemplateNames();
 
-		$out = '<div class="bpe-admin">';
-		$out .= '<p><a class="uk-button uk-button-primary" target="_blank" rel="noopener" href="'
-			. $this->wire()->config->urls->root . trim($this->baseUrl(), '/') . '/">Redaktion öffnen</a></p>';
-
-		$out .= '<h2>Entdeckte Inhaltstypen</h2>';
-		$out .= '<p class="description">Kandidaten aus dieser Installation. '
+		$html = '<p><a class="uk-button uk-button-primary" target="_blank" rel="noopener" href="'
+			. htmlspecialchars($this->wire()->config->urls->root . trim($this->baseUrl(), '/'), ENT_QUOTES, 'UTF-8')
+			. '/">Redaktion öffnen</a></p>';
+		$html .= '<p class="description">Kandidaten aus dieser Installation. '
 			. '<strong>Datensätze</strong> = Listenansicht, <strong>Einzelseite</strong> = direktes Formular (z. B. Home). '
-			. 'Freigabe und Modus unten festlegen.</p>';
-		$out .= '<table class="AdminDataTable AdminDataList"><thead><tr>'
+			. 'Freigabe, Darstellungsmodus und Daten-Art unten festlegen.</p>';
+		$html .= '<table class="AdminDataTable AdminDataList"><thead><tr>'
 			. '<th>Template</th><th>Label</th><th>Seiten</th><th>Felder</th>'
 			. '<th>Ohne Adapter</th><th>Daten-Art</th><th>Vorschlag</th><th>Status</th>'
 			. '</tr></thead><tbody>';
 		if (!$candidates) {
-			$out .= '<tr><td colspan="8">Keine geeigneten Templates gefunden.</td></tr>';
+			$html .= '<tr><td colspan="8">Keine geeigneten Templates gefunden.</td></tr>';
 		}
 		foreach ($candidates as $item) {
 			$active = in_array($item['name'], $enabled, true);
@@ -154,7 +161,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			} else {
 				$unsupportedHtml = '—';
 			}
-			$out .= '<tr>'
+			$html .= '<tr>'
 				. '<td><code>' . htmlspecialchars($item['name']) . '</code></td>'
 				. '<td>' . htmlspecialchars($item['label']) . '</td>'
 				. '<td>' . (int) $item['pages'] . '</td>'
@@ -165,18 +172,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 				. '<td>' . ($active ? '<strong>freigegeben</strong>' : '—') . '</td>'
 				. '</tr>';
 		}
-		$out .= '</tbody></table>';
-
-		$out .= '<h2>Zugang &amp; UX</h2>';
-		$out .= '<p class="description">Redakteure brauchen die Permission <code>editorial-access</code> '
-			. '(Rolle <code>editorial</code> wird automatisch angelegt). Superuser haben immer Zugang. '
-			. 'Login unter <code>/editorial/</code> ist vom Admin-Login getrennt. '
-			. 'Menühierarchie und Theme-Farben unten konfigurieren — die Shell zeigt Dashboard, Hybrid-Baum und Details-Sidebar.</p>';
-
-		$out .= '<h2>Einstellungen</h2>';
-		$out .= $form->render();
-		$out .= '</div>';
-		return $out;
+		$html .= '</tbody></table>';
+		return $html;
 	}
 
 	/**
@@ -711,9 +708,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		// —— 1. Inhalte & Freigabe ——
 		/** @var InputfieldFieldset $fsContent */
 		$fsContent = $modules->get('InputfieldFieldset');
-		$fsContent->label = 'Inhalte & Freigabe';
-		$fsContent->description = 'Welche Templates Redakteure sehen und wie sie dargestellt werden. '
-			. 'Felder ohne Adapter stehen in der Tabelle „Entdeckte Inhaltstypen“ oben.';
+		$fsContent->label = 'Freigabe & Darstellung';
+		$fsContent->description = 'Welche Templates Redakteure sehen und wie sie dargestellt werden.';
 		$fsContent->collapsed = Inputfield::collapsedNo;
 
 		/** @var InputfieldAsmSelect $f */
@@ -974,12 +970,51 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->value = $data['base_path'] ?? self::BASE_PATH;
 		$fsAdvanced->add($f);
 
-		$sections = [$fsContent, $fsNav, $fsDesign];
+		/** @var InputfieldWrapper $tabInhalte */
+		$tabInhalte = $modules->get('InputfieldWrapper');
+		$tabInhalte->attr('class', 'WireTab');
+		$tabInhalte->attr('title', 'Inhalte & Freigabe');
+		$tabInhalte->attr('id', 'bpe-tab-inhalte');
+		/** @var InputfieldMarkup $f */
+		$f = $modules->get('InputfieldMarkup');
+		$f->label = 'Entdeckte Inhaltstypen';
+		$f->value = $this->renderDiscoveryTableHtml();
+		$tabInhalte->add($f);
+		$tabInhalte->add($fsContent);
+
+		/** @var InputfieldWrapper $tabNav */
+		$tabNav = $modules->get('InputfieldWrapper');
+		$tabNav->attr('class', 'WireTab');
+		$tabNav->attr('title', 'Navigation');
+		$tabNav->attr('id', 'bpe-tab-navigation');
+		$tabNav->add($fsNav);
+
+		/** @var InputfieldWrapper $tabDesign */
+		$tabDesign = $modules->get('InputfieldWrapper');
+		$tabDesign->attr('class', 'WireTab');
+		$tabDesign->attr('title', 'Design & Branding');
+		$tabDesign->attr('id', 'bpe-tab-design');
+		$tabDesign->add($fsDesign);
+
+		/** @var InputfieldWrapper $tabSystem */
+		$tabSystem = $modules->get('InputfieldWrapper');
+		$tabSystem->attr('class', 'WireTab');
+		$tabSystem->attr('title', 'Zugriff & System');
+		$tabSystem->attr('id', 'bpe-tab-system');
+		/** @var InputfieldMarkup $f */
+		$f = $modules->get('InputfieldMarkup');
+		$f->label = 'Zugang';
+		$f->value = '<p class="description">Redakteure brauchen die Permission <code>editorial-access</code> '
+			. '(Rolle <code>editorial</code> wird automatisch angelegt). Superuser haben immer Zugang. '
+			. 'Login unter <code>/' . htmlspecialchars(trim($this->baseUrl(), '/'), ENT_QUOTES, 'UTF-8')
+			. '/</code> ist vom Admin-Login getrennt.</p>';
+		$tabSystem->add($f);
 		if ($roleFieldCount > 0) {
-			$sections[] = $fsRoles;
+			$tabSystem->add($fsRoles);
 		}
-		$sections[] = $fsAdvanced;
-		return $sections;
+		$tabSystem->add($fsAdvanced);
+
+		return [$tabInhalte, $tabNav, $tabDesign, $tabSystem];
 	}
 
 	public static function getModuleConfigInputfields(array $data): InputfieldWrapper {
