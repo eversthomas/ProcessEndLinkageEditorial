@@ -18,7 +18,7 @@ $brandLogoUrl = $brandLogoUrl ?? null;
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></title>
-	<link rel="stylesheet" href="<?= htmlspecialchars($assetUrl, ENT_QUOTES, 'UTF-8') ?>css/editorial.css">
+	<link rel="stylesheet" href="<?= htmlspecialchars($assetUrl, ENT_QUOTES, 'UTF-8') ?>css/editorial.css?v=2">
 </head>
 <body class="bpe-body bpe-body--login">
 	<main class="bpe-login">

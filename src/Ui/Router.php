@@ -212,15 +212,29 @@ class Router {
 			'tiles' => $tiles,
 			'recent' => $recent,
 			'userName' => $userName,
+			'statusCounts' => $this->statusCounts($templates),
 		]);
 		return $this->shell($content, [
 			'title' => 'Übersicht',
-			'railActive' => 'overview',
-			'treeTitle' => 'Navigation',
-			'treeHtml' => $this->renderGlobalTree(['node' => 'overview']),
+			'treeTitle' => 'Inhalte',
+			'treeHtml' => $this->renderFullTree(['node' => 'overview']),
+			'primaryAction' => $this->primaryActionForTiles($tiles),
 			'flash' => $this->takeFlash(),
 			'designSkin' => 'daten',
 		]);
+	}
+
+	/**
+	 * @param array<int, array<string, mixed>> $tiles
+	 * @return array{label: string, url: string}|null
+	 */
+	protected function primaryActionForTiles(array $tiles): ?array {
+		foreach ($tiles as $tile) {
+			if (!empty($tile['newUrl'])) {
+				return ['label' => 'Neu: ' . ($tile['label'] ?? ''), 'url' => $tile['newUrl']];
+			}
+		}
+		return null;
 	}
 
 	protected function getNodeDashboard(array $node, string $sectionId, ?string $groupId): string {
@@ -241,18 +255,20 @@ class Router {
 			'kicker' => 'Bereich',
 			'tiles' => $tiles,
 			'recent' => $recent,
+			'statusCounts' => $this->statusCounts($templates),
 		]);
 
 		$section = $this->navConfig->findNode($sectionId, $this->navTree);
-		$treeHtml = $this->renderSectionTree($section ?? [], [
+		$treeHtml = $this->renderFullTree([
 			'node' => $groupId ?: $sectionId,
+			'section' => $sectionId,
 		]);
 
 		return $this->shell($content, [
 			'title' => $label,
-			'railActive' => $sectionId,
 			'treeTitle' => $section['label'] ?? 'Inhalte',
 			'treeHtml' => $treeHtml,
+			'primaryAction' => $this->primaryActionForTiles($tiles),
 			'flash' => $this->takeFlash(),
 			'designSkin' => 'daten',
 		]);
@@ -275,6 +291,28 @@ class Router {
 	/**
 	 * @param string[] $templates
 	 */
+	/**
+	 * @param string[] $templates
+	 * @return array{draft: int, live: int}
+	 */
+	protected function statusCounts(array $templates): array {
+		$draft = 0;
+		$live = 0;
+		foreach ($templates as $tpl) {
+			try {
+				foreach ($this->adapter->listRecords($tpl) as $record) {
+					if (($record['status'] ?? 'published') === 'unpublished') {
+						$draft++;
+					} else {
+						$live++;
+					}
+				}
+			} catch (\Throwable $e) {
+			}
+		}
+		return ['draft' => $draft, 'live' => $live];
+	}
+
 	protected function tilesForTemplates(array $templates): array {
 		$tiles = [];
 		foreach ($templates as $tpl) {
@@ -338,6 +376,7 @@ class Router {
 			'flash' => $this->takeFlash(),
 			'active' => ['template' => $template],
 			'designSkin' => $skin,
+			'primaryAction' => ['label' => 'Neu: ' . ($schema['label'] ?? $template), 'url' => $this->url('t/' . $template . '/new')],
 		]));
 	}
 
@@ -517,15 +556,11 @@ class Router {
 
 	protected function shellContextForTemplate(string $template, string $title, array $extra = []): array {
 		$section = $this->findSectionForTemplate($template);
-		$sectionId = $section['id'] ?? 'content';
 		$active = $extra['active'] ?? ['template' => $template];
-		$treeHtml = $section
-			? $this->renderSectionTree($section, $active)
-			: $this->renderGlobalTree($active);
+		$treeHtml = $this->renderFullTree($active);
 
 		return array_merge([
 			'title' => $title,
-			'railActive' => $sectionId,
 			'treeTitle' => $section['label'] ?? 'Inhalte',
 			'treeHtml' => $treeHtml,
 		], $extra);
@@ -560,7 +595,12 @@ class Router {
 		return $tree->render($section['children'] ?? [], $active);
 	}
 
-	protected function renderGlobalTree(array $active): string {
+	/**
+	 * Vollständiger Navigationsbaum (Übersicht + alle Sections mit ihren Gruppen/Templates) —
+	 * eine Navigationsfläche statt der früheren zweigeteilten Rail+Baum-Ansicht, damit auf
+	 * Mobil ein einzelnes Overlay für die gesamte Navigation reicht.
+	 */
+	protected function renderFullTree(array $active): string {
 		$html = '<ul class="bpe-tree__list">';
 		foreach ($this->navTree as $node) {
 			$type = $node['type'] ?? '';
@@ -569,20 +609,33 @@ class Router {
 				$activeCls = ($active['node'] ?? '') === 'overview' ? ' is-active' : '';
 				$html .= '<li class="bpe-tree__item' . $activeCls . '"><a class="bpe-tree__row" href="'
 					. htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '">'
-					. Icons::svg($node['icon'] ?? 'layout-dashboard', 'bpe-icon bpe-icon--sm')
 					. '<span class="bpe-tree__label">' . htmlspecialchars($node['label'] ?? 'Übersicht', ENT_QUOTES, 'UTF-8')
 					. '</span></a></li>';
-			} elseif ($type === 'section') {
-				$href = $this->url('nav/' . ($node['id'] ?? ''));
-				$html .= '<li class="bpe-tree__item"><a class="bpe-tree__row" href="'
-					. htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '">'
-					. Icons::svg($node['icon'] ?? 'file-text', 'bpe-icon bpe-icon--sm')
-					. '<span class="bpe-tree__label">' . htmlspecialchars($node['label'] ?? '', ENT_QUOTES, 'UTF-8')
-					. '</span></a></li>';
+				continue;
 			}
+			if ($type !== 'section') {
+				continue;
+			}
+			$open = $this->isSectionActive($node, $active);
+			$html .= '<li class="bpe-tree__item bpe-tree__item--group' . ($open ? ' is-open' : '') . '">';
+			$html .= '<button type="button" class="bpe-tree__row bpe-tree__toggle" aria-expanded="' . ($open ? 'true' : 'false') . '">';
+			$html .= '<span class="bpe-tree__label">' . htmlspecialchars($node['label'] ?? '', ENT_QUOTES, 'UTF-8') . '</span>';
+			$html .= '</button>';
+			$html .= '<div class="bpe-tree__children"' . ($open ? '' : ' hidden') . '>';
+			$html .= $this->renderSectionTree($node, $active);
+			$html .= '</div></li>';
 		}
 		$html .= '</ul>';
 		return '<div class="bpe-tree">' . $html . '</div>';
+	}
+
+	protected function isSectionActive(array $section, array $active): bool {
+		$id = $section['id'] ?? null;
+		if ($id !== null && (($active['node'] ?? null) === $id || ($active['section'] ?? null) === $id)) {
+			return true;
+		}
+		$activeTpl = $active['template'] ?? null;
+		return $activeTpl !== null && in_array($activeTpl, $this->navConfig->templatesUnder($section), true);
 	}
 
 	protected function shell(string $content, array $vars): string {
@@ -598,12 +651,10 @@ class Router {
 			'content' => $content,
 			'userName' => $this->auth->displayName(),
 			'isDemo' => $this->auth->isDemoSession(),
-			'railItems' => $this->navConfig->railItems($this->allowedTemplates),
 			'dataSource' => 'ProcessWire',
 			'themeStyle' => $theme,
 			'tinyMceUrl' => $this->tinyMceUrl(),
 			'needsTinyMce' => false,
-			'treeCollapsed' => false,
 			'brandName' => $this->module->brandName(),
 			'brandLogoUrl' => $this->module->brandLogoUrl(),
 			'designSkin' => $designSkin,
@@ -617,14 +668,12 @@ class Router {
 
 	protected function themeCss(): string {
 		$accent = (string) ($this->module->get('theme_accent') ?: '#1f6b4a');
-		$rail = (string) ($this->module->get('theme_rail_bg') ?: '#1c1f1d');
 		$radius = (string) ($this->module->get('theme_radius') ?: '8');
 		$text = (string) ($this->module->get('theme_text_color') ?: '#201e1d');
 		$muted = (string) ($this->module->get('theme_muted_color') ?: '#6b736e');
 		$spacingKey = (string) ($this->module->get('theme_spacing') ?: 'normal');
 
 		$accent = preg_match('/^#[0-9a-fA-F]{3,8}$/', $accent) ? $accent : '#1f6b4a';
-		$rail = preg_match('/^#[0-9a-fA-F]{3,8}$/', $rail) ? $rail : '#1c1f1d';
 		$text = preg_match('/^#[0-9a-fA-F]{3,8}$/', $text) ? $text : '#201e1d';
 		$muted = preg_match('/^#[0-9a-fA-F]{3,8}$/', $muted) ? $muted : '#6b736e';
 		$radius = preg_match('/^\d+(\.\d+)?$/', $radius) ? $radius : '8';
@@ -636,20 +685,28 @@ class Router {
 		$radiusNum = (float) $radius;
 		$radiusMd = max(2, $radiusNum - 2);
 		$radiusSm = max(2, $radiusNum - 4);
+		$accentInk = $this->module->contrastTextColor($accent);
 
-		// --bpe-* bleibt Settings-Schicht (theme_* Config); Broadsheet-Namen sind Aliase darauf.
+		// --bpe-* bleibt Settings-Schicht (theme_* Config); Broadsheet-/App-Namen sind Aliase darauf.
+		// Hintergrund/Rahmen/Status-Farben sind bewusst fix (nicht konfigurierbar) — schützt
+		// Lesbarkeit und Status-Bedeutung vor Kunden-Farbwahl (siehe Design-Tab-Absprache).
 		return ':root{'
 			. '--bpe-accent:' . $accent . ';'
-			. '--bpe-rail-bg:' . $rail . ';'
 			. '--bpe-radius:' . $radius . 'px;'
 			. '--bpe-ink:' . $text . ';'
 			. '--bpe-muted:' . $muted . ';'
 			. '--bpe-space:' . $space . 'px;'
 			. '--color-accent:var(--bpe-accent);'
+			. '--color-accent-ink:' . $accentInk . ';'
 			. '--color-text:var(--bpe-ink);'
+			. '--color-muted:var(--bpe-muted);'
 			. '--color-bg:var(--bpe-bg);'
 			. '--color-surface:var(--bpe-bg-panel);'
+			. '--color-border:#e2e5e2;'
 			. '--color-divider:var(--bpe-line);'
+			. '--status-draft:#c79e28;'
+			. '--status-review:#2b6cb0;'
+			. '--status-live:#2e8159;'
 			. '--radius-lg:var(--bpe-radius);'
 			. '--radius-md:' . $radiusMd . 'px;'
 			. '--radius-sm:' . $radiusSm . 'px;'
@@ -726,9 +783,8 @@ class Router {
 			'">Zur Übersicht</a></div>';
 		return $this->shell($content, [
 			'title' => 'Hinweis',
-			'railActive' => 'overview',
-			'treeTitle' => 'Navigation',
-			'treeHtml' => $this->renderGlobalTree([]),
+			'treeTitle' => 'Inhalte',
+			'treeHtml' => $this->renderFullTree([]),
 		]);
 	}
 

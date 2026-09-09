@@ -271,10 +271,12 @@ class ProcessWireAdapter implements AdapterInterface {
 
 	protected function pageToRecord(Page $page): array {
 		$page->of(false);
+		$modifiedUser = $page->modifiedUser;
 		$record = [
 			'id' => (string) $page->id,
 			'created' => date('c', $page->created),
 			'modified' => date('c', $page->modified),
+			'modifiedBy' => ($modifiedUser && $modifiedUser->id) ? $modifiedUser->name : null,
 			'status' => $page->isUnpublished() ? 'unpublished' : 'published',
 			'url' => $page->id ? (string) $page->url : null,
 		];

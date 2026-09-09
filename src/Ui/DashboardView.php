@@ -21,81 +21,80 @@ class DashboardView {
 		$kicker = $options['kicker'] ?? '';
 		$tiles = $options['tiles'] ?? [];
 		$recent = $options['recent'] ?? [];
+		$statusCounts = $options['statusCounts'] ?? ['draft' => 0, 'live' => 0];
+		$draft = (int) ($statusCounts['draft'] ?? 0);
+		$live = (int) ($statusCounts['live'] ?? 0);
 
-		$html = '<div class="bpe-daten">';
-		$html .= '<header class="bpe-daten__header bpe-daten__header--dash">';
-		$html .= '<div>';
+		$html = '<div class="bpe-dashboard">';
+
+		$html .= '<header class="bpe-dashboard__intro">';
 		if ($kicker !== '') {
-			$html .= '<span class="bpe-daten__kicker">' . $this->e($kicker) . '</span>';
+			$html .= '<p class="bpe-dashboard__kicker">' . $this->e($kicker) . '</p>';
 		}
 		$html .= '<h1>' . $this->e($title) . '</h1>';
 		if ($lead !== '') {
-			$html .= '<p class="bpe-daten__lead">' . $this->e($lead) . '</p>';
-		}
-		$html .= '</div>';
-		$primaryNew = null;
-		foreach ($tiles as $tile) {
-			if (!empty($tile['newUrl'])) {
-				$primaryNew = $tile;
-				break;
-			}
-		}
-		if ($primaryNew) {
-			$html .= '<div class="bpe-daten__actions">';
-			$html .= '<a class="btn btn-primary" href="' . $this->e($primaryNew['newUrl']) . '">'
-				. Icons::svg('plus', 'bpe-icon bpe-icon--sm')
-				. ' Neu: ' . $this->e($primaryNew['label'] ?? '') . '</a>';
-			$html .= '</div>';
+			$html .= '<p class="bpe-dashboard__lead">' . $this->e($lead) . '</p>';
 		}
 		$html .= '</header>';
 
-		if ($tiles) {
-			$html .= '<h2 class="bpe-daten__section-title">Inhalte im Überblick</h2>';
-			$html .= '<div class="bpe-overview">';
-			$i = 0;
-			foreach ($tiles as $tile) {
-				$i++;
-				$url = $tile['url'] ?? '#';
-				$count = $tile['count'];
-				$hint = (string) ($tile['hint'] ?? '');
-				$dt = (string) ($tile['datatype'] ?? 'daten');
-				if ($dt !== 'daten') {
-					$hint = ($hint !== '' ? $hint . ' · ' : '') . 'Ansicht noch generisch';
-				}
-				$html .= '<a class="bpe-overview__row" href="' . $this->e($url) . '">';
-				$html .= '<span class="bpe-overview__num">' . sprintf('%02d', $i) . '</span>';
-				$html .= '<span class="bpe-overview__label">' . $this->e($tile['label'] ?? '') . '</span>';
-				$html .= '<span class="bpe-overview__hint">' . $this->e($hint) . '</span>';
-				$html .= '<span class="bpe-overview__count">' . ($count === null ? '—' : (int) $count) . '</span>';
-				$html .= '</a>';
-			}
-			$html .= '</div>';
-		}
+		$html .= '<div class="bpe-statusline">';
+		$html .= '<span class="bpe-statusline__item"><span class="bpe-dot bpe-dot--draft"></span>'
+			. '<strong>' . $draft . '</strong> Entwurf' . ($draft === 1 ? '' : 'e') . '</span>';
+		$html .= '<span class="bpe-statusline__item"><span class="bpe-dot bpe-dot--live"></span>'
+			. '<strong>' . $live . '</strong> veröffentlicht</span>';
+		$html .= '</div>';
 
-		$html .= '<div class="bpe-daten__lower">';
-		$html .= '<div>';
-		$html .= '<h2 class="bpe-daten__section-title">Zuletzt bearbeitet</h2>';
-		if (!$recent) {
-			$html .= '<p class="text-muted">Noch keine bearbeiteten Einträge in Ihren Inhaltstypen.</p>';
-		} else {
-			$html .= '<table class="table"><thead><tr>';
-			$html .= '<th>Name</th><th>Typ</th><th>Status</th><th>Aktualisiert</th>';
-			$html .= '</tr></thead><tbody>';
+		if ($recent) {
+			$html .= '<section class="bpe-dashboard__section">';
+			$html .= '<h2 class="bpe-dashboard__section-title">Zuletzt bearbeitet</h2>';
+			$html .= '<ul class="bpe-recentlist">';
 			foreach ($recent as $item) {
 				$status = (string) ($item['status'] ?? 'published');
 				$published = $status !== 'unpublished';
-				$html .= '<tr>';
-				$html .= '<td style="font-family:var(--font-heading)"><a href="'
-					. $this->e($item['url'] ?? '#') . '">' . $this->e($item['title'] ?? 'Ohne Titel') . '</a></td>';
-				$html .= '<td class="text-muted">' . $this->e($item['typeLabel'] ?? '') . '</td>';
-				$html .= '<td><span class="tag ' . ($published ? 'tag-accent' : 'tag-neutral') . '">'
-					. ($published ? 'Veröffentlicht' : 'Entwurf') . '</span></td>';
-				$html .= '<td class="text-muted">' . $this->e($item['modifiedLabel'] ?? '') . '</td>';
-				$html .= '</tr>';
+				$by = $item['modifiedBy'] ?? null;
+				$meta = $this->e($item['typeLabel'] ?? '') . ' · ' . $this->e($item['modifiedLabel'] ?? '');
+				if ($by) {
+					$meta .= ' · ' . $this->e((string) $by);
+				}
+				$html .= '<li class="bpe-recentlist__row">';
+				$html .= '<a class="bpe-recentlist__link" href="' . $this->e($item['url'] ?? '#') . '">';
+				$html .= '<span class="bpe-recentlist__title">' . $this->e($item['title'] ?? 'Ohne Titel') . '</span>';
+				$html .= '<span class="bpe-recentlist__meta">' . $meta . '</span>';
+				$html .= '</a>';
+				$html .= '<span class="bpe-status-text bpe-status-text--' . ($published ? 'live' : 'draft') . '">'
+					. ($published ? 'Live' : 'Entwurf') . '</span>';
+				$html .= '</li>';
 			}
-			$html .= '</tbody></table>';
+			$html .= '</ul>';
+			$html .= '</section>';
+		} else {
+			$html .= '<p class="bpe-dashboard__empty">Noch keine bearbeiteten Einträge in Ihren Inhaltstypen.</p>';
 		}
-		$html .= '</div></div></div>';
+
+		if ($tiles) {
+			$html .= '<section class="bpe-dashboard__section">';
+			$html .= '<h2 class="bpe-dashboard__section-title">Neu anlegen</h2>';
+			$html .= '<ul class="bpe-quicklist">';
+			foreach ($tiles as $tile) {
+				$count = $tile['count'];
+				if (!empty($tile['newUrl'])) {
+					$countLabel = $count === null ? '' : (int) $count . ($count === 1 ? ' Eintrag' : ' Einträge');
+					$html .= '<li><a class="bpe-quicklist__row" href="' . $this->e($tile['newUrl']) . '">';
+					$html .= '<span class="bpe-quicklist__label">' . $this->e($tile['label'] ?? '') . '</span>';
+					$html .= '<span class="bpe-quicklist__meta">' . $this->e($countLabel) . '</span>';
+					$html .= '</a></li>';
+				} else {
+					$html .= '<li><a class="bpe-quicklist__row" href="' . $this->e($tile['url'] ?? '#') . '">';
+					$html .= '<span class="bpe-quicklist__label">' . $this->e($tile['label'] ?? '') . '</span>';
+					$html .= '<span class="bpe-quicklist__meta">' . $this->e((string) ($tile['hint'] ?? '')) . '</span>';
+					$html .= '</a></li>';
+				}
+			}
+			$html .= '</ul>';
+			$html .= '</section>';
+		}
+
+		$html .= '</div>';
 		return $html;
 	}
 
@@ -180,6 +179,7 @@ class DashboardView {
 						'typeLabel' => $label,
 						'modified' => (string) ($record['modified'] ?? ''),
 						'modifiedLabel' => $this->relative((string) ($record['modified'] ?? '')),
+						'modifiedBy' => $record['modifiedBy'] ?? null,
 						'status' => (string) ($record['status'] ?? 'published'),
 					];
 				}

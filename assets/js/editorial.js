@@ -4,9 +4,6 @@
 (function () {
   'use strict';
 
-  var RAIL_KEY = 'bpe_rail';
-  var TREE_KEY = 'bpe_tree';
-
   function markInvalid(field, message) {
     field.classList.add('bpe-field--error');
     var existing = field.querySelector('.bpe-field__error');
@@ -68,27 +65,22 @@
   }
 
   function bindShell() {
-    var shell = document.querySelector('[data-bpe-shell] .bpe-shell') || document.querySelector('.bpe-shell');
-    if (!shell) return;
+    var app = document.querySelector('.bpe-app');
+    if (!app) return;
 
-    var rail = localStorage.getItem(RAIL_KEY) || 'expanded';
-    var tree = localStorage.getItem(TREE_KEY) || 'open';
-    shell.setAttribute('data-rail', rail === 'collapsed' ? 'collapsed' : 'expanded');
-    shell.setAttribute('data-tree', tree === 'collapsed' ? 'collapsed' : 'open');
-
-    document.querySelectorAll('[data-bpe-rail-toggle]').forEach(function (btn) {
+    document.querySelectorAll('[data-bpe-nav-open]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var next = shell.getAttribute('data-rail') === 'collapsed' ? 'expanded' : 'collapsed';
-        shell.setAttribute('data-rail', next);
-        localStorage.setItem(RAIL_KEY, next);
+        app.setAttribute('data-nav', 'open');
+        if (btn.getAttribute('data-bpe-nav-open') === 'foot') {
+          var foot = document.querySelector('[data-bpe-nav-foot]');
+          if (foot) foot.scrollIntoView({ block: 'nearest' });
+        }
       });
     });
 
-    document.querySelectorAll('[data-bpe-tree-toggle]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var next = shell.getAttribute('data-tree') === 'collapsed' ? 'open' : 'collapsed';
-        shell.setAttribute('data-tree', next);
-        localStorage.setItem(TREE_KEY, next);
+    document.querySelectorAll('[data-bpe-nav-close]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        app.setAttribute('data-nav', 'closed');
       });
     });
 

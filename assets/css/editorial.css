@@ -1498,3 +1498,465 @@ body[data-design="daten"] .bpe-main {
 body[data-design="daten"] .bpe-flash--ok {
   border-radius: var(--radius-md);
 }
+
+/* ============================================================
+   Phase 4a — App-Shell (Kopfzeile + Navigationsfläche) + Dashboard.
+   Ersetzt das Rail/Sidebar/Topbar-Layout weiter oben in dieser Datei für
+   die Shell-Chrome (jene Regeln sind jetzt unbenutzt, aber bewusst stehen
+   gelassen — Cleanup-Kandidat für eine spätere Runde). .bpe-main, .bpe-flash*
+   und .bpe-tree* werden unverändert weiterverwendet.
+   ============================================================ */
+
+.bpe-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bpe-bg);
+}
+
+.bpe-appbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem clamp(1rem, 3vw, 2rem);
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-border, var(--bpe-line));
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.bpe-appbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--bpe-ink);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.bpe-appbar__logo {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm, 6px);
+  object-fit: contain;
+  background: #fff;
+}
+
+.bpe-appbar__logo--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bpe-accent);
+  color: var(--color-accent-ink, #fff);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.bpe-appbar__brand-text {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.bpe-appbar__title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--bpe-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.bpe-appbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.bpe-appbar__cta {
+  display: inline-flex;
+  align-items: center;
+  height: 2.25rem;
+  padding: 0 0.9rem;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bpe-accent);
+  color: var(--color-accent-ink, #fff);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 9rem;
+  flex-shrink: 0;
+}
+
+@media (min-width: 480px) {
+  .bpe-appbar__cta {
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .bpe-appbar__title {
+    display: none;
+  }
+}
+
+.bpe-appbar__user {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bpe-appbar__avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--bpe-muted);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.bpe-appbar__username em {
+  font-style: normal;
+  color: var(--bpe-muted);
+  font-size: 0.75rem;
+}
+
+.bpe-appbar__logout {
+  display: none;
+  color: var(--bpe-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+.bpe-appbar__logout:hover {
+  color: var(--bpe-ink);
+}
+
+.bpe-appshell {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.bpe-navpanel {
+  width: 17rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid var(--color-border, var(--bpe-line));
+}
+
+.bpe-navpanel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--color-border, var(--bpe-line));
+}
+
+.bpe-navpanel__title {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--bpe-muted);
+}
+
+.bpe-navpanel__close {
+  display: none;
+  border: 0;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--bpe-muted);
+  padding: 0.25rem;
+}
+
+.bpe-navpanel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.bpe-navpanel__foot {
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--color-border, var(--bpe-line));
+}
+
+.bpe-navpanel__account {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--bpe-muted);
+}
+
+.bpe-navpanel__logout {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: var(--bpe-ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.bpe-navpanel__credit {
+  margin: 0.75rem 0 0;
+  font-size: 0.72rem;
+  color: var(--bpe-muted);
+}
+.bpe-navpanel__credit a {
+  color: inherit;
+}
+
+.bpe-navpanel__scrim {
+  display: none;
+}
+
+.bpe-tabbar {
+  display: flex;
+  border-top: 1px solid var(--color-border, var(--bpe-line));
+  background: #ffffff;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+}
+
+.bpe-tabbar__item {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0.7rem 0.5rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bpe-muted);
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+}
+
+.bpe-tabbar__item:hover,
+.bpe-tabbar__item:focus-visible {
+  color: var(--bpe-ink);
+}
+
+/* —— Mobil (< 860px): Navigationsfläche als Overlay-Drawer, Tab-Leiste sichtbar —— */
+@media (max-width: 859px) {
+  .bpe-navpanel {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 85%;
+    max-width: 20rem;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .bpe-navpanel__close {
+    display: block;
+  }
+
+  .bpe-app[data-nav="open"] .bpe-navpanel {
+    transform: translateX(0);
+  }
+
+  .bpe-app[data-nav="open"] .bpe-navpanel__scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 22, 20, 0.35);
+    z-index: 30;
+  }
+
+  .bpe-appbar__user,
+  .bpe-appbar__logout {
+    display: none !important;
+  }
+}
+
+/* —— Desktop (>= 860px): Navigationsfläche persistent, keine Tab-Leiste —— */
+@media (min-width: 860px) {
+  .bpe-tabbar {
+    display: none;
+  }
+
+  .bpe-appbar__user {
+    display: flex;
+  }
+
+  .bpe-appbar__logout {
+    display: inline-block;
+  }
+
+  .bpe-navpanel__foot {
+    display: none;
+  }
+}
+
+/* —— Dashboard —— */
+.bpe-dashboard {
+  max-width: 46rem;
+}
+
+.bpe-dashboard__intro h1 {
+  margin: 0 0 0.3rem;
+  font-size: clamp(1.5rem, 3vw, 1.9rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--bpe-ink);
+}
+
+.bpe-dashboard__kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bpe-muted);
+}
+
+.bpe-dashboard__lead {
+  margin: 0 0 1rem;
+  color: var(--bpe-muted);
+  font-size: 0.95rem;
+}
+
+.bpe-statusline {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--color-border, var(--bpe-line));
+  border-bottom: 1px solid var(--color-border, var(--bpe-line));
+  margin-bottom: 1.5rem;
+}
+
+.bpe-statusline__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: var(--bpe-ink);
+}
+
+.bpe-statusline__item strong {
+  font-size: 1rem;
+}
+
+.bpe-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.bpe-dot--draft {
+  background: var(--status-draft, #c79e28);
+}
+.bpe-dot--live {
+  background: var(--status-live, #2e8159);
+}
+.bpe-dot--review {
+  background: var(--status-review, #2b6cb0);
+}
+
+.bpe-dashboard__section {
+  margin-bottom: 2rem;
+}
+
+.bpe-dashboard__section-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--bpe-muted);
+}
+
+.bpe-dashboard__empty {
+  color: var(--bpe-muted);
+  font-size: 0.9rem;
+}
+
+.bpe-recentlist,
+.bpe-quicklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bpe-recentlist__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--color-border, var(--bpe-line));
+}
+
+.bpe-recentlist__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.bpe-recentlist__title {
+  font-weight: 600;
+  color: var(--bpe-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bpe-recentlist__meta {
+  font-size: 0.78rem;
+  color: var(--bpe-muted);
+}
+
+.bpe-status-text {
+  font-size: 0.78rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.bpe-status-text--draft {
+  color: var(--status-draft, #c79e28);
+}
+.bpe-status-text--live {
+  color: var(--status-live, #2e8159);
+}
+
+.bpe-quicklist__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.25rem;
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border, var(--bpe-line));
+  text-decoration: none;
+  color: var(--bpe-ink);
+}
+
+.bpe-quicklist__label {
+  font-weight: 500;
+}
+
+.bpe-quicklist__meta {
+  font-size: 0.78rem;
+  color: var(--bpe-muted);
+}

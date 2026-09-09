@@ -524,6 +524,25 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		return '#1f6b4a';
 	}
 
+	/**
+	 * Lesbare Textfarbe (Weiß oder dunkles Ink) für eine beliebige Hintergrund-/Akzentfarbe —
+	 * damit eine frei gewählte Kundenfarbe nie zu unlesbarem Text auf Buttons/Badges führt.
+	 */
+	public function contrastTextColor(string $hex): string {
+		$hex = ltrim(trim($hex), '#');
+		if (strlen($hex) === 3) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if (!preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
+			return '#ffffff';
+		}
+		$r = hexdec(substr($hex, 0, 2));
+		$g = hexdec(substr($hex, 2, 2));
+		$b = hexdec(substr($hex, 4, 2));
+		$yiq = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+		return $yiq >= 150 ? '#1a1f24' : '#ffffff';
+	}
+
 	public function hookBeforeSaveConfig(HookEvent $event): void {
 		$className = $event->arguments(0);
 		if ($className !== $this->className()) {
@@ -755,6 +774,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		/** @var InputfieldFieldset $fsDesign */
 		$fsDesign = $modules->get('InputfieldFieldset');
 		$fsDesign->label = 'Design / Branding';
+		$fsDesign->description = 'Bewusst begrenzt: Hintergrund, Rahmen und Status-Farben (Entwurf/Veröffentlicht) sind fest vorgegeben, damit Lesbarkeit und Bedeutung erhalten bleiben. Textfarbe auf der Akzentfarbe wird automatisch passend gewählt.';
 		$fsDesign->collapsed = Inputfield::collapsedNo;
 
 		/** @var InputfieldText $f */
@@ -791,7 +811,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		foreach ([
 			['theme_accent', 'Theme: Akzentfarbe', '#1f6b4a'],
-			['theme_rail_bg', 'Theme: Rail-Hintergrund', '#1c1f1d'],
 			['theme_text_color', 'Theme: Textfarbe', '#201e1d'],
 			['theme_muted_color', 'Theme: Gedämpfte Textfarbe', '#6b736e'],
 		] as [$name, $label, $default]) {
