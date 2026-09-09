@@ -88,6 +88,14 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 						$values[$field->name] = $field->value;
 					}
 				}
+				// mode__*/datatype__* sind rohes HTML im Nav-Builder, keine ProcessWire-Inputfields
+				// (siehe assets/js/nav-builder.js) — hier direkt aus dem POST übernehmen.
+				foreach ($input->post->getArray() as $key => $value) {
+					$key = (string) $key;
+					if (str_starts_with($key, 'mode__') || str_starts_with($key, 'datatype__')) {
+						$values[$key] = $value;
+					}
+				}
 				if (($values['login_pass'] ?? '') === '' && !empty($configData['login_pass'])) {
 					$values['login_pass'] = $configData['login_pass'];
 				}
@@ -111,60 +119,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$out .= $form->render();
 		$out .= '</div>';
 		return $out;
-	}
-
-	/** HTML: Link zur Redaktion + Discovery-Tabelle für Tab „Inhalte & Freigabe“. */
-	protected function renderDiscoveryTableHtml(): string {
-		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
-		$candidates = $discovery->candidates();
-		$enabled = $this->editorialTemplateNames();
-
-		$html = '<p><a class="uk-button uk-button-primary" target="_blank" rel="noopener" href="'
-			. htmlspecialchars($this->wire()->config->urls->root . trim($this->baseUrl(), '/'), ENT_QUOTES, 'UTF-8')
-			. '/">Redaktion öffnen</a></p>';
-		$html .= '<p class="description">Kandidaten aus dieser Installation. '
-			. '<strong>Datensätze</strong> = Listenansicht, <strong>Einzelseite</strong> = direktes Formular (z. B. Home). '
-			. 'Freigabe, Darstellungsmodus und Daten-Art unten festlegen.</p>';
-		$html .= '<table class="AdminDataTable AdminDataList"><thead><tr>'
-			. '<th>Template</th><th>Label</th><th>Seiten</th><th>Felder</th>'
-			. '<th>Ohne Adapter</th><th>Daten-Art</th><th>Vorschlag</th><th>Status</th>'
-			. '</tr></thead><tbody>';
-		if (!$candidates) {
-			$html .= '<tr><td colspan="8">Keine geeigneten Templates gefunden.</td></tr>';
-		}
-		foreach ($candidates as $item) {
-			$active = in_array($item['name'], $enabled, true);
-			$mode = $active ? $this->editorialMode($item['name']) : $item['suggestedMode'];
-			$modeLabel = $mode === 'single' ? 'Einzelseite' : 'Datensätze (Liste)';
-			$datatype = $active ? $this->editorialDatatype($item['name']) : 'daten';
-			$datatypeLabel = self::DATATYPE_LABELS[$datatype] ?? 'Daten';
-			if ($active && $datatype !== 'daten') {
-				$datatypeLabel .= ' <span class="detail">(Ansicht noch generisch)</span>';
-			}
-			$unsupported = $item['unsupportedFields'] ?? [];
-			if ($unsupported) {
-				$bits = [];
-				foreach ($unsupported as $uf) {
-					$bits[] = '<code>' . htmlspecialchars((string) ($uf['name'] ?? ''), ENT_QUOTES, 'UTF-8') . '</code>'
-						. ' <span class="detail">(' . htmlspecialchars((string) ($uf['type'] ?? ''), ENT_QUOTES, 'UTF-8') . ')</span>';
-				}
-				$unsupportedHtml = implode('<br>', $bits);
-			} else {
-				$unsupportedHtml = '—';
-			}
-			$html .= '<tr>'
-				. '<td><code>' . htmlspecialchars($item['name']) . '</code></td>'
-				. '<td>' . htmlspecialchars($item['label']) . '</td>'
-				. '<td>' . (int) $item['pages'] . '</td>'
-				. '<td>' . (int) $item['fields'] . '</td>'
-				. '<td>' . $unsupportedHtml . '</td>'
-				. '<td>' . ($active ? $datatypeLabel : '—') . '</td>'
-				. '<td>' . htmlspecialchars($item['kind']) . ($active ? ' → <strong>' . htmlspecialchars($modeLabel) . '</strong>' : '') . '</td>'
-				. '<td>' . ($active ? '<strong>freigegeben</strong>' : '—') . '</td>'
-				. '</tr>';
-		}
-		$html .= '</tbody></table>';
-		return $html;
 	}
 
 	/**
@@ -281,11 +235,38 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			}
 		}
 
-		$templates = $values['editorial_templates'] ?? [];
-		if (!is_array($templates)) {
-			$templates = $templates ? [(string) $templates] : [];
+		// Baummitgliedschaft ist jetzt Quelle der Freigabe ("im Baum" = "freigegeben"),
+		// nicht mehr eine separate editorial_templates-Auswahl (siehe Setup-Tab „Inhalte & Navigation").
+		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
+		$navRaw = $values['editorial_nav'] ?? '';
+		if (is_string($navRaw) && trim($navRaw) !== '') {
+			$decoded = json_decode($navRaw, true);
+			$tree = is_array($decoded) ? $decoded : [];
+		} elseif (is_array($navRaw)) {
+			$tree = $navRaw;
+		} else {
+			$tree = [];
 		}
-		$templates = array_values(array_filter(array_map('strval', $templates)));
+
+		$templates = [];
+		foreach ($tree as $node) {
+			if (!is_array($node)) {
+				continue;
+			}
+			foreach ($navConfig->templatesUnder($node) as $t) {
+				$templates[] = $t;
+			}
+		}
+		$templates = array_values(array_unique($templates));
+
+		try {
+			$tree = $navConfig->parseAndValidate($tree, $templates);
+			$values['editorial_nav'] = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		} catch (\InvalidArgumentException $e) {
+			$values['editorial_nav'] = $previous['editorial_nav'] ?? '';
+			$templates = $this->editorialTemplateNames();
+			$this->error($e->getMessage());
+		}
 
 		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
 		$cleanModes = [];
@@ -319,26 +300,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$values['editorial_templates'] = $templates;
 		$values['role_templates'] = $cleanRoles;
 		$values['allow_demo_login'] = !empty($values['allow_demo_login']) ? 1 : 0;
-
-		$navRaw = $values['editorial_nav'] ?? '';
-		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
-		try {
-			if (is_string($navRaw) && trim($navRaw) !== '') {
-				$decoded = json_decode($navRaw, true);
-				$tree = is_array($decoded) ? $decoded : [];
-			} elseif (is_array($navRaw)) {
-				$tree = $navRaw;
-			} else {
-				$tree = [];
-			}
-			// Freigabe ist Quelle der Template-Mitgliedschaft; Nav nur Struktur-Overlay
-			$tree = $navConfig->reconcileMissingTemplates($tree, $templates);
-			$tree = $navConfig->parseAndValidate($tree, $templates);
-			$values['editorial_nav'] = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-		} catch (\InvalidArgumentException $e) {
-			$values['editorial_nav'] = $previous['editorial_nav'] ?? '';
-			$this->error($e->getMessage());
-		}
 
 		$values['theme_accent'] = $this->normalizeHexColor(
 			(string) ($values['theme_accent'] ?? ''),
@@ -710,75 +671,10 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	protected function buildConfigFields(array $data): array {
 		$modules = $this->wire()->modules;
 		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
-
-		// —— 1. Inhalte & Freigabe ——
-		/** @var InputfieldFieldset $fsContent */
-		$fsContent = $modules->get('InputfieldFieldset');
-		$fsContent->label = 'Freigabe & Darstellung';
-		$fsContent->description = 'Welche Templates Redakteure sehen und wie sie dargestellt werden.';
-		$fsContent->collapsed = Inputfield::collapsedNo;
-
-		/** @var InputfieldAsmSelect $f */
-		$f = $modules->get('InputfieldAsmSelect');
-		$f->name = 'editorial_templates';
-		$f->label = 'Redaktionelle Templates (Freigabe)';
-		$f->description = 'Was Redakteure sehen dürfen. Neu freigegebene Typen erscheinen automatisch unter „Inhalte“ (Default-Gruppe); Reihenfolge/Gruppen im Menü-Builder.';
-		$f->setAttribute('size', 10);
-		$optionNames = [];
-		foreach ($discovery->optionsForSelect() as $name => $label) {
-			$f->addOption($name, $label);
-			$optionNames[$name] = true;
-		}
-		$selected = $data['editorial_templates'] ?? [];
-		if (!is_array($selected)) {
-			$selected = $selected ? [(string) $selected] : [];
-		}
-		foreach ($selected as $name) {
-			$name = (string) $name;
-			if ($name !== '' && empty($optionNames[$name])) {
-				$f->addOption($name, $name . ' (manuell)');
-			}
-		}
-		$f->value = $selected;
-		$fsContent->add($f);
-
-		$modes = is_array($data['editorial_modes'] ?? null) ? $data['editorial_modes'] : [];
-		$datatypes = is_array($data['editorial_datatypes'] ?? null) ? $data['editorial_datatypes'] : [];
-		foreach ($selected as $name) {
-			$name = (string) $name;
-			if ($name === '') {
-				continue;
-			}
-			/** @var InputfieldSelect $mf */
-			$mf = $modules->get('InputfieldSelect');
-			$mf->name = 'mode__' . $name;
-			$mf->label = 'Darstellung: ' . $name;
-			$mf->description = 'Datensätze = Liste + Anlegen. Einzelseite = direktes Formular (Homepage-Inhalte o. ä.).';
-			$mf->addOption('list', 'Datensätze (Liste)');
-			$mf->addOption('single', 'Einzelseite (ohne Liste)');
-			$mf->value = $modes[$name] ?? $discovery->suggestMode($name);
-			$fsContent->add($mf);
-
-			/** @var InputfieldSelect $df */
-			$df = $modules->get('InputfieldSelect');
-			$df->name = 'datatype__' . $name;
-			$df->label = 'Daten-Art: ' . $name;
-			$df->description = 'Steuert die redaktionelle Ansicht. Nur „Daten“ hat derzeit eine spezialisierte Oberfläche; andere Arten nutzen vorerst die generische Liste/Formular.';
-			foreach (self::DATATYPE_LABELS as $key => $label) {
-				$df->addOption($key, $label);
-			}
-			$dt = (string) ($datatypes[$name] ?? 'daten');
-			$df->value = array_key_exists($dt, self::DATATYPE_LABELS) ? $dt : 'daten';
-			$fsContent->add($df);
-		}
-
-		// —— 2. Navigation ——
 		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
-		$prevTemplates = $this->get('editorial_templates');
-		$prevModes = $this->get('editorial_modes');
+
+		// —— Aktuellen Baum laden — er ist jetzt Quelle der Freigabe ("im Baum" = "freigegeben") ——
 		$prevNav = $this->get('editorial_nav');
-		$this->set('editorial_templates', $selected);
-		$this->set('editorial_modes', $modes);
 		$existingNav = $data['editorial_nav'] ?? '';
 		if (is_array($existingNav)) {
 			$this->set('editorial_nav', json_encode($existingNav, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -787,48 +683,75 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 		$navTree = $navConfig->tree();
 		$navJson = $navConfig->toJson();
-		$this->set('editorial_templates', $prevTemplates);
-		$this->set('editorial_modes', $prevModes);
 		$this->set('editorial_nav', $prevNav);
 
-		$tplLabels = [];
-		foreach ($selected as $name) {
-			$name = (string) $name;
-			if ($name === '') {
-				continue;
+		$selected = [];
+		foreach ($navTree as $node) {
+			foreach ($navConfig->templatesUnder($node) as $t) {
+				$selected[] = $t;
 			}
+		}
+		$selected = array_values(array_unique($selected));
+
+		$modes = is_array($data['editorial_modes'] ?? null) ? $data['editorial_modes'] : [];
+		$datatypes = is_array($data['editorial_datatypes'] ?? null) ? $data['editorial_datatypes'] : [];
+
+		$tplLabels = [];
+		$tplSettings = [];
+		foreach ($selected as $name) {
 			$tpl = $this->wire()->templates->get($name);
 			$label = $tpl && $tpl->id ? trim((string) $tpl->get('label')) : '';
 			$tplLabels[$name] = $label !== '' ? $label . ' (' . $name . ')' : $name;
+			$tplSettings[$name] = [
+				'mode' => (string) ($modes[$name] ?? $discovery->suggestMode($name)),
+				'datatype' => (string) ($datatypes[$name] ?? 'daten'),
+			];
 		}
 
-		$this->wire()->config->scripts->add($this->moduleUrl() . 'assets/js/nav-builder.js?v=8');
+		$candidates = [];
+		foreach ($discovery->candidates() as $item) {
+			if (in_array($item['name'], $selected, true)) {
+				continue;
+			}
+			$candidates[] = $item;
+		}
 
+		$this->wire()->config->scripts->add($this->moduleUrl() . 'assets/js/nav-builder.js?v=10');
+
+		// —— 1. Inhalte & Navigation ——
 		/** @var InputfieldFieldset $fsNav */
 		$fsNav = $modules->get('InputfieldFieldset');
-		$fsNav->label = 'Navigation';
+		$fsNav->label = 'Inhalte & Navigation';
+		$fsNav->description = 'Was aus dieser ProcessWire-Installation in der Redaktion erscheint und wie es dort strukturiert ist — an einem Ort.';
 		$fsNav->collapsed = Inputfield::collapsedNo;
+
+		/** @var InputfieldMarkup $f */
+		$f = $modules->get('InputfieldMarkup');
+		$f->label = 'Redaktion öffnen';
+		$f->value = '<p><a class="uk-button uk-button-primary" target="_blank" rel="noopener" href="'
+			. htmlspecialchars($this->wire()->config->urls->root . trim($this->baseUrl(), '/'), ENT_QUOTES, 'UTF-8')
+			. '/">Redaktion öffnen</a></p>';
+		$fsNav->add($f);
 
 		$builder = new \ProcessWire\BsProcessEditorial\Setup\NavBuilder($this);
 		/** @var InputfieldMarkup $f */
 		$f = $modules->get('InputfieldMarkup');
 		$f->name = 'editorial_nav_builder';
-		$f->label = 'Menühierarchie';
-		$f->description = 'Visuell Sections, Gruppen, Reihenfolge und Icons. Neu freigegebene Templates erscheinen automatisch in der Default-Gruppe.';
-		$f->value = $builder->renderMarkup($navTree, $tplLabels);
+		$f->label = 'Inhalte & Struktur';
+		$f->value = $builder->renderMarkup($navTree, $tplLabels, $tplSettings, $candidates, self::DATATYPE_LABELS);
 		$fsNav->add($f);
 
 		/** @var InputfieldTextarea $f */
 		$f = $modules->get('InputfieldTextarea');
 		$f->name = 'editorial_nav';
 		$f->label = 'Menühierarchie (JSON)';
-		$f->description = 'Power-User für Struktur (Reihenfolge, Gruppen, Icons). Template-Mitgliedschaft folgt der Freigabe oben — fehlende werden ergänzt, nicht freigegebene beim Speichern entfernt.';
+		$f->description = 'Power-User für Struktur (Reihenfolge, Gruppen, Icons, Freigabe). Wird von der Oberfläche oben automatisch synchron gehalten.';
 		$f->rows = 12;
 		$f->collapsed = Inputfield::collapsedYes;
 		$f->value = $navJson;
 		$fsNav->add($f);
 
-		// —— 3. Design/Branding ——
+		// —— 2. Design/Branding ——
 		/** @var InputfieldFieldset $fsDesign */
 		$fsDesign = $modules->get('InputfieldFieldset');
 		$fsDesign->label = 'Design / Branding';
@@ -855,7 +778,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f = $modules->get('InputfieldMarkup');
 		$f->name = 'brand_logo_ui';
 		$f->label = 'Kunden-Branding: Logo';
-		$f->description = 'PNG, JPG, GIF oder WebP, max. 2 MB. Wird im Header und in der Rail angezeigt.';
+		$f->description = 'PNG, JPG, GIF oder WebP, max. 2 MB. Wird im Header und in der Rail angezeigt.';
 		$html = '';
 		if ($logoUrl) {
 			$html .= '<p class="bpe-admin-logo-preview"><img src="'
@@ -902,7 +825,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->value = in_array($spacing, ['compact', 'normal', 'generous'], true) ? $spacing : 'normal';
 		$fsDesign->add($f);
 
-		// —— 4. Zugriff/Rollen ——
+		// —— 3. Zugriff/Rollen ——
 		/** @var InputfieldFieldset $fsRoles */
 		$fsRoles = $modules->get('InputfieldFieldset');
 		$fsRoles->label = 'Zugriff / Rollen';
@@ -911,10 +834,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$roleMap = is_array($data['role_templates'] ?? null) ? $data['role_templates'] : [];
 		$tplOptions = [];
 		foreach ($selected as $name) {
-			$name = (string) $name;
-			if ($name !== '') {
-				$tplOptions[$name] = $name;
-			}
+			$tplOptions[$name] = $name;
 		}
 		$roleFieldCount = 0;
 		foreach ($this->wire()->roles as $role) {
@@ -935,7 +855,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$roleFieldCount++;
 		}
 
-		// —— 5. Erweitert ——
+		// —— 4. Erweitert ——
 		/** @var InputfieldFieldset $fsAdvanced */
 		$fsAdvanced = $modules->get('InputfieldFieldset');
 		$fsAdvanced->label = 'Erweitert';
@@ -976,24 +896,12 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->value = $data['base_path'] ?? self::BASE_PATH;
 		$fsAdvanced->add($f);
 
-		/** @var InputfieldWrapper $tabInhalte */
-		$tabInhalte = $modules->get('InputfieldWrapper');
-		$tabInhalte->addClass('WireTab');
-		$tabInhalte->attr('title', 'Inhalte & Freigabe');
-		$tabInhalte->attr('id', 'bpe-tab-inhalte');
-		/** @var InputfieldMarkup $f */
-		$f = $modules->get('InputfieldMarkup');
-		$f->label = 'Entdeckte Inhaltstypen';
-		$f->value = $this->renderDiscoveryTableHtml();
-		$tabInhalte->add($f);
-		$tabInhalte->add($fsContent);
-
-		/** @var InputfieldWrapper $tabNav */
-		$tabNav = $modules->get('InputfieldWrapper');
-		$tabNav->addClass('WireTab');
-		$tabNav->attr('title', 'Navigation');
-		$tabNav->attr('id', 'bpe-tab-navigation');
-		$tabNav->add($fsNav);
+		/** @var InputfieldWrapper $tabContent */
+		$tabContent = $modules->get('InputfieldWrapper');
+		$tabContent->addClass('WireTab');
+		$tabContent->attr('title', 'Inhalte & Navigation');
+		$tabContent->attr('id', 'bpe-tab-content');
+		$tabContent->add($fsNav);
 
 		/** @var InputfieldWrapper $tabDesign */
 		$tabDesign = $modules->get('InputfieldWrapper');
@@ -1020,7 +928,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 		$tabSystem->add($fsAdvanced);
 
-		return [$tabInhalte, $tabNav, $tabDesign, $tabSystem];
+		return [$tabContent, $tabDesign, $tabSystem];
 	}
 
 	public static function getModuleConfigInputfields(array $data): InputfieldWrapper {
