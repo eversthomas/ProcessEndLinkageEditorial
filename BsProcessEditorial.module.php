@@ -12,7 +12,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 14,
+			'version' => 15,
 			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE und Publish.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
@@ -70,15 +70,6 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->ensureSetupPage();
 		$auth = new \ProcessWire\BsProcessEditorial\Auth\EditorialAuth($this);
 		$auth->ensureAccessInfrastructure();
-		$session = $this->wire()->session;
-		if (!$session->getFor('bpe', 'nav_cleared_v5')) {
-			$this->clearAdminNavCache();
-			$session->setFor('bpe', 'nav_cleared_v5', 1);
-		}
-		if (!$session->getFor('bpe', 'svg_logo_purged_v1')) {
-			$this->purgeLegacyBrandLogoSvg();
-			$session->setFor('bpe', 'svg_logo_purged_v1', 1);
-		}
 	}
 
 	public function ___execute(): string {
@@ -648,6 +639,16 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	public function ___uninstall(): void {
 		parent::___uninstall();
+	}
+
+	/**
+	 * Läuft genau einmal pro Versionssprung (systemweit, nicht pro Session) — ersetzt die
+	 * frühere Session-Flag-Lösung (nav_cleared_v5/svg_logo_purged_v1) durch den dafür
+	 * vorgesehenen PW-Mechanismus.
+	 */
+	public function ___upgrade($fromVersion, $toVersion) {
+		$this->clearAdminNavCache();
+		$this->purgeLegacyBrandLogoSvg();
 	}
 
 	protected function ensureSetupPage(): void {

@@ -215,6 +215,14 @@ class ListView {
 			foreach ($field['options'] ?? [] as $opt) {
 				$map[(string) ($opt['value'] ?? '')] = $opt['label'] ?? $opt['value'];
 			}
+			if (is_array($value)) {
+				$labels = [];
+				foreach ($value as $v) {
+					$key = (string) $v;
+					$labels[] = $map[$key] ?? $key;
+				}
+				return $labels ? $this->e(implode(', ', $labels)) : '—';
+			}
 			$key = (string) ($value ?? '');
 			return $this->e($map[$key] ?? ($key !== '' ? $key : '—'));
 		}

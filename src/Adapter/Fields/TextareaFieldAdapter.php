@@ -30,10 +30,13 @@ class TextareaFieldAdapter extends AbstractFieldAdapter {
 		$raw = (string) ($rawValue ?? '');
 
 		if ($isHtml) {
-			if (method_exists($sanitizer, 'purify')) {
+			try {
 				$clean = (string) $sanitizer->purify($raw);
-			} else {
-				$clean = strip_tags($raw, '<p><br><strong><b><em><i><u><ul><ol><li><a><h2><h3><h4><blockquote><code><pre><span>');
+			} catch (\Throwable $e) {
+				// purify() sollte auf jeder unterstützten PW-Version verfügbar sein; im unwahrscheinlichen
+				// Fehlerfall lieber alle Tags entfernen als eine Teil-Allowlist mit ungefilterten Attributen
+				// zu rendern (Stored-XSS-Risiko über z. B. <a onmouseover=...>).
+				$clean = strip_tags($raw);
 			}
 			if (mb_strlen($clean) > $maxLength) {
 				$clean = mb_substr($clean, 0, $maxLength);

@@ -11,9 +11,9 @@ class CheckboxFieldAdapter extends AbstractFieldAdapter {
 	}
 
 	public function readSchema(Field $field, Page $page): array {
-		// Default nur UI-Layer — PW hat kein natives Checkbox-Default
+		// Kein natives PW-Default für Checkbox-Felder; an FieldtypeCheckbox::getBlankValue() (0) angelehnt.
 		$schema = $this->baseSchema($field, 'checkbox');
-		$schema['default'] = true;
+		$schema['default'] = false;
 		return $schema;
 	}
 

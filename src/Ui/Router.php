@@ -464,6 +464,13 @@ class Router {
 				$data[$name] = is_array($raw) ? $raw : ($raw !== null && $raw !== '' ? [$raw] : []);
 				continue;
 			}
+			if ($type === 'select' && !empty($field['multiple'])) {
+				$raw = $input->post($name);
+				$data[$name] = is_array($raw)
+					? array_map('strval', $raw)
+					: ($raw !== null && $raw !== '' ? [(string) $raw] : []);
+				continue;
+			}
 			if ($type === 'image' || $type === 'file') {
 				$data[$name . '_clear'] = (string) $input->post($name . '_clear') === '1';
 				$existing = $input->post($name . '_existing');

@@ -119,7 +119,7 @@
     bindFlashDismiss();
     bindShell();
 
-    var form = document.querySelector('.bpe-form');
+    var form = document.querySelector('.bpe-form, .bpe-form-daten');
     if (!form) return;
 
     form.querySelectorAll('.bpe-field').forEach(function (field) {
