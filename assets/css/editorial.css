@@ -389,11 +389,11 @@ a {
 }
 
 .bpe-tree__row:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: color-mix(in srgb, var(--nav-text, #000) 8%, transparent);
 }
 
 .bpe-tree__item.is-active > .bpe-tree__row {
-  background: rgba(0, 0, 0, 0.07);
+  background: color-mix(in srgb, var(--nav-text, #000) 12%, transparent);
   font-weight: 600;
 }
 
@@ -411,21 +411,21 @@ a {
   min-width: 1.35rem;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--bpe-muted);
+  background: color-mix(in srgb, var(--nav-text, #000) 10%, transparent);
+  color: var(--nav-muted, var(--bpe-muted));
   font-size: 0.72rem;
   font-weight: 600;
   text-align: center;
 }
 
 .bpe-tree__item.is-active > .bpe-tree__row .bpe-tree__count {
-  background: color-mix(in srgb, var(--bpe-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--bpe-accent) 24%, transparent);
   color: var(--bpe-accent);
 }
 
 .bpe-tree__empty {
   margin: 0.75rem;
-  color: var(--bpe-muted);
+  color: var(--nav-muted, var(--bpe-muted));
   font-size: 0.9rem;
 }
 
@@ -1654,8 +1654,9 @@ body[data-design="daten"] .bpe-flash--ok {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border-right: 1px solid var(--color-border, var(--bpe-line));
+  background: var(--nav-bg, #ffffff);
+  color: var(--nav-text, var(--bpe-ink));
+  border-right: 1px solid color-mix(in srgb, var(--nav-text, #000) 15%, transparent);
 }
 
 .bpe-navpanel__head {
@@ -1663,7 +1664,7 @@ body[data-design="daten"] .bpe-flash--ok {
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--color-border, var(--bpe-line));
+  border-bottom: 1px solid color-mix(in srgb, var(--nav-text, #000) 15%, transparent);
 }
 
 .bpe-navpanel__title {
@@ -1671,7 +1672,7 @@ body[data-design="daten"] .bpe-flash--ok {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--bpe-muted);
+  color: var(--nav-muted, var(--bpe-muted));
 }
 
 .bpe-navpanel__close {
@@ -1681,7 +1682,7 @@ body[data-design="daten"] .bpe-flash--ok {
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
-  color: var(--bpe-muted);
+  color: var(--nav-muted, var(--bpe-muted));
   padding: 0.25rem;
 }
 
@@ -1693,19 +1694,19 @@ body[data-design="daten"] .bpe-flash--ok {
 
 .bpe-navpanel__foot {
   padding: 0.85rem 1rem;
-  border-top: 1px solid var(--color-border, var(--bpe-line));
+  border-top: 1px solid color-mix(in srgb, var(--nav-text, #000) 15%, transparent);
 }
 
 .bpe-navpanel__account {
   margin: 0 0 0.4rem;
   font-size: 0.8rem;
-  color: var(--bpe-muted);
+  color: var(--nav-muted, var(--bpe-muted));
 }
 
 .bpe-navpanel__logout {
   display: inline-block;
   font-size: 0.85rem;
-  color: var(--bpe-ink);
+  color: var(--nav-text, var(--bpe-ink));
   text-decoration: none;
   font-weight: 600;
 }
@@ -1713,7 +1714,7 @@ body[data-design="daten"] .bpe-flash--ok {
 .bpe-navpanel__credit {
   margin: 0.75rem 0 0;
   font-size: 0.72rem;
-  color: var(--bpe-muted);
+  color: var(--nav-muted, var(--bpe-muted));
 }
 .bpe-navpanel__credit a {
   color: inherit;
@@ -1723,35 +1724,30 @@ body[data-design="daten"] .bpe-flash--ok {
   display: none;
 }
 
-.bpe-tabbar {
+.bpe-appbar__burger {
   display: flex;
-  border-top: 1px solid var(--color-border, var(--bpe-line));
-  background: #ffffff;
-  position: sticky;
-  bottom: 0;
-  z-index: 20;
-}
-
-.bpe-tabbar__item {
-  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 2.25rem;
+  height: 2.25rem;
   border: 0;
   background: transparent;
-  padding: 0.7rem 0.5rem;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--bpe-muted);
-  text-decoration: none;
-  text-align: center;
   cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
 }
 
-.bpe-tabbar__item:hover,
-.bpe-tabbar__item:focus-visible {
-  color: var(--bpe-ink);
+.bpe-appbar__burger span {
+  display: block;
+  width: 1.15rem;
+  height: 2px;
+  background: var(--bpe-ink);
+  border-radius: 1px;
 }
 
-/* —— Mobil (< 860px): Navigationsfläche als Overlay-Drawer, Tab-Leiste sichtbar —— */
+/* —— Mobil (< 860px): Navigationsfläche als Overlay-Drawer, per Hamburger geöffnet —— */
 @media (max-width: 859px) {
   .bpe-navpanel {
     position: fixed;
@@ -1787,9 +1783,9 @@ body[data-design="daten"] .bpe-flash--ok {
   }
 }
 
-/* —— Desktop (>= 860px): Navigationsfläche persistent, keine Tab-Leiste —— */
+/* —— Desktop (>= 860px): Navigationsfläche persistent, kein Hamburger —— */
 @media (min-width: 860px) {
-  .bpe-tabbar {
+  .bpe-appbar__burger {
     display: none;
   }
 

@@ -39,7 +39,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('role_templates', []);
 		$this->set('editorial_nav', '');
 		$this->set('theme_accent', '#1f6b4a');
-		$this->set('theme_rail_bg', '#1c1f1d');
+		$this->set('theme_rail_bg', '#ffffff');
+		$this->set('theme_nav_text', '#201e1d');
 		$this->set('theme_radius', '8');
 		$this->set('theme_text_color', '#201e1d');
 		$this->set('theme_muted_color', '#6b736e');
@@ -307,7 +308,11 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		);
 		$values['theme_rail_bg'] = $this->normalizeHexColor(
 			(string) ($values['theme_rail_bg'] ?? ''),
-			(string) ($previous['theme_rail_bg'] ?? '#1c1f1d')
+			(string) ($previous['theme_rail_bg'] ?? '#ffffff')
+		);
+		$values['theme_nav_text'] = $this->normalizeHexColor(
+			(string) ($values['theme_nav_text'] ?? ''),
+			(string) ($previous['theme_nav_text'] ?? '#201e1d')
 		);
 		$values['theme_text_color'] = $this->normalizeHexColor(
 			(string) ($values['theme_text_color'] ?? ''),
@@ -813,6 +818,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			['theme_accent', 'Theme: Akzentfarbe', '#1f6b4a'],
 			['theme_text_color', 'Theme: Textfarbe', '#201e1d'],
 			['theme_muted_color', 'Theme: Gedämpfte Textfarbe', '#6b736e'],
+			['theme_rail_bg', 'Hauptmenü: Hintergrundfarbe', '#ffffff'],
+			['theme_nav_text', 'Hauptmenü: Schriftfarbe', '#201e1d'],
 		] as [$name, $label, $default]) {
 			/** @var InputfieldText $f */
 			$f = $modules->get('InputfieldText');

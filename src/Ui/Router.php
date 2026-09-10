@@ -673,11 +673,15 @@ class Router {
 		$radius = (string) ($this->module->get('theme_radius') ?: '8');
 		$text = (string) ($this->module->get('theme_text_color') ?: '#201e1d');
 		$muted = (string) ($this->module->get('theme_muted_color') ?: '#6b736e');
+		$navBg = (string) ($this->module->get('theme_rail_bg') ?: '#ffffff');
+		$navText = (string) ($this->module->get('theme_nav_text') ?: '#201e1d');
 		$spacingKey = (string) ($this->module->get('theme_spacing') ?: 'normal');
 
 		$accent = preg_match('/^#[0-9a-fA-F]{3,8}$/', $accent) ? $accent : '#1f6b4a';
 		$text = preg_match('/^#[0-9a-fA-F]{3,8}$/', $text) ? $text : '#201e1d';
 		$muted = preg_match('/^#[0-9a-fA-F]{3,8}$/', $muted) ? $muted : '#6b736e';
+		$navBg = preg_match('/^#[0-9a-fA-F]{3,8}$/', $navBg) ? $navBg : '#ffffff';
+		$navText = preg_match('/^#[0-9a-fA-F]{3,8}$/', $navText) ? $navText : '#201e1d';
 		$radius = preg_match('/^\d+(\.\d+)?$/', $radius) ? $radius : '8';
 		$space = match ($spacingKey) {
 			'compact' => '7.5',
@@ -706,6 +710,9 @@ class Router {
 			. '--color-surface:var(--bpe-bg-panel);'
 			. '--color-border:#e2e5e2;'
 			. '--color-divider:var(--bpe-line);'
+			. '--nav-bg:' . $navBg . ';'
+			. '--nav-text:' . $navText . ';'
+			. '--nav-muted:color-mix(in srgb, ' . $navText . ' 65%, transparent);'
 			. '--status-draft:#c79e28;'
 			. '--status-review:#2b6cb0;'
 			. '--status-live:#2e8159;'

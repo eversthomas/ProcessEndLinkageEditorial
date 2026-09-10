@@ -38,7 +38,7 @@ class ShellView {
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?= $this->e($title) ?> · <?= $this->e($brandName) ?></title>
 	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/broadsheet.css?v=2">
-	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/editorial.css?v=5">
+	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/editorial.css?v=6">
 	<?php if ($themeStyle): ?>
 	<style id="bpe-theme"><?= $themeStyle ?></style>
 	<?php endif; ?>
@@ -46,6 +46,9 @@ class ShellView {
 <body class="bpe-body<?= $designSkin === 'daten' ? ' bpe-skin-daten' : '' ?>" data-bpe-shell data-design="<?= $this->e($designSkin) ?>">
 	<div class="bpe-app" data-nav="closed">
 		<header class="bpe-appbar">
+			<button type="button" class="bpe-appbar__burger" data-bpe-nav-open="body" aria-label="Navigation öffnen">
+				<span></span><span></span><span></span>
+			</button>
 			<a class="bpe-appbar__brand" href="<?= $this->e($baseUrl) ?>" aria-label="<?= $this->e($brandName) ?>">
 				<?php if ($brandLogoUrl): ?>
 					<img class="bpe-appbar__logo" src="<?= $this->e($brandLogoUrl) ?>" alt="<?= $this->e($brandName) ?>">
@@ -102,12 +105,6 @@ class ShellView {
 				<?= $content ?>
 			</main>
 		</div>
-
-		<nav class="bpe-tabbar" aria-label="Hauptnavigation">
-			<a class="bpe-tabbar__item" href="<?= $this->e($baseUrl) ?>">Start</a>
-			<button type="button" class="bpe-tabbar__item" data-bpe-nav-open="body">Inhalte</button>
-			<button type="button" class="bpe-tabbar__item" data-bpe-nav-open="foot">Mehr</button>
-		</nav>
 	</div>
 
 	<script src="<?= $this->e($assetUrl) ?>js/editorial.js?v=2"></script>
