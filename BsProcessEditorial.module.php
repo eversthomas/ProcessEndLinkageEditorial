@@ -735,7 +735,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$candidates[] = $item;
 		}
 
-		$this->wire()->config->scripts->add($this->moduleUrl() . 'assets/js/nav-builder.js?v=10');
+		$this->wire()->config->scripts->add($this->moduleUrl() . 'assets/js/nav-builder.js?v=11');
 
 		// —— 1. Inhalte & Navigation ——
 		/** @var InputfieldFieldset $fsNav */

@@ -349,29 +349,13 @@
     var tpls = el('div', { className: 'bpe-navbuilder__tpls' });
     var templateNodes = group.children.filter(function (c) { return c.type === 'template'; });
     if (!templateNodes.length) {
-      tpls.appendChild(el('p', { className: 'bpe-navbuilder__muted', text: 'Noch keine Templates in dieser Gruppe.' }));
+      tpls.appendChild(el('p', { className: 'bpe-navbuilder__muted', text: 'Noch keine Templates in dieser Gruppe — neue Inhalte über „Neue Inhalte hinzufügen" unten einhängen.' }));
     }
     templateNodes.forEach(function (tplNode) {
       // map index in group.children
       var realIndex = group.children.indexOf(tplNode);
       tpls.appendChild(renderTemplate(tplNode, realIndex, group, state, root));
     });
-    tpls.appendChild(el('button', {
-      type: 'button',
-      className: 'bpe-navbuilder__addlink',
-      text: '+ Template',
-      onClick: function () {
-        var first = Object.keys(state.templates)[0] || '';
-        group.children.push({
-          id: uid('tpl'),
-          type: 'template',
-          template: first,
-          label: state.templates[first] || first || 'Template',
-          icon: 'file-text'
-        });
-        render(root, state);
-      }
-    }));
     box.appendChild(tpls);
     return box;
   }
