@@ -200,7 +200,8 @@ class Router {
 		$recent = $dash->collectRecent(
 			$this->adapter,
 			$templates,
-			fn(string $tpl, string $id) => $this->url('t/' . $tpl . '/' . $id)
+			fn(string $tpl, string $id) => $this->url('t/' . $tpl . '/' . $id),
+			5
 		);
 		$userName = $this->auth->displayName() ?: 'Redaktion';
 		$first = preg_split('/\s+/', trim($userName))[0] ?? $userName;
@@ -245,7 +246,8 @@ class Router {
 		$recent = $dash->collectRecent(
 			$this->adapter,
 			$templates,
-			fn(string $tpl, string $id) => $this->url('t/' . $tpl . '/' . $id)
+			fn(string $tpl, string $id) => $this->url('t/' . $tpl . '/' . $id),
+			5
 		);
 		$label = $node['label'] ?? $node['id'];
 		$content = $dash->render([

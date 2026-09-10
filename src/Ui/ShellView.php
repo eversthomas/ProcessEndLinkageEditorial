@@ -38,7 +38,7 @@ class ShellView {
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?= $this->e($title) ?> · <?= $this->e($brandName) ?></title>
 	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/broadsheet.css?v=2">
-	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/editorial.css?v=4">
+	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/editorial.css?v=5">
 	<?php if ($themeStyle): ?>
 	<style id="bpe-theme"><?= $themeStyle ?></style>
 	<?php endif; ?>

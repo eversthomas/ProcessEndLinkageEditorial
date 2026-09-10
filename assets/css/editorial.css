@@ -1890,8 +1890,7 @@ body[data-design="daten"] .bpe-flash--ok {
   font-size: 0.9rem;
 }
 
-.bpe-recentlist,
-.bpe-quicklist {
+.bpe-recentlist {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1940,23 +1939,57 @@ body[data-design="daten"] .bpe-flash--ok {
   color: var(--status-live, #2e8159);
 }
 
-.bpe-quicklist__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.bpe-tilegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
   gap: 0.75rem;
-  padding: 0.75rem 0.25rem;
-  min-height: 44px;
-  border-bottom: 1px solid var(--color-border, var(--bpe-line));
+}
+
+.bpe-tilecard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 5.5rem;
+  padding: 0.9rem 1rem;
+  background: #ffffff;
+  border: 1px solid var(--color-border, var(--bpe-line));
+  border-radius: var(--radius-md, 6px);
   text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bpe-tilecard:hover {
+  border-color: var(--bpe-accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.bpe-tilecard__label {
+  font-weight: 600;
   color: var(--bpe-ink);
+  padding-right: 1.75rem;
 }
 
-.bpe-quicklist__label {
-  font-weight: 500;
-}
-
-.bpe-quicklist__meta {
+.bpe-tilecard__meta {
   font-size: 0.78rem;
   color: var(--bpe-muted);
+}
+
+.bpe-tilecard__new {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bpe-accent);
+  color: var(--color-accent-ink, #fff);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
 }

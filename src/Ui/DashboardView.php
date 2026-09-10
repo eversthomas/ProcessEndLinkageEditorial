@@ -44,9 +44,31 @@ class DashboardView {
 			. '<strong>' . $live . '</strong> veröffentlicht</span>';
 		$html .= '</div>';
 
-		if ($recent) {
+		if ($tiles) {
 			$html .= '<section class="bpe-dashboard__section">';
-			$html .= '<h2 class="bpe-dashboard__section-title">Zuletzt bearbeitet</h2>';
+			$html .= '<h2 class="bpe-dashboard__section-title">Inhalte</h2>';
+			$html .= '<div class="bpe-tilegrid">';
+			foreach ($tiles as $tile) {
+				$count = $tile['count'];
+				$countLabel = $count === null
+					? (string) ($tile['hint'] ?? '')
+					: (int) $count . ($count === 1 ? ' Eintrag' : ' Einträge');
+				$html .= '<a class="bpe-tilecard" href="' . $this->e($tile['url'] ?? '#') . '">';
+				if (!empty($tile['newUrl'])) {
+					$html .= '<span class="bpe-tile__action bpe-tilecard__new" data-href="'
+						. $this->e($tile['newUrl']) . '" title="Neu anlegen" aria-label="Neu anlegen">+</span>';
+				}
+				$html .= '<span class="bpe-tilecard__label">' . $this->e($tile['label'] ?? '') . '</span>';
+				$html .= '<span class="bpe-tilecard__meta">' . $this->e($countLabel) . '</span>';
+				$html .= '</a>';
+			}
+			$html .= '</div>';
+			$html .= '</section>';
+		}
+
+		$html .= '<section class="bpe-dashboard__section">';
+		$html .= '<h2 class="bpe-dashboard__section-title">Zuletzt bearbeitet</h2>';
+		if ($recent) {
 			$html .= '<ul class="bpe-recentlist">';
 			foreach ($recent as $item) {
 				$status = (string) ($item['status'] ?? 'published');
@@ -66,33 +88,10 @@ class DashboardView {
 				$html .= '</li>';
 			}
 			$html .= '</ul>';
-			$html .= '</section>';
 		} else {
 			$html .= '<p class="bpe-dashboard__empty">Noch keine bearbeiteten Einträge in Ihren Inhaltstypen.</p>';
 		}
-
-		if ($tiles) {
-			$html .= '<section class="bpe-dashboard__section">';
-			$html .= '<h2 class="bpe-dashboard__section-title">Neu anlegen</h2>';
-			$html .= '<ul class="bpe-quicklist">';
-			foreach ($tiles as $tile) {
-				$count = $tile['count'];
-				if (!empty($tile['newUrl'])) {
-					$countLabel = $count === null ? '' : (int) $count . ($count === 1 ? ' Eintrag' : ' Einträge');
-					$html .= '<li><a class="bpe-quicklist__row" href="' . $this->e($tile['newUrl']) . '">';
-					$html .= '<span class="bpe-quicklist__label">' . $this->e($tile['label'] ?? '') . '</span>';
-					$html .= '<span class="bpe-quicklist__meta">' . $this->e($countLabel) . '</span>';
-					$html .= '</a></li>';
-				} else {
-					$html .= '<li><a class="bpe-quicklist__row" href="' . $this->e($tile['url'] ?? '#') . '">';
-					$html .= '<span class="bpe-quicklist__label">' . $this->e($tile['label'] ?? '') . '</span>';
-					$html .= '<span class="bpe-quicklist__meta">' . $this->e((string) ($tile['hint'] ?? '')) . '</span>';
-					$html .= '</a></li>';
-				}
-			}
-			$html .= '</ul>';
-			$html .= '</section>';
-		}
+		$html .= '</section>';
 
 		$html .= '</div>';
 		return $html;

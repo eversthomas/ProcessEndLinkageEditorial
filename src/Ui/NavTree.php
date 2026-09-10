@@ -43,6 +43,11 @@ class NavTree {
 		if (!$nodes) {
 			return '<p class="bpe-tree__empty">Keine Einträge.</p>';
 		}
+		// Genau eine Gruppe ohne Geschwister: Gruppen-Ebene überspringen — sonst verdoppelt
+		// sich "Inhalte" (Section) → "Alle Inhalte" (einzige Gruppe) ohne Mehrwert.
+		if (count($nodes) === 1 && ($nodes[0]['type'] ?? '') === 'group') {
+			return $this->renderNodes($nodes[0]['children'] ?? [], $active);
+		}
 		$html = '<ul class="bpe-tree__list">';
 		foreach ($nodes as $node) {
 			$html .= $this->renderNode($node, $active);
