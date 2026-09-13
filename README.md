@@ -23,13 +23,13 @@ URL-App typisch: `/editorial/` · Modulversion: siehe `BsProcessEditorial.module
 
 Die Stabilisierungsarbeit (Mock/Testdaten entfernen, Logo-Upload absichern, native Modul-Config konsolidieren, Transparenz für fehlende Feld-Adapter, Setup-Formular gliedern) ist abgeschlossen. Verlauf und Akzeptanzkriterien: **`projektplan/refactoring-plan.md`** (Historie, nicht mehr die Aufgabenliste für „was als Nächstes“).
 
-**Feldtypen-Zielrichtung:** keine feste Obergrenze — schrittweise Abdeckung der ProcessWire-**Standard**feldtypen (ProFields wie RepeaterMatrix/Table ausgenommen; der Core-**Repeater** zählt dazu und fehlt noch). Neue Typen kommen als isolierte Adapter-Klassen bei Bedarf.
+**Feldtypen-Zielrichtung:** keine feste Obergrenze — schrittweise Abdeckung der ProcessWire-**Standard**feldtypen (ProFields wie RepeaterMatrix/Table ausgenommen). Der Core-**Repeater** ist umgesetzt (siehe unten). Neue Typen kommen als isolierte Adapter-Klassen bei Bedarf.
 
 Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architekturfragen `projektplan/PROJECT.md`.
 
 ---
 
-## Umgesetzt (Stand 12.08.2026)
+## Umgesetzt (Stand 13.09.2026)
 
 ### Kern & Zugang
 - Process-Modul, Autoload, Setup-Seite **Setup → Redaktion**
@@ -41,12 +41,11 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 - Grobe Rechte: Rolle → sichtbare Templates
 
 ### Setup / Entwickler
-- Setup-Formular in **4 Tabs** (ProcessWire `WireTab`):
-  1. **Inhalte & Freigabe** — Discovery-Tabelle, Template-Freigabe, Darstellungsmodus, Daten-Art
-  2. **Navigation** — visueller Menü-Builder + JSON-Fallback
-  3. **Design & Branding** — Firmenname, Logo, Theme-Tokens
-  4. **Zugriff & System** — Rollen-Mapping, Demo-Login, URL-Pfad
-- Template-Discovery + Freigabe (`editorial_templates`)
+- Setup-Formular in **3 Tabs** (ProcessWire `WireTab`):
+  1. **Inhalte & Navigation** — Discovery/Freigabe und visueller Menü-Builder in einer Fläche (Freigabe ergibt sich aus der Baumstruktur, keine separate Auswahl mehr)
+  2. **Design & Branding** — Firmenname, Logo, Theme-Tokens (inkl. Hauptmenü-Farben)
+  3. **Zugriff & System** — Rollen-Mapping, Demo-Login, URL-Pfad
+- Template-Discovery + Freigabe (`editorial_templates`, abgeleitet aus der Navigationsstruktur)
 - Darstellungsmodus pro Template: Liste | Einzelseite
 - **Daten-Art** pro Template: Daten (Default) · Blog · News · Termine · Seiten — steuert die redaktionelle Ansicht; nur „Daten“ hat derzeit die spezialisierte Broadsheet-Oberfläche
 - **Ohne Adapter:** Spalte in der Discovery-Tabelle (Feldname + PW-Feldtyp)
@@ -57,23 +56,24 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 - Geister-Templates: leere Defaults; Nav/Routen nur bei existierendem Template
 
 ### Redaktions-UX
-- 4-Spalten-Shell: Icon-Rail (Toggle) | Inhaltsbaum (einklappbar) | Header/Main/Footer
+- App-Shell: Kopfzeile (Marke, Titel, primäre Aktion) + Navigationsfläche + Hauptbereich — Desktop persistent links, Mobile als Off-Canvas-Overlay (Hamburger in der Kopfzeile)
 - **Broadsheet-Design** (Open Sans, Mockup-Komponenten) für Templates mit Daten-Art „Daten“ — Dashboard, Liste, Formular
 - Andere Daten-Arten: generische Liste/Formular (unverändert, ohne Fehler)
-- Dashboard (Schnellzugriff, zuletzt bearbeitet)
-- Baum: Gruppen/Typen + Anzahl
+- Dashboard: Kacheln pro Inhaltstyp (inkl. Schnellanlage) + „Zuletzt bearbeitet“ (max. 5)
+- Navigationsfläche: Dashboard + Sections/Gruppen/Templates in einer Baumstruktur, aktiver Pfad klappt automatisch auf
 - Listen + Formulare; Details-Sidebar; Publish (veröffentlicht / Entwurf)
+- Repeater-Felder: Items als Accordion (zugeklappt, einzeln aufklappbar), Hinzufügen/Entfernen ohne Server-Roundtrip
 - Felder ohne Adapter: Platzhalter im Formular
-- Bildfelder: Thumbnail-Vorschau
+- Bildfelder: Thumbnail-Vorschau; Mehrfachbilder (`maxFiles != 1`) mit Einzel-Entfernen
 - Vorschau-Link (Frontend-URL), Flash-Feedback
 
 ### Feldtypen (Adapter + Form-Engine)
 
 Aktuell implementiert (fortlaufend erweiterbar, kein festes Kontingent):
 
-text · textarea · html/TinyMCE · email · url · integer · float · datetime · checkbox · select · image · file · pageReference
+text · textarea · html/TinyMCE · email · url · integer · float · datetime · checkbox · select · image · file · pageReference · **repeater**
 
-**Nächster bekannter Kandidat (noch nicht gebaut):** Core-Repeater. Weitere Standard-Feldtypen bei Bedarf als einzelne Adapter-Klassen.
+**Repeater (Core):** Items unterstützen aktuell text, textarea/html, url, image als Item-Felder (weitere Item-Feldtypen bei Bedarf als Erweiterung des bestehenden Adapters). Kein Reorder/Sortieren, keine verschachtelten Repeater. Weitere Standard-Feldtypen außerhalb von Repeater-Items bei Bedarf als einzelne Adapter-Klassen.
 
 ### Architektur-Dateien (Orientierung)
 - `BsProcessEditorial.module.php` — Modul, Setup, Config
@@ -132,7 +132,7 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 8. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
 9. **Workflow** jenseits Publish/Entwurf
 10. **Daten-Arten** Blog/News/Termine/Seiten — eigene Ansichten (Design steht als Mockup bereit)
-11. **Weitere Feldtypen** bei Bedarf — zuerst typischerweise **Repeater** (Core)
+11. **Weitere Feldtypen** bei Bedarf (auch als Repeater-Item-Feld, z. B. pageReference/select in Items)
 12. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests
 13. Repo öffentlich / Doku für Dritte (wenn gewünscht)
 
@@ -154,11 +154,12 @@ Löschen/Zusammenlegen der Planungsdateien lohnt erst vor Open-Source oder wenn 
 ## Kurz testen
 
 1. Module → BsProcessEditorial installiert / Cache ok  
-2. Setup → Redaktion: Tabs durchgehen (Inhalte · Navigation · Design · System), speichern, Branding setzen  
+2. Setup → Redaktion: Tabs durchgehen (Inhalte & Navigation · Design & Branding · Zugriff & System), speichern, Branding setzen  
 3. User mit Rolle `editorial` oder Superuser → `/editorial/`  
 4. Template mit Daten-Art „Daten“: Broadsheet-Design prüfen; anderes Template (z. B. Blog): generische Ansicht  
-5. Inhalte-Spalte ein-/ausklappen; Publish und Bildfeld-Vorschau prüfen  
-6. Optional: nicht unterstützter Feldtyp → Hinweis in Discovery-Tabelle und Formular-Platzhalter  
+5. Navigationsfläche auf Mobile über den Hamburger öffnen/schließen; Publish und Bildfeld-Vorschau prüfen  
+6. Repeater-Feld anlegen: Item hinzufügen/entfernen/bearbeiten inkl. Bild-Upload prüfen  
+7. Optional: nicht unterstützter Feldtyp → Hinweis in Discovery-Tabelle und Formular-Platzhalter  
 
 ### Deploy-Hinweis (Linux / Subdomain)
 
