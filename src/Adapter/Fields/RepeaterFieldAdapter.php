@@ -81,6 +81,9 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 				$item->save();
 			} else {
 				unset($existingById[$itemId]);
+				// Items aus dem Container kommen mit aktivierter Output-Formatierung — vor dem
+				// Ändern/Speichern von Feldern (z. B. Bild) muss das wie bei jeder Page aus sein.
+				$item->of(false);
 			}
 
 			$values = [];

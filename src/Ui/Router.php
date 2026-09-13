@@ -148,11 +148,13 @@ class Router {
 
 			return $this->renderError(404, 'Seite nicht gefunden.');
 		} catch (\InvalidArgumentException $e) {
+			$this->wire()->log->save('bpe-editorial', $e->getMessage());
 			return $this->renderError(
 				404,
 				'Dieser Inhaltstyp konnte nicht geladen werden. Bitte Freigabe und Datenquelle unter Setup → Redaktion prüfen.'
 			);
 		} catch (\ProcessWire\WireException $e) {
+			$this->wire()->log->save('bpe-editorial', $e->getMessage());
 			return $this->renderError(
 				404,
 				'Dieser Inhaltstyp konnte nicht geladen werden. Bitte Freigabe und Datenquelle unter Setup → Redaktion prüfen.'
