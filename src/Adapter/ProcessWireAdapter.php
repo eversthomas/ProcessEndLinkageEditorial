@@ -9,6 +9,7 @@ use ProcessWire\BsProcessEditorial\Adapter\Fields\FileFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\ImageFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\NumberFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\PageReferenceFieldAdapter;
+use ProcessWire\BsProcessEditorial\Adapter\Fields\RepeaterFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\SelectFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\TextareaFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\TextFieldAdapter;
@@ -30,7 +31,13 @@ class ProcessWireAdapter implements AdapterInterface {
 
 	public function __construct(BsProcessEditorial $module, ?array $fieldAdapters = null) {
 		$this->module = $module;
-		$this->fieldAdapters = $fieldAdapters ?? [
+		if ($fieldAdapters !== null) {
+			$this->fieldAdapters = $fieldAdapters;
+			return;
+		}
+		// Repeater-Items nutzen dieselben Adapter wie die Top-Level-Felder (ohne sich selbst —
+		// verschachtelte Repeater sind bewusst nicht unterstützt).
+		$itemAdapters = [
 			new TextareaFieldAdapter(),
 			new EmailFieldAdapter(),
 			new UrlFieldAdapter(),
@@ -43,6 +50,7 @@ class ProcessWireAdapter implements AdapterInterface {
 			new FileFieldAdapter(),
 			new PageReferenceFieldAdapter(),
 		];
+		$this->fieldAdapters = array_merge($itemAdapters, [new RepeaterFieldAdapter($itemAdapters)]);
 	}
 
 	public function listContentTypes(): array {
@@ -297,6 +305,7 @@ class ProcessWireAdapter implements AdapterInterface {
 			return [
 				'clear' => !empty($data[$name . '_clear']),
 				'keep' => $data[$name . '_existing'] ?? (is_array($data[$name] ?? null) ? ($data[$name]['name'] ?? null) : ($data[$name] ?? null)),
+				'remove' => (array) ($data[$name . '_remove'] ?? []),
 				'upload' => !empty($_FILES[$name]['name']),
 			];
 		}

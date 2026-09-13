@@ -6,6 +6,7 @@ use ProcessWire\BsProcessEditorial\FormEngine\Fields\FieldRendererInterface;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\FileField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\ImageField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\PageReferenceField;
+use ProcessWire\BsProcessEditorial\FormEngine\Fields\RepeaterField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\SelectField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\TextareaField;
 use ProcessWire\BsProcessEditorial\FormEngine\Fields\TextField;
@@ -24,7 +25,13 @@ class FormRenderer {
 	protected array $renderers = [];
 
 	public function __construct(?array $renderers = null) {
-		$this->renderers = $renderers ?? [
+		if ($renderers !== null) {
+			$this->renderers = $renderers;
+			return;
+		}
+		// Repeater-Items nutzen dieselben Renderer wie die Top-Level-Felder (ohne sich selbst —
+		// verschachtelte Repeater sind bewusst nicht unterstützt).
+		$itemRenderers = [
 			new TextField(),
 			new TextareaField(),
 			new DatetimeField(),
@@ -35,6 +42,7 @@ class FormRenderer {
 			new PageReferenceField(),
 			new UnsupportedField(),
 		];
+		$this->renderers = array_merge($itemRenderers, [new RepeaterField($itemRenderers)]);
 	}
 
 	public function renderForm(array $schema, array $values = [], array $errors = [], array $options = []): string {

@@ -107,12 +107,85 @@
     });
   }
 
+  function initTinyMceIn(root) {
+    if (!window.tinymce || !window.bpeTinyMceOptions) return;
+    root.querySelectorAll('textarea.bpe-input--html').forEach(function (textarea) {
+      if (tinymce.get(textarea.id)) return;
+      tinymce.init(window.bpeTinyMceOptions('#' + textarea.id));
+    });
+  }
+
+  function removeTinyMceIn(root) {
+    if (!window.tinymce) return;
+    root.querySelectorAll('textarea.bpe-input--html').forEach(function (textarea) {
+      var ed = tinymce.get(textarea.id);
+      if (ed) ed.remove();
+    });
+  }
+
+  function bindRepeaters(form) {
+    form.querySelectorAll('[data-bpe-repeater]').forEach(function (repeater) {
+      var itemsContainer = repeater.querySelector('[data-bpe-repeater-items]');
+      var template = repeater.querySelector('[data-bpe-repeater-template]');
+      var addBtn = repeater.querySelector('[data-bpe-repeater-add]');
+      if (!itemsContainer) return;
+      var nextIndex = itemsContainer.querySelectorAll('[data-bpe-repeater-item]').length;
+
+      var bindRemove = function (item) {
+        var btn = item.querySelector('[data-bpe-repeater-remove]');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+          removeTinyMceIn(item);
+          item.remove();
+        });
+      };
+
+      var bindToggle = function (item) {
+        var btn = item.querySelector('[data-bpe-repeater-toggle]');
+        var fields = item.querySelector('[data-bpe-repeater-fields]');
+        if (!btn || !fields) return;
+        btn.addEventListener('click', function () {
+          var open = btn.getAttribute('aria-expanded') === 'true';
+          btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+          if (open) {
+            fields.setAttribute('hidden', 'hidden');
+          } else {
+            fields.removeAttribute('hidden');
+            initTinyMceIn(item);
+          }
+        });
+      };
+
+      itemsContainer.querySelectorAll('[data-bpe-repeater-item]').forEach(function (item) {
+        bindRemove(item);
+        bindToggle(item);
+      });
+
+      if (addBtn && template) {
+        addBtn.addEventListener('click', function () {
+          var index = nextIndex++;
+          var html = template.innerHTML.split('__INDEX__').join(String(index));
+          var wrapper = document.createElement('div');
+          wrapper.innerHTML = html.trim();
+          var newItem = wrapper.firstElementChild;
+          if (!newItem) return;
+          itemsContainer.appendChild(newItem);
+          bindRemove(newItem);
+          bindToggle(newItem);
+          initTinyMceIn(newItem);
+        });
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     bindFlashDismiss();
     bindShell();
 
     var form = document.querySelector('.bpe-form, .bpe-form-daten');
     if (!form) return;
+
+    bindRepeaters(form);
 
     form.querySelectorAll('.bpe-field').forEach(function (field) {
       var input = field.querySelector('input:not([type="hidden"]), textarea, select');

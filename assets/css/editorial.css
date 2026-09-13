@@ -1181,6 +1181,146 @@ a {
   cursor: pointer;
 }
 
+/* Repeater */
+.bpe-repeater {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bpe-repeater__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bpe-repeater__item {
+  position: relative;
+  padding: 0.9rem 0.9rem 0.75rem;
+  border: 1px solid var(--bpe-line);
+  border-radius: var(--bpe-radius);
+  background: #fafbfa;
+}
+
+.bpe-repeater__item-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bpe-repeater__toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.15rem 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--bpe-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.bpe-repeater__item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bpe-repeater__chevron {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--bpe-muted);
+  border-bottom: 2px solid var(--bpe-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.bpe-repeater__toggle[aria-expanded="true"] .bpe-repeater__chevron {
+  transform: rotate(45deg);
+}
+
+.bpe-repeater__remove {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--bpe-line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--bpe-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bpe-repeater__remove:hover {
+  color: var(--bpe-danger);
+  border-color: var(--bpe-danger);
+}
+
+.bpe-repeater__item-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.bpe-repeater__item-fields[hidden] {
+  display: none;
+}
+
+.bpe-repeater__item-fields .bpe-field {
+  margin-bottom: 0;
+}
+
+.bpe-repeater__add {
+  align-self: flex-start;
+}
+
+template[data-bpe-repeater-template] {
+  display: none;
+}
+
+/* Image-Grid (Mehrfachbilder) */
+.bpe-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.bpe-image-grid__item {
+  padding: 0.5rem;
+  border: 1px solid var(--bpe-line);
+  border-radius: 6px;
+  background: #fafbfa;
+  text-align: center;
+}
+
+.bpe-image-grid__img {
+  display: block;
+  width: 100%;
+  height: 90px;
+  margin-bottom: 0.4rem;
+  border-radius: 4px;
+  object-fit: cover;
+  background: #fff;
+}
+
+.bpe-image-grid__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--bpe-muted);
+  cursor: pointer;
+}
+
 /* Mobile */
 @media (max-width: 960px) {
   .bpe-form__layout {

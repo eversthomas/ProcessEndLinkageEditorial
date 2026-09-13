@@ -38,7 +38,7 @@ class ShellView {
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?= $this->e($title) ?> · <?= $this->e($brandName) ?></title>
 	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/broadsheet.css?v=2">
-	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/editorial.css?v=6">
+	<link rel="stylesheet" href="<?= $this->e($assetUrl) ?>css/editorial.css?v=9">
 	<?php if ($themeStyle): ?>
 	<style id="bpe-theme"><?= $themeStyle ?></style>
 	<?php endif; ?>
@@ -107,14 +107,13 @@ class ShellView {
 		</div>
 	</div>
 
-	<script src="<?= $this->e($assetUrl) ?>js/editorial.js?v=2"></script>
+	<script src="<?= $this->e($assetUrl) ?>js/editorial.js?v=4"></script>
 	<?php if ($needsTinyMce && $tinyMceUrl): ?>
 	<script src="<?= $this->e($tinyMceUrl) ?>"></script>
 	<script>
-	document.addEventListener('DOMContentLoaded', function () {
-		if (!window.tinymce) return;
-		tinymce.init({
-			selector: 'textarea.bpe-input--html',
+	window.bpeTinyMceOptions = function (selector) {
+		return {
+			selector: selector,
 			menubar: false,
 			plugins: 'lists link code',
 			toolbar: 'bold italic underline | bullist numlist | link | removeformat | code',
@@ -122,7 +121,14 @@ class ShellView {
 			branding: false,
 			promotion: false,
 			content_style: 'body{font-family:system-ui,sans-serif;font-size:15px;line-height:1.5}'
-		});
+		};
+	};
+	document.addEventListener('DOMContentLoaded', function () {
+		if (!window.tinymce) return;
+		// Repeater-Items starten zugeklappt (Accordion) — TinyMCE darf dort erst beim
+		// Aufklappen initialisiert werden (siehe editorial.js initTinyMceIn), sonst
+		// bekommt der Editor in einem versteckten Container eine kaputte Höhe/Größe.
+		tinymce.init(window.bpeTinyMceOptions('textarea.bpe-input--html:not([data-bpe-repeater-items] *)'));
 	});
 	</script>
 	<?php endif; ?>

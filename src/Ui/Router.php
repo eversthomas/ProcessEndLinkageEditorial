@@ -516,10 +516,15 @@ class Router {
 				$data[$name . '_clear'] = (string) $input->post($name . '_clear') === '1';
 				$existing = $input->post($name . '_existing');
 				$data[$name . '_existing'] = $existing ? (string) $existing : null;
+				$remove = $input->post($name . '_remove');
+				$data[$name . '_remove'] = is_array($remove) ? array_map('strval', $remove) : [];
 				if ($data[$name . '_clear']) {
 					$data[$name] = null;
 				} elseif (!empty($_FILES[$name]['name'])) {
-					$data[$name] = basename((string) $_FILES[$name]['name']);
+					$rawName = $_FILES[$name]['name'];
+					$data[$name] = is_array($rawName)
+						? array_values(array_filter(array_map('basename', $rawName)))
+						: basename((string) $rawName);
 				} else {
 					$data[$name] = $data[$name . '_existing']
 						? ['name' => $data[$name . '_existing']]
@@ -532,6 +537,11 @@ class Router {
 				$data[$name] = $raw === null ? '' : (string) $raw;
 				continue;
 			}
+			if ($type === 'repeater') {
+				$raw = $input->post($name);
+				$data[$name] = is_array($raw) ? $raw : [];
+				continue;
+			}
 			$data[$name] = (string) ($input->post($name) ?? '');
 		}
 
@@ -539,8 +549,15 @@ class Router {
 	}
 
 	protected function schemaNeedsTinyMce(array $schema): bool {
-		foreach ($schema['fields'] ?? [] as $field) {
+		return $this->fieldsNeedTinyMce($schema['fields'] ?? []);
+	}
+
+	protected function fieldsNeedTinyMce(array $fields): bool {
+		foreach ($fields as $field) {
 			if (($field['type'] ?? '') === 'html' || !empty($field['html'])) {
+				return true;
+			}
+			if (($field['type'] ?? '') === 'repeater' && $this->fieldsNeedTinyMce($field['itemFields'] ?? [])) {
 				return true;
 			}
 		}

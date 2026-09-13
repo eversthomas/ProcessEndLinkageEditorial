@@ -26,6 +26,19 @@ abstract class AbstractFieldRenderer implements FieldRendererInterface {
 		return $html;
 	}
 
+	/**
+	 * Baut einen "Geschwister"-Feldnamen für Hilfsfelder wie "_clear"/"_existing" — nötig, weil
+	 * einfaches Anhängen des Suffixes bei geklammerten Repeater-Item-Namen (z. B. "rep[0][bild]")
+	 * ungültiges Bracket-Syntax ergäbe ("rep[0][bild]_clear" statt "rep[0][bild_clear]"), das PHP
+	 * beim Parsen von $_POST nicht mehr als verschachteltes Array erkennt.
+	 */
+	protected function siblingName(string $name, string $suffix): string {
+		if (preg_match('/^(.*)\[([^\[\]]*)\]$/', $name, $m)) {
+			return $m[1] . '[' . $m[2] . $suffix . ']';
+		}
+		return $name . $suffix;
+	}
+
 	protected function wrapperEnd(array $field, array $errors): string {
 		$name = $field['name'];
 		$html = '';
