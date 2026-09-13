@@ -538,7 +538,11 @@ class Router {
 				continue;
 			}
 			if ($type === 'repeater') {
-				$raw = $input->post($name);
+				// $input->post() begrenzt verschachtelte Arrays auf $config->wireInputArrayDepth (Standard: 1) —
+				// Repeater-Zeilen sind aber "name[idx][unterfeld]" = 2 Ebenen, würden also stillschweigend zu []
+				// zusammengestrichen. Daher hier bewusst roh aus $_POST lesen; die eigentliche Sanitization pro
+				// Unterfeld übernimmt weiterhin RepeaterFieldAdapter über die jeweiligen Feld-Adapter.
+				$raw = $_POST[$name] ?? null;
 				$data[$name] = is_array($raw) ? $raw : [];
 				continue;
 			}

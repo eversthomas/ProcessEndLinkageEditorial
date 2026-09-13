@@ -164,7 +164,7 @@
       if (addBtn && template) {
         addBtn.addEventListener('click', function () {
           var index = nextIndex++;
-          var html = template.innerHTML.split('__INDEX__').join(String(index));
+          var html = template.innerHTML.split('__INDEX__').join(String(index)).split('__LABEL__').join(String(index + 1));
           var wrapper = document.createElement('div');
           wrapper.innerHTML = html.trim();
           var newItem = wrapper.firstElementChild;

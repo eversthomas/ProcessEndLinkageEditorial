@@ -85,6 +85,10 @@ class RepeaterField extends AbstractFieldRenderer {
 	 * Kurzer Anzeigetext für den zugeklappten Zustand: erster nicht-leere Text-/HTML-Feldwert, sonst "Element N".
 	 */
 	protected function itemSummary(array $itemFields, array $row, string $index): string {
+		if ($index === '__INDEX__') {
+			// Klon-Vorlage: echte Position ist erst beim Hinzufügen im Browser bekannt (siehe editorial.js).
+			return 'Element __LABEL__';
+		}
 		foreach ($itemFields as $subField) {
 			$type = $subField['type'] ?? '';
 			if (!in_array($type, ['text', 'textarea', 'html'], true)) {
@@ -95,8 +99,7 @@ class RepeaterField extends AbstractFieldRenderer {
 				return mb_strlen($raw) > 60 ? (mb_substr($raw, 0, 57) . '…') : $raw;
 			}
 		}
-		$n = is_numeric($index) ? ((int) $index + 1) : $index;
-		return 'Element ' . $n;
+		return 'Element ' . ((int) $index + 1);
 	}
 
 	protected function renderSubField(array $field, mixed $value): string {

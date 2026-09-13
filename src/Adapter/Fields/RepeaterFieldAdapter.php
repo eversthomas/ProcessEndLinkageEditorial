@@ -49,6 +49,9 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 
 		$rows = is_array($rawValue) ? $rawValue : [];
 		$container = $page->id ? $page->getUnformatted($field->name) : null;
+		if ($container) {
+			$container->setTrackChanges(true);
+		}
 		$existingById = [];
 		if ($container) {
 			foreach ($container as $existingItem) {
@@ -131,6 +134,12 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 			if ($container) {
 				$container->remove($item);
 			}
+		}
+		if ($container) {
+			// FieldtypeRepeater::___savePageField() liest beim Speichern die "aktuelle" Feld-Wert-Instanz
+			// erneut von der Page — ohne dieses erneute set() sieht es nicht dieselbe (mutierte) Instanz und
+			// erkennt entfernte Items nicht als entfernt (getItemsRemoved() bliebe leer).
+			$page->set($field->name, $container);
 		}
 		$page->save($field->name);
 	}

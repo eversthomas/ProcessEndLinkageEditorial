@@ -107,7 +107,7 @@ class ShellView {
 		</div>
 	</div>
 
-	<script src="<?= $this->e($assetUrl) ?>js/editorial.js?v=4"></script>
+	<script src="<?= $this->e($assetUrl) ?>js/editorial.js?v=5"></script>
 	<?php if ($needsTinyMce && $tinyMceUrl): ?>
 	<script src="<?= $this->e($tinyMceUrl) ?>"></script>
 	<script>
