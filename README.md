@@ -29,7 +29,7 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 
 ---
 
-## Umgesetzt (Stand 13.09.2026)
+## Umgesetzt (Stand 14.09.2026)
 
 ### Kern & Zugang
 - Process-Modul, Autoload, Setup-Seite **Setup → Redaktion**
@@ -38,13 +38,13 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 - Login gegen PW-User; Permission `editorial-access`, Rolle `editorial`
 - Superuser immer erlaubt; optional Demo-Login (Setup)
 - Session getrennt vom Admin-Login
-- Grobe Rechte: Rolle → sichtbare Templates
+- Grobe Rechte: Rolle → sichtbare Templates, **fail-closed** (unklare/fehlende Zuordnung → kein Zugriff, nicht mehr „dann eben alles“)
 
 ### Setup / Entwickler
 - Setup-Formular in **3 Tabs** (ProcessWire `WireTab`):
   1. **Inhalte & Navigation** — Discovery/Freigabe und visueller Menü-Builder in einer Fläche (Freigabe ergibt sich aus der Baumstruktur, keine separate Auswahl mehr)
   2. **Design & Branding** — Firmenname, Logo, Theme-Tokens (inkl. Hauptmenü-Farben)
-  3. **Zugriff & System** — Rollen-Mapping, Demo-Login, URL-Pfad
+  3. **Zugriff & System** — Rollen-Mapping, Demo-Login, URL-Pfad, Sitzungs-Timeout
 - Template-Discovery + Freigabe (`editorial_templates`, abgeleitet aus der Navigationsstruktur)
 - Darstellungsmodus pro Template: Liste | Einzelseite
 - **Daten-Art** pro Template: Daten (Default) · Blog · News · Termine · Seiten — steuert die redaktionelle Ansicht; nur „Daten“ hat derzeit die spezialisierte Broadsheet-Oberfläche
@@ -62,6 +62,7 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 - Dashboard: Kacheln pro Inhaltstyp (inkl. Schnellanlage) + „Zuletzt bearbeitet“ (max. 5)
 - Navigationsfläche: Dashboard + Sections/Gruppen/Templates in einer Baumstruktur, aktiver Pfad klappt automatisch auf
 - Listen + Formulare; Details-Sidebar; Publish (veröffentlicht / Entwurf)
+- Zähler (Dashboard/Menü/Status) laufen über eine reine DB-Zählung, nicht mehr über volles Laden aller Datensätze; Listen selbst sind auf 500 Einträge gedeckelt (echte Pagination folgt mit „Suche/Filter/Sortierung", siehe Offen-Liste)
 - Repeater-Felder: Items als Accordion (zugeklappt, einzeln aufklappbar), Hinzufügen/Entfernen ohne Server-Roundtrip
 - Felder ohne Adapter: Platzhalter im Formular
 - Bildfelder: Thumbnail-Vorschau; Mehrfachbilder (`maxFiles != 1`) mit Einzel-Entfernen
@@ -94,8 +95,12 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 - Zugang nur mit Permission `editorial-access` (oder Superuser)
 - CSRF-Token auf Login und Formularen
 - Editorial-Session getrennt vom Admin-Login (kein `$session->login()`)
+- **Login-Rate-Limit**: wachsende Wartezeit je Fehlversuch (eigene, schlanke Umsetzung über `WireCache`, kein neues DB-Schema)
+- **Session-Rotation**: neue Session-ID bei jedem erfolgreichen Login (Schutz vor Session-Fixation)
+- **Sitzungs-Timeout**: konfigurierbare Idle-Timeout-Dauer (Setup → Zugriff & System), Standard 60 Minuten, 0 = aus
 - Demo-Login standardmäßig aus
-- Sichtbarkeit der Inhaltstypen über Rollen-Mapping filterbar
+- Sichtbarkeit der Inhaltstypen über Rollen-Mapping filterbar, **fail-closed** bei unklarer/fehlender Zuordnung
+- System-Templates (`admin`, `user`, `role`, `permission` u. a.) serverseitig gesperrt — auch wenn sie sich ins Navigations-JSON einschleichen würden
 - Branding-Logo: kein SVG, Content-Check (`getimagesize`) für Rasterformate, Legacy-SVG-Purge
 
 ### Betrieb (nicht Modul-Code, aber nötig)
@@ -107,12 +112,14 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 ### Später im Modul / Konzept (Roadmap)
 | Thema | Warum | Priorität |
 |-------|--------|-----------|
-| Login-Rate-Limit / Lockout nach Fehlversuchen | Brute-Force auf `/editorial/login` | hoch vor Go-Live |
-| Session-Timeout / „Angemeldet bleiben“-Policy | Offene Redakteurs-PCs | hoch vor Go-Live |
+| Transaktionales Speichern (Seite/Repeater-Item erst nach Gesamtvalidierung persistieren) | Bei Validierungsfehlern können heute bereits Teile geschrieben sein (Seite, Uploads, neue Repeater-Items) | hoch vor Go-Live |
 | Feinere Rechte (anlegen / löschen / nur bearbeiten) | Weniger Schaden bei kompromittiertem Account | mittel |
+| Eigenes Editorial-Rollensystem (unabhängig von PW-Rollen) | Aktuell dienen PW-Rollen nur als Gruppierungs-Schlüssel für `role_templates`; sauberere Trennung wäre möglich, aber mehr Aufwand | zurückgestellt, siehe „Feinere Rechte“ |
 | Audit-Log (wer speicherte/publishte was) | Nachvollziehbarkeit bei Kunden | mittel |
 | **2FA (TOTP o. ä.)** | Extra Schutz für Publish-Zugang; oft Kundenanforderung | mittel–hoch je nach Kunde |
 | Weitere Upload-Härtung an Feld-Adaptern (falls nötig über WireUpload hinaus) | Logo-Pfad ist abgesichert; Bild/Datei laufen über PW `WireUpload` | niedrig–mittel |
+
+*(Login-Rate-Limit und Sitzungs-Timeout sind seit 14.09.2026 umgesetzt, siehe „Bereits vorhanden" oben.)*
 
 **Brauchen wir ein Sicherheitskonzept?** Ja — als kurze Checkliste (Ist/Soll/Go-Live), kein Roman. Liegt sinnvoll **vor erstem Kunden-Produktivbetrieb**, parallel zu Rechte/Löschen.
 
@@ -122,19 +129,20 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 
 ## Offen — Reihenfolge für den nächsten Chat
 
-1. **Listen: Suche / Filter / Sortierung**
-2. **Löschen / Papierkorb** für Datensätze
-3. **Medienbibliothek** (statt nur Upload am Feld)
-4. **Autosave** + robusteres Speichern-Feedback
-5. **Zeitplanung** veröffentlichen (aktuell Stub)
-6. **Rechte feiner** (anlegen/löschen vs. nur bearbeiten)
-7. **Sicherheit Go-Live:** Rate-Limit/Lockout, Session-Timeout, kurze Security-Checkliste
-8. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
-9. **Workflow** jenseits Publish/Entwurf
-10. **Daten-Arten** Blog/News/Termine/Seiten — eigene Ansichten (Design steht als Mockup bereit)
-11. **Weitere Feldtypen** bei Bedarf (auch als Repeater-Item-Feld, z. B. pageReference/select in Items)
-12. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests
-13. Repo öffentlich / Doku für Dritte (wenn gewünscht)
+1. **Transaktionales Speichern** — Seite/Repeater-Item erst nach vollständiger Validierung persistieren (aktuell schreibt `ProcessWireAdapter`/`RepeaterFieldAdapter` teils schon währenddessen); laut zwei unabhängigen externen Reviews (13.09.2026) der wichtigste verbleibende Punkt vor Go-Live
+2. **Listen: Suche / Filter / Sortierung**
+3. **Löschen / Papierkorb** für Datensätze
+4. **Medienbibliothek** (statt nur Upload am Feld)
+5. **Autosave** + robusteres Speichern-Feedback
+6. **Zeitplanung** veröffentlichen (aktuell Stub)
+7. **Rechte feiner** (anlegen/löschen vs. nur bearbeiten) — dabei auch die zurückgestellte Grundsatzfrage klären: eigenes Editorial-Rollensystem statt PW-Rollen als Gruppierungs-Schlüssel?
+8. **Sicherheit Go-Live:** kurze Checkliste (Ist/Soll) — Rate-Limit und Session-Timeout sind seit 14.09.2026 erledigt
+9. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
+10. **Workflow** jenseits Publish/Entwurf
+11. **Daten-Arten** Blog/News/Termine/Seiten — eigene Ansichten (Design steht als Mockup bereit)
+12. **Weitere Feldtypen** bei Bedarf (auch als Repeater-Item-Feld, z. B. pageReference/select in Items)
+13. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests, dabei auch PHPUnit-Grundgerüst (aktuell keine automatisierten Tests)
+14. Repo öffentlich / Doku für Dritte (wenn gewünscht)
 
 ---
 

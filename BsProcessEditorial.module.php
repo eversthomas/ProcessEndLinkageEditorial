@@ -12,8 +12,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	public static function getModuleInfo(): array {
 		return [
 			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 16,
-			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE, Repeater-Feldern und Publish.',
+			'version' => 17,
+			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE, Repeater-Feldern, Publish und gehärtetem Login/Zugriff.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
 			'autoload' => true,
