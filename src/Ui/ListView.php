@@ -23,6 +23,7 @@ class ListView {
 		$catField = $this->categoryField($schema, $columns);
 
 		$count = count($records);
+		$totalCount = (int) ($options['totalCount'] ?? $count);
 		$newLabel = 'Neu anlegen';
 
 		$html = '<div class="bpe-daten">';
@@ -95,7 +96,9 @@ class ListView {
 
 		$html .= '</tbody></table>';
 		$html .= '<div class="bpe-daten__foot"><span>'
-			. $count . ' von ' . $count . ' Einträgen</span></div>';
+			. $count . ' von ' . $totalCount . ' Einträgen'
+			. ($totalCount > $count ? ' — weitere über Suche/Filter (folgt) erreichbar' : '')
+			. '</span></div>';
 		$html .= '</div>';
 		return $html;
 	}
@@ -107,11 +110,13 @@ class ListView {
 		$columns = $this->listColumns($schema);
 
 		$count = count($records);
+		$totalCount = (int) ($options['totalCount'] ?? $count);
 		$html = '<div class="bpe-list">';
 		$html .= '<header class="bpe-list__header">';
 		$html .= '<div class="bpe-list__heading">';
 		$html .= '<h1 class="bpe-list__title">' . $this->e($label) . '</h1>';
-		$html .= '<p class="bpe-list__meta">' . $count . ' ' . ($count === 1 ? 'Eintrag' : 'Einträge') . '</p>';
+		$html .= '<p class="bpe-list__meta">' . $count . ' ' . ($count === 1 ? 'Eintrag' : 'Einträge')
+			. ($totalCount > $count ? ' von ' . $totalCount : '') . '</p>';
 		$html .= '</div>';
 		$html .= '<a class="bpe-btn bpe-btn--primary" href="' . $this->e($newUrl) . '">Neu anlegen</a>';
 		$html .= '</header>';

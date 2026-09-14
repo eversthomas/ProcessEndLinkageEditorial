@@ -48,6 +48,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('brand_name', '');
 		$this->set('brand_logo', '');
 		$this->set('allow_demo_login', 0);
+		$this->set('session_timeout_minutes', 60);
 	}
 
 	/** @var array<string, string> */
@@ -259,6 +260,12 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			}
 		}
 		$templates = array_values(array_unique($templates));
+		// Server-seitig durchsetzen: System-Templates dürfen nie freigegeben werden,
+		// egal was im Navigations-JSON steht (Discovery blendet sie nur in der Vorschlagsliste aus).
+		$templates = array_values(array_filter(
+			$templates,
+			fn(string $t) => !in_array($t, \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery::SKIP, true)
+		));
 
 		try {
 			$tree = $navConfig->parseAndValidate($tree, $templates);
@@ -301,6 +308,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$values['editorial_templates'] = $templates;
 		$values['role_templates'] = $cleanRoles;
 		$values['allow_demo_login'] = !empty($values['allow_demo_login']) ? 1 : 0;
+		$values['session_timeout_minutes'] = max(0, (int) ($values['session_timeout_minutes'] ?? 60));
 
 		$values['theme_accent'] = $this->normalizeHexColor(
 			(string) ($values['theme_accent'] ?? ''),
@@ -920,6 +928,14 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$f->label = 'URL-Pfad der Redaktion';
 		$f->description = 'Ohne führenden Slash, z. B. editorial → /editorial/';
 		$f->value = $data['base_path'] ?? self::BASE_PATH;
+		$fsAdvanced->add($f);
+
+		/** @var InputfieldInteger $f */
+		$f = $modules->get('InputfieldInteger');
+		$f->name = 'session_timeout_minutes';
+		$f->label = 'Sitzungs-Timeout (Minuten)';
+		$f->description = 'Nach dieser Zeit ohne Aktivität wird die Redaktions-Sitzung automatisch beendet. 0 = kein Timeout.';
+		$f->value = (int) ($data['session_timeout_minutes'] ?? 60);
 		$fsAdvanced->add($f);
 
 		/** @var InputfieldWrapper $tabContent */

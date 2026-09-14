@@ -31,8 +31,9 @@ class TemplateAccess {
 
 		$map = $this->roleTemplateMap();
 		if ($map === []) {
-			// Keine Rollen-Zuordnung konfiguriert → alle freigegebenen
-			return $all;
+			// Keine Rollen-Zuordnung konfiguriert → kein Zugriff (fail-closed).
+			// Explizit in Setup → Zugriff & System zuordnen, sonst sieht der User nichts.
+			return [];
 		}
 
 		$allowed = [];
@@ -52,12 +53,9 @@ class TemplateAccess {
 			}
 		}
 
-		$allowed = array_values(array_unique($allowed));
-		// User mit editorial-access, aber ohne Rollen-Mapping → Fallback alle
-		if ($allowed === [] && $user->hasPermission(EditorialAuth::PERMISSION)) {
-			return $all;
-		}
-		return $allowed;
+		// Keine Übereinstimmung für die Rollen dieses Users → kein Zugriff (fail-closed),
+		// nicht mehr "dann eben alle". Unklare Zuordnung darf nie zu vollem Zugriff führen.
+		return array_values(array_unique($allowed));
 	}
 
 	/**

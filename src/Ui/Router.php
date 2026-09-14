@@ -164,10 +164,10 @@ class Router {
 
 	protected function refreshAccess(): void {
 		$access = new TemplateAccess($this->module);
+		// currentUser() liefert für Demo-Sessions bereits null — allowedTemplates(null) deckt
+		// den Demo-Fall (alle freigegebenen Templates) mit ab, eine einzige Entscheidungsstelle.
 		$user = $this->auth->currentUser();
-		$candidates = $this->auth->isDemoSession()
-			? $this->module->editorialTemplateNames()
-			: $access->allowedTemplates($user);
+		$candidates = $access->allowedTemplates($user);
 
 		// Nur Templates, die die aktive Datenquelle wirklich bedienen kann
 		$this->allowedTemplates = array_values(array_filter(
@@ -192,6 +192,7 @@ class Router {
 		$user = $this->auth->currentUser();
 		if ($user) {
 			$this->module->wire()->users->setCurrentUser($user);
+			$this->auth->touch();
 		}
 	}
 
@@ -304,13 +305,8 @@ class Router {
 		$live = 0;
 		foreach ($templates as $tpl) {
 			try {
-				foreach ($this->adapter->listRecords($tpl) as $record) {
-					if (($record['status'] ?? 'published') === 'unpublished') {
-						$draft++;
-					} else {
-						$live++;
-					}
-				}
+				$draft += $this->adapter->countRecords($tpl, 'unpublished');
+				$live += $this->adapter->countRecords($tpl, 'published');
 			} catch (\Throwable $e) {
 			}
 		}
@@ -326,7 +322,7 @@ class Router {
 			try {
 				$schema = $this->adapter->readSchema($tpl);
 				$label = $schema['label'] ?? $tpl;
-				$count = count($this->adapter->listRecords($tpl));
+				$count = $this->adapter->countRecords($tpl);
 			} catch (\Throwable $e) {
 			}
 			$icon = 'file-text';
@@ -369,12 +365,14 @@ class Router {
 	protected function getList(string $template): string {
 		$schema = $this->adapter->readSchema($template);
 		$records = $this->adapter->listRecords($template);
+		$totalCount = $this->adapter->countRecords($template);
 		$skin = $this->designSkinForTemplate($template);
 		$list = new ListView();
 		$content = $list->render($schema, $records, [
 			'skin' => $skin,
 			'newUrl' => $this->url('t/' . $template . '/new'),
 			'editUrl' => fn(string $id) => $this->url('t/' . $template . '/' . $id),
+			'totalCount' => $totalCount,
 		]);
 		return $this->shell($content, $this->shellContextForTemplate($template, $schema['label'] ?? $template, [
 			'flash' => $this->takeFlash(),
@@ -793,7 +791,8 @@ class Router {
 			$this->refreshAccess();
 			return $this->redirect($this->url());
 		}
-		return $this->getLogin('Anmeldung fehlgeschlagen. Prüfen Sie Benutzername, Passwort und die Permission „editorial-access“.');
+		return $this->getLogin($this->auth->throttleMessage()
+			?? 'Anmeldung fehlgeschlagen. Prüfen Sie Benutzername, Passwort und die Permission „editorial-access“.');
 	}
 
 	protected function viewLogin(array $vars): string {

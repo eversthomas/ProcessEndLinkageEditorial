@@ -14,6 +14,7 @@ use ProcessWire\BsProcessEditorial\Adapter\Fields\SelectFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\TextareaFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\TextFieldAdapter;
 use ProcessWire\BsProcessEditorial\Adapter\Fields\UrlFieldAdapter;
+use ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery;
 use ProcessWire\Field;
 use ProcessWire\Page;
 use ProcessWire\Template;
@@ -23,6 +24,9 @@ use ProcessWire\WireException;
  * ProcessWire-Adapter: liest/schreibt über die PW-API, liefert nur Schema-Arrays an die UI.
  */
 class ProcessWireAdapter implements AdapterInterface {
+
+	/** Sicherheitsdeckel für listRecords() — echte Pagination/Suche ist ein separates Vorhaben. */
+	protected const LIST_LIMIT = 500;
 
 	protected BsProcessEditorial $module;
 
@@ -70,6 +74,9 @@ class ProcessWireAdapter implements AdapterInterface {
 	}
 
 	public function supportsTemplate(string $template): bool {
+		if (in_array($template, TemplateDiscovery::SKIP, true)) {
+			return false;
+		}
 		$tpl = $this->module->wire()->templates->get($template);
 		return (bool) ($tpl && $tpl->id);
 	}
@@ -151,12 +158,25 @@ class ProcessWireAdapter implements AdapterInterface {
 
 	public function listRecords(string $template): array {
 		$this->requireEditorialTemplate($template);
-		$pages = $this->module->wire()->pages->find("template={$template}, include=all, sort=-modified");
+		$pages = $this->module->wire()->pages->find(
+			"template={$template}, include=all, sort=-modified, limit=" . self::LIST_LIMIT
+		);
 		$records = [];
 		foreach ($pages as $page) {
 			$records[] = $this->pageToRecord($page);
 		}
 		return $records;
+	}
+
+	public function countRecords(string $template, ?string $statusFilter = null): int {
+		$this->requireEditorialTemplate($template);
+		$selector = "template={$template}, include=all";
+		if ($statusFilter === 'unpublished') {
+			$selector .= ', status>=' . \ProcessWire\Page::statusUnpublished;
+		} elseif ($statusFilter === 'published') {
+			$selector .= ', status<' . \ProcessWire\Page::statusUnpublished;
+		}
+		return (int) $this->module->wire()->pages->count($selector);
 	}
 
 	public function getRecord(string $template, string $id): ?array {
@@ -322,6 +342,9 @@ class ProcessWireAdapter implements AdapterInterface {
 	}
 
 	protected function requireEditorialTemplate(string $template) {
+		if (in_array($template, TemplateDiscovery::SKIP, true)) {
+			throw new WireException("Inhaltstyp „{$template}“ ist ein System-Template und für die Redaktion gesperrt.");
+		}
 		$allowed = $this->module->editorialTemplateNames();
 		if (!in_array($template, $allowed, true)) {
 			throw new WireException("Inhaltstyp „{$template}“ ist nicht für die Redaktion freigegeben.");

@@ -85,7 +85,7 @@ class NavTree {
 			$count = null;
 			if ($mode === 'list') {
 				try {
-					$count = count($this->adapter->listRecords($tpl));
+					$count = $this->adapter->countRecords($tpl);
 				} catch (\Throwable $e) {
 					$count = null;
 				}

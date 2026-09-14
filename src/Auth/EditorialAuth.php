@@ -18,9 +18,15 @@ class EditorialAuth {
 	public const ROLE = 'editorial';
 
 	protected BsProcessEditorial $module;
+	protected ?string $throttleMessage = null;
 
 	public function __construct(BsProcessEditorial $module) {
 		$this->module = $module;
+	}
+
+	/** Grund, warum der letzte attempt() abgelehnt wurde, sofern es ein Rate-Limit war. */
+	public function throttleMessage(): ?string {
+		return $this->throttleMessage;
 	}
 
 	public function isLoggedIn(): bool {
@@ -70,6 +76,7 @@ class EditorialAuth {
 	}
 
 	public function attempt(string $username, string $password): bool {
+		$this->throttleMessage = null;
 		$username = trim($username);
 		$password = (string) $password;
 		if ($username === '' || $password === '') {
@@ -79,13 +86,20 @@ class EditorialAuth {
 		$users = $this->module->wire()->users;
 		$session = $this->module->wire()->session;
 		$sanitizer = $this->module->wire()->sanitizer;
+
+		if (!$this->allowLoginAttempt($username)) {
+			return false;
+		}
+
 		$user = $users->get('name=' . $sanitizer->selectorValue($username));
 
 		if ($user->id && $session->authenticate($user, $password) && $this->canUseEditorial($user)) {
+			session_regenerate_id(true);
 			$session->set(BsProcessEditorial::SESSION_KEY, [
 				'user_id' => $user->id,
 				'name' => $user->name,
 				'login_at' => time(),
+				'last_seen' => time(),
 				'demo' => false,
 			]);
 			return true;
@@ -95,9 +109,11 @@ class EditorialAuth {
 			$expectedUser = (string) $this->module->get('login_user');
 			$expectedPass = (string) $this->module->get('login_pass');
 			if ($username === $expectedUser && $password === $expectedPass) {
+				session_regenerate_id(true);
 				$session->set(BsProcessEditorial::SESSION_KEY, [
 					'name' => $username,
 					'login_at' => time(),
+					'last_seen' => time(),
 					'demo' => true,
 				]);
 				return true;
@@ -105,6 +121,51 @@ class EditorialAuth {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Eigenes, in sich geschlossenes Rate-Limit über WireCache (kein neues DB-Schema).
+	 * PW-Core liefert mit SessionLoginThrottle zwar dieselbe Logik, deren Hook feuert aber nur
+	 * innerhalb von Session::___login() zuverlässig — für unseren eigenen Login-Endpunkt (der
+	 * bewusst nicht über $session->login() geht) ist das Hook-Timing nicht garantiert.
+	 * Algorithmus bewusst identisch zu SessionLoginThrottle (bewährt): wachsende Wartezeit je
+	 * Fehlversuch, gedeckelt, pro Benutzername (kein IP-Tracking nötig für dieses Szenario).
+	 */
+	protected function allowLoginAttempt(string $username): bool {
+		$cache = $this->module->wire()->cache;
+		$seconds = 5;
+		$maxSeconds = 60;
+		$key = 'bpe-login-throttle-' . $this->module->wire()->sanitizer->pageName($username, true);
+		$data = $cache->get($key);
+		$attempts = is_array($data) ? (int) ($data['attempts'] ?? 0) : 0;
+		$lastAttempt = is_array($data) ? (int) ($data['last'] ?? 0) : 0;
+		$now = time();
+
+		if ($attempts > 1) {
+			$requireSeconds = min(($attempts - 1) * $seconds, $maxSeconds);
+			if (($now - $lastAttempt) < $requireSeconds) {
+				$wait = $requireSeconds - ($now - $lastAttempt);
+				$this->throttleMessage = "Zu viele Versuche. Bitte {$wait} Sekunde(n) warten und erneut versuchen.";
+				return false;
+			}
+		}
+
+		$attempts++;
+		if (($now - $lastAttempt) > $maxSeconds) {
+			$attempts = 1;
+		}
+		$cache->save($key, ['attempts' => $attempts, 'last' => $now], $maxSeconds + 60);
+		return true;
+	}
+
+	/** Aktivitätszeitpunkt aktualisieren (gleitender Idle-Timeout). Nur wenn bereits eingeloggt. */
+	public function touch(): void {
+		$session = $this->module->wire()->session;
+		$data = $session->get(BsProcessEditorial::SESSION_KEY);
+		if (is_array($data)) {
+			$data['last_seen'] = time();
+			$session->set(BsProcessEditorial::SESSION_KEY, $data);
+		}
 	}
 
 	public function logout(): void {
@@ -166,6 +227,25 @@ class EditorialAuth {
 	/** @return array<string, mixed>|null */
 	protected function sessionData(): ?array {
 		$data = $this->module->wire()->session->get(BsProcessEditorial::SESSION_KEY);
-		return is_array($data) ? $data : null;
+		if (!is_array($data)) {
+			return null;
+		}
+		if ($this->isTimedOut($data)) {
+			$this->logout();
+			return null;
+		}
+		return $data;
+	}
+
+	protected function isTimedOut(array $data): bool {
+		$timeoutMinutes = (int) $this->module->get('session_timeout_minutes');
+		if ($timeoutMinutes <= 0) {
+			return false;
+		}
+		$lastSeen = (int) ($data['last_seen'] ?? $data['login_at'] ?? 0);
+		if ($lastSeen <= 0) {
+			return false;
+		}
+		return (time() - $lastSeen) > ($timeoutMinutes * 60);
 	}
 }

@@ -9,7 +9,8 @@ use ProcessWire\Template;
  */
 class TemplateDiscovery {
 
-	protected const SKIP = [
+	/** System-Templates, die nie redaktionell freigegeben werden dürfen (auch serverseitig durchgesetzt, siehe ProcessWireAdapter). */
+	public const SKIP = [
 		'admin', 'user', 'role', 'permission', 'language', 'language-gateway',
 		'basic-page',
 	];
