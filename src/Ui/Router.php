@@ -43,6 +43,16 @@ class Router {
 			if ($this->auth->isLoggedIn()) {
 				return $this->redirect($this->url());
 			}
+			if (($segments[1] ?? '') === 'verify') {
+				if (!$this->auth->hasPendingTfa()) {
+					return $this->redirect($this->url('login'));
+				}
+				return $method === 'POST' ? $this->postTfaCode() : $this->getTfaCode();
+			}
+			if ($method === 'GET' && $this->auth->hasPendingTfa()) {
+				// Zurück zum normalen Login-Formular navigiert -> halbfertigen 2FA-Vorgang verwerfen.
+				$this->auth->cancelTfaPending();
+			}
 			return $method === 'POST' ? $this->postLogin() : $this->getLogin();
 		}
 		if (($segments[0] ?? '') === 'logout') {
@@ -802,13 +812,54 @@ class Router {
 		$input = $this->wire()->input;
 		$user = (string) $input->post('username');
 		$pass = (string) $input->post('password');
-		if ($this->auth->attempt($user, $pass)) {
+		$result = $this->auth->attempt($user, $pass);
+		if ($result === EditorialAuth::RESULT_OK) {
 			$this->bindEditorialUser();
 			$this->refreshAccess();
 			return $this->redirect($this->url());
 		}
+		if ($result === EditorialAuth::RESULT_NEEDS_CODE) {
+			return $this->redirect($this->url('login/verify'));
+		}
 		return $this->getLogin($this->auth->throttleMessage()
 			?? 'Anmeldung fehlgeschlagen. Prüfen Sie Benutzername, Passwort und die Permission „editorial-access“.');
+	}
+
+	protected function getTfaCode(string $error = ''): string {
+		return $this->viewTfaCode([
+			'title' => 'Bestätigungscode',
+			'error' => $error,
+			'action' => $this->url('login/verify'),
+			'csrf' => $this->csrfField(),
+			'brandName' => $this->module->brandName(),
+			'brandLogoUrl' => $this->module->brandLogoUrl(),
+		]);
+	}
+
+	protected function postTfaCode(): string {
+		$session = $this->wire()->session;
+		if (!$session->CSRF->hasValidToken()) {
+			return $this->getTfaCode('Sicherheits-Token ungültig. Bitte erneut versuchen.');
+		}
+		$code = (string) $this->wire()->input->post('code');
+		$result = $this->auth->verifyCode($code);
+		if ($result === EditorialAuth::RESULT_OK) {
+			$this->bindEditorialUser();
+			$this->refreshAccess();
+			return $this->redirect($this->url());
+		}
+		return $this->getTfaCode($this->auth->throttleMessage() ?? 'Code ungültig. Bitte erneut versuchen.');
+	}
+
+	protected function viewTfaCode(array $vars): string {
+		$vars['module'] = $this->module;
+		$vars['baseUrl'] = $this->module->baseUrl();
+		$vars['assetUrl'] = $this->module->moduleUrl() . 'assets/';
+		$file = $this->module->modulePath() . '/views/login-tfa.php';
+		extract($vars, EXTR_SKIP);
+		ob_start();
+		include $file;
+		return (string) ob_get_clean();
 	}
 
 	protected function viewLogin(array $vars): string {

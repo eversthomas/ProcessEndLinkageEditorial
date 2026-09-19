@@ -17,6 +17,11 @@ class EditorialAuth {
 	public const PERMISSION = 'editorial-access';
 	public const ROLE = 'editorial';
 
+	/** Rückgabewerte von attempt()/verifyCode(). */
+	public const RESULT_OK = 'ok';
+	public const RESULT_NEEDS_CODE = 'needs_code';
+	public const RESULT_FAILED = 'failed';
+
 	protected ProcessEndLinkageEditorial $module;
 	protected ?string $throttleMessage = null;
 
@@ -75,12 +80,12 @@ class EditorialAuth {
 		return is_array($data) && !empty($data['demo']);
 	}
 
-	public function attempt(string $username, string $password): bool {
+	public function attempt(string $username, string $password): string {
 		$this->throttleMessage = null;
 		$username = trim($username);
 		$password = (string) $password;
 		if ($username === '' || $password === '') {
-			return false;
+			return self::RESULT_FAILED;
 		}
 
 		$users = $this->module->wire()->users;
@@ -88,12 +93,16 @@ class EditorialAuth {
 		$sanitizer = $this->module->wire()->sanitizer;
 
 		if (!$this->allowLoginAttempt($username)) {
-			return false;
+			return self::RESULT_FAILED;
 		}
 
 		$user = $users->get('name=' . $sanitizer->selectorValue($username));
 
 		if ($user->id && $session->authenticate($user, $password) && $this->canUseEditorial($user)) {
+			if ($this->requireTfa() && $user->hasTfa()) {
+				$this->beginTfaPending($user);
+				return self::RESULT_NEEDS_CODE;
+			}
 			session_regenerate_id(true);
 			$session->set(ProcessEndLinkageEditorial::SESSION_KEY, [
 				'user_id' => $user->id,
@@ -102,7 +111,7 @@ class EditorialAuth {
 				'last_seen' => time(),
 				'demo' => false,
 			]);
-			return true;
+			return self::RESULT_OK;
 		}
 
 		if ($this->demoEnabled()) {
@@ -116,11 +125,108 @@ class EditorialAuth {
 					'last_seen' => time(),
 					'demo' => true,
 				]);
-				return true;
+				return self::RESULT_OK;
 			}
 		}
 
-		return false;
+		return self::RESULT_FAILED;
+	}
+
+	/**
+	 * Zweiten Schritt (TOTP-Code) prüfen, nachdem attempt() RESULT_NEEDS_CODE zurückgegeben hat.
+	 * Nutzt bewusst dieselbe PW-Bordmittel-API wie der echte Admin-Login (Tfa-Basisklasse),
+	 * kein eigener TOTP-Algorithmus.
+	 */
+	public function verifyCode(string $code): string {
+		$this->throttleMessage = null;
+		$pending = $this->tfaPendingData();
+		if ($pending === null) {
+			return self::RESULT_FAILED;
+		}
+
+		$username = (string) $pending['name'];
+		if (!$this->allowLoginAttempt($username)) {
+			return self::RESULT_FAILED;
+		}
+
+		$users = $this->module->wire()->users;
+		$user = $users->get((int) $pending['user_id']);
+		if (!$user->id || $user->name !== $username || !$this->canUseEditorial($user)) {
+			$this->cancelTfaPending();
+			return self::RESULT_FAILED;
+		}
+
+		// hasTfa(true) liefert laut PW-Kern-Doku ggf. eine nicht vollständig initialisierte
+		// Instanz — für den eigentlichen Verifikationsaufruf stattdessen $user->tfa_type lesen
+		// (liefert die vollständig initialisierte Instanz), hasTfa() nur als "ist aktiviert"-Check.
+		if (!$user->hasTfa()) {
+			$this->cancelTfaPending();
+			return self::RESULT_FAILED;
+		}
+		$tfaModule = $user->tfa_type;
+		if (!$tfaModule || !is_object($tfaModule) || !method_exists($tfaModule, 'isValidUserCode')) {
+			// Tfa-Modul wurde zwischen Passwort- und Code-Schritt deinstalliert o. ä. — dieser
+			// eine Versuch schlägt fehl, aber nicht dauerhaft: hasTfa() liefert beim nächsten
+			// Login-Versuch bereits false, sobald das Modul wirklich weg ist (Selbstheilung).
+			$this->cancelTfaPending();
+			return self::RESULT_FAILED;
+		}
+
+		$settings = $tfaModule->getUserSettings($user);
+		$code = trim($code);
+		if ($code === '' || !$tfaModule->isValidUserCode($user, $code, $settings)) {
+			return self::RESULT_FAILED;
+		}
+
+		$this->cancelTfaPending();
+		$session = $this->module->wire()->session;
+		session_regenerate_id(true);
+		$session->set(ProcessEndLinkageEditorial::SESSION_KEY, [
+			'user_id' => $user->id,
+			'name' => $user->name,
+			'login_at' => time(),
+			'last_seen' => time(),
+			'demo' => false,
+		]);
+		return self::RESULT_OK;
+	}
+
+	public function hasPendingTfa(): bool {
+		return $this->tfaPendingData() !== null;
+	}
+
+	public function cancelTfaPending(): void {
+		$this->module->wire()->session->removeFor('bpe', 'tfa_pending');
+	}
+
+	protected function requireTfa(): bool {
+		return (bool) $this->module->get('editorial_require_2fa');
+	}
+
+	protected function beginTfaPending(User $user): void {
+		// Privilegwechsel (Passwort geprüft, Code noch offen) — eigene Session-ID dafür,
+		// getrennt vom finalen Regenerate nach erfolgreicher Code-Prüfung.
+		session_regenerate_id(true);
+		$this->module->wire()->session->setFor('bpe', 'tfa_pending', [
+			'user_id' => $user->id,
+			'name' => $user->name,
+			'started_at' => time(),
+		]);
+	}
+
+	/** @return array{user_id: int, name: string, started_at: int}|null */
+	protected function tfaPendingData(): ?array {
+		$session = $this->module->wire()->session;
+		$data = $session->getFor('bpe', 'tfa_pending');
+		if (!is_array($data)) {
+			return null;
+		}
+		$startedAt = (int) ($data['started_at'] ?? 0);
+		if ($startedAt <= 0 || (time() - $startedAt) > 300) {
+			$session->removeFor('bpe', 'tfa_pending');
+			return null;
+		}
+		return $data;
 	}
 
 	/**

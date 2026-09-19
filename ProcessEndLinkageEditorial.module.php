@@ -49,6 +49,7 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 		$this->set('brand_name', '');
 		$this->set('brand_logo', '');
 		$this->set('allow_demo_login', 0);
+		$this->set('editorial_require_2fa', 0);
 		$this->set('session_timeout_minutes', 60);
 	}
 
@@ -406,6 +407,7 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 		$values['role_templates'] = $cleanRoles;
 		$values['role_template_actions'] = $cleanRoleActions;
 		$values['allow_demo_login'] = !empty($values['allow_demo_login']) ? 1 : 0;
+		$values['editorial_require_2fa'] = !empty($values['editorial_require_2fa']) ? 1 : 0;
 		$values['session_timeout_minutes'] = max(0, (int) ($values['session_timeout_minutes'] ?? 60));
 
 		$values['theme_accent'] = $this->normalizeHexColor(
@@ -1020,6 +1022,36 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 		$f->label = 'Demo-Login erlauben (ohne PW-User)';
 		$f->description = 'Nur für lokale Tests. Produktiv auslassen.';
 		$f->checked = !empty($data['allow_demo_login']);
+		$fsAdvanced->add($f);
+
+		/** @var InputfieldCheckbox $f */
+		$f = $modules->get('InputfieldCheckbox');
+		$f->name = 'editorial_require_2fa';
+		$f->label = 'Zwei-Faktor-Authentifizierung (TOTP) erzwingen, falls beim Benutzer eingerichtet';
+		$f->description = 'Wirkt nur für echte PW-Benutzer, nie für den Demo-Login. Voraussetzung: Ein separates '
+			. 'PW-Tfa-Modul muss installiert sein, empfohlen <strong>TfaTotp</strong> '
+			. '(<a href="https://processwire.com/modules/tfa-totp/" target="_blank" rel="noopener">processwire.com/modules/tfa-totp</a>, '
+			. 'TOTP via Google Authenticator/Authy o. ä.). Redakteure richten 2FA anschließend selbst in ihrem normalen '
+			. 'PW-Profil ein — dieses Modul fügt nur die Prüfung beim Redaktions-Login hinzu, keine eigene Einrichtung.';
+		$f->checked = !empty($data['editorial_require_2fa']);
+		$fsAdvanced->add($f);
+
+		/** @var InputfieldMarkup $f */
+		$f = $modules->get('InputfieldMarkup');
+		$f->name = 'editorial_require_2fa_status';
+		$f->label = 'Status: Tfa-Modul';
+		$tfaModules = $modules->findByPrefix('Tfa');
+		if (empty($tfaModules)) {
+			$f->value = '<p style="color:#8a6d3b;background:#fcf3cf;border:1px solid #f0d385;padding:8px 12px;border-radius:4px;">'
+				. '<strong>Kein Tfa-Modul installiert.</strong> Es ist aktuell kein Modul mit Präfix <code>Tfa</code> installiert. '
+				. 'Auch wenn die Option oben aktiviert ist, hat sie <strong>keine Wirkung</strong> — Redakteure können sich weiterhin '
+				. 'nur mit Passwort anmelden, ohne Warnung im Login selbst. '
+				. 'Bitte zuerst <a href="https://processwire.com/modules/tfa-totp/" target="_blank" rel="noopener">TfaTotp</a> installieren.</p>';
+		} else {
+			$f->value = '<p class="description">Installierte Tfa-Module: <code>'
+				. htmlspecialchars(implode(', ', array_keys($tfaModules)), ENT_QUOTES, 'UTF-8') . '</code>. '
+				. 'Redakteure ohne eigenes 2FA-Setup im PW-Profil sind von der Erzwingung nicht betroffen.</p>';
+		}
 		$fsAdvanced->add($f);
 
 		/** @var InputfieldText $f */
