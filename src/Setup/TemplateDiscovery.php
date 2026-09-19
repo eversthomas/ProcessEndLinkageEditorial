@@ -12,7 +12,7 @@ class TemplateDiscovery {
 	/** System-Templates, die nie redaktionell freigegeben werden dürfen (auch serverseitig durchgesetzt, siehe ProcessWireAdapter). */
 	public const SKIP = [
 		'admin', 'user', 'role', 'permission', 'language', 'language-gateway',
-		'basic-page',
+		'basic-page', // typischer Struktur-Container (wie Home), keine redaktionelle Datensatz-Sammlung
 	];
 
 	public const MODE_LIST = 'list';

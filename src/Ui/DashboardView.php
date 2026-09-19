@@ -166,28 +166,39 @@ class DashboardView {
 	 * @return array<int, array{title: string, url: string, typeLabel: string, modifiedLabel: string, modified: string, status: string}>
 	 */
 	public function collectRecent(AdapterInterface $adapter, array $templates, callable $editUrl, int $limit = 8): array {
-		$all = [];
+		$labels = [];
 		foreach ($templates as $tpl) {
 			try {
 				$schema = $adapter->readSchema($tpl);
-				$label = $schema['label'] ?? $tpl;
-				foreach ($adapter->listRecords($tpl) as $record) {
-					$all[] = [
-						'title' => (string) ($record['title'] ?? 'Ohne Titel'),
-						'url' => $editUrl($tpl, (string) ($record['id'] ?? '')),
-						'typeLabel' => $label,
-						'modified' => (string) ($record['modified'] ?? ''),
-						'modifiedLabel' => $this->relative((string) ($record['modified'] ?? '')),
-						'modifiedBy' => $record['modifiedBy'] ?? null,
-						'status' => (string) ($record['status'] ?? 'published'),
-					];
-				}
+				$labels[$tpl] = $schema['label'] ?? $tpl;
 			} catch (\Throwable $e) {
 				continue;
 			}
 		}
-		usort($all, fn($a, $b) => strcmp($b['modified'], $a['modified']));
-		return array_slice($all, 0, $limit);
+		if (!$labels) {
+			return [];
+		}
+
+		try {
+			$recent = $adapter->recentRecords(array_keys($labels), $limit);
+		} catch (\Throwable $e) {
+			return [];
+		}
+
+		$out = [];
+		foreach ($recent as $record) {
+			$tpl = (string) ($record['template'] ?? '');
+			$out[] = [
+				'title' => (string) ($record['title'] ?? 'Ohne Titel'),
+				'url' => $editUrl($tpl, (string) ($record['id'] ?? '')),
+				'typeLabel' => $labels[$tpl] ?? $tpl,
+				'modified' => (string) ($record['modified'] ?? ''),
+				'modifiedLabel' => $this->relative((string) ($record['modified'] ?? '')),
+				'modifiedBy' => $record['modifiedBy'] ?? null,
+				'status' => (string) ($record['status'] ?? 'published'),
+			];
+		}
+		return $out;
 	}
 
 	protected function relative(string $iso): string {

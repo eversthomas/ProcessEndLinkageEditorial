@@ -168,6 +168,32 @@ class ProcessWireAdapter implements AdapterInterface {
 		return $records;
 	}
 
+	public function recentRecords(array $templates, int $limit): array {
+		$templates = array_values(array_filter(
+			array_map('strval', $templates),
+			fn(string $t) => $t !== '' && $this->supportsTemplate($t)
+		));
+		if (!$templates || $limit <= 0) {
+			return [];
+		}
+		$selector = 'template=' . implode('|', $templates) . ', include=all, sort=-modified, limit=' . $limit;
+		$pages = $this->module->wire()->pages->find($selector);
+		$records = [];
+		foreach ($pages as $page) {
+			$page->of(false);
+			$modifiedUser = $page->modifiedUser;
+			$records[] = [
+				'id' => (string) $page->id,
+				'title' => (string) $page->getUnformatted('title') ?: 'Ohne Titel',
+				'template' => $page->template->name,
+				'modified' => date('c', $page->modified),
+				'modifiedBy' => ($modifiedUser && $modifiedUser->id) ? $modifiedUser->name : null,
+				'status' => $page->isUnpublished() ? 'unpublished' : 'published',
+			];
+		}
+		return $records;
+	}
+
 	public function countRecords(string $template, ?string $statusFilter = null): int {
 		$this->requireEditorialTemplate($template);
 		$selector = "template={$template}, include=all";

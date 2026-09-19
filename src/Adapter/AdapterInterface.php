@@ -22,6 +22,16 @@ interface AdapterInterface {
 	public function listRecords(string $template): array;
 
 	/**
+	 * Schlanke Datensätze (id/title/template/modified/modifiedBy/status, keine Feldwerte) über
+	 * mehrere Templates hinweg, sortiert nach modified — für "Zuletzt bearbeitet"-Übersichten.
+	 * Eine einzige Query statt pro Template alle Datensätze zu laden und in PHP zu sortieren.
+	 *
+	 * @param string[] $templates
+	 * @return array<int, array{id: string, title: string, template: string, modified: string, modifiedBy: string|null, status: string}>
+	 */
+	public function recentRecords(array $templates, int $limit): array;
+
+	/**
 	 * Reine Anzahl, ohne Datensätze zu laden — für Zähler in Nav/Dashboard.
 	 * $statusFilter: null = alle, 'published' = nur veröffentlicht, 'unpublished' = nur Entwürfe.
 	 */

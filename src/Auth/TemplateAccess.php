@@ -59,8 +59,10 @@ class TemplateAccess {
 	}
 
 	/**
-	 * Erlaubte Aktionen ('create', 'edit', 'publish') eines Users für ein Template.
-	 * Fehlt für eine Rolle/Template-Kombination eine explizite Einstellung, gelten alle drei
+	 * Erlaubte Aktionen ('create', 'edit') eines Users für ein Template. 'edit' schließt
+	 * Veröffentlichen/Zurückziehen mit ein — kein eigenständiges 'publish'-Recht, da es nirgends
+	 * getrennt durchgesetzt würde (ein eigener Freigabe-Workflow ist für später vorgesehen).
+	 * Fehlt für eine Rolle/Template-Kombination eine explizite Einstellung, gelten beide
 	 * Aktionen als erlaubt — bestehende Installationen (vor Einführung dieser Feinsteuerung)
 	 * verlieren dadurch keinen heutigen Zugriff. Sichtbarkeit (allowedTemplates()) bleibt die
 	 * äußere, fail-closed Schranke: ohne Sichtbarkeit gibt es nie eine Aktion.
@@ -72,7 +74,7 @@ class TemplateAccess {
 			return [];
 		}
 		if ($user === null || $user->isSuperuser()) {
-			return ['create', 'edit', 'publish'];
+			return ['create', 'edit'];
 		}
 
 		$actionMap = $this->roleTemplateActionMap();
@@ -85,7 +87,7 @@ class TemplateAccess {
 				continue;
 			}
 			$explicit = $actionMap[$role->name][$template] ?? null;
-			$actions = array_merge($actions, is_array($explicit) ? $explicit : ['create', 'edit', 'publish']);
+			$actions = array_merge($actions, is_array($explicit) ? $explicit : ['create', 'edit']);
 		}
 		return array_values(array_unique($actions));
 	}
@@ -111,7 +113,7 @@ class TemplateAccess {
 				}
 				$out[$role][$tpl] = array_values(array_intersect(
 					array_map('strval', $actions),
-					['create', 'edit', 'publish']
+					['create', 'edit']
 				));
 			}
 		}

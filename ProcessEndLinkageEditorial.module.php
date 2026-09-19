@@ -315,7 +315,7 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 			if (isset($permKeyMap[$key])) {
 				[$permRole, $permTpl] = $permKeyMap[$key];
 				$actions = is_array($value) ? $value : ($value ? [(string) $value] : []);
-				$actions = array_values(array_intersect(array_map('strval', $actions), ['create', 'edit', 'publish']));
+				$actions = array_values(array_intersect(array_map('strval', $actions), ['create', 'edit']));
 				if (!isset($roleTemplateActions[$permRole]) || !is_array($roleTemplateActions[$permRole])) {
 					$roleTemplateActions[$permRole] = [];
 				}
@@ -990,8 +990,12 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 			$roleFieldCount++;
 
 			// Feinere Rechte je Template dieser Rolle: fehlt eine explizite Einstellung, gelten
-			// alle drei Aktionen als erlaubt (siehe TemplateAccess::allowedActions()) — bestehende
+			// beide Aktionen als erlaubt (siehe TemplateAccess::allowedActions()) — bestehende
 			// Installationen ändern sich dadurch nicht, wenn diese Checkboxen nie angefasst werden.
+			// Kein eigenständiges "Veröffentlichen"-Recht: Veröffentlichen ist an Bearbeiten gekoppelt,
+			// ein eigener Freigabe-Workflow (bearbeiten ohne veröffentlichen zu dürfen) ist für eine
+			// spätere Version vorgesehen — eine Checkbox dafür anzubieten, die nirgends durchgesetzt
+			// wird, würde nur ein Scheinsicherheitsgefühl erzeugen.
 			foreach (($roleMap[$role->name] ?? []) as $roleTpl) {
 				$roleTpl = (string) $roleTpl;
 				if ($roleTpl === '' || !isset($tplOptions[$roleTpl])) {
@@ -1001,11 +1005,12 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 				$pf = $modules->get('InputfieldCheckboxes');
 				$pf->name = 'perm__' . $role->name . '__' . $roleTpl;
 				$pf->label = '„' . $role->name . '“ darf bei „' . $roleTpl . '“';
+				$pf->description = 'Veröffentlichen ist an Bearbeiten gekoppelt. Ein eigener Freigabe-Workflow '
+					. '(bearbeiten ohne veröffentlichen zu dürfen) ist für eine spätere Version vorgesehen.';
 				$pf->addOption('create', 'Anlegen');
-				$pf->addOption('edit', 'Bearbeiten');
-				$pf->addOption('publish', 'Veröffentlichen');
+				$pf->addOption('edit', 'Bearbeiten & Veröffentlichen');
 				$pf->optionColumns = 1;
-				$pf->value = $roleActionMap[$role->name][$roleTpl] ?? ['create', 'edit', 'publish'];
+				$pf->value = $roleActionMap[$role->name][$roleTpl] ?? ['create', 'edit'];
 				$fsRoles->add($pf);
 			}
 		}

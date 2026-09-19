@@ -596,11 +596,14 @@ class Router {
 
 	protected function tinyMceUrl(): string {
 		$config = $this->wire()->config;
-		$path = $config->paths->modules . 'Inputfield/InputfieldTinyMCE/tinymce-6.8.2/tinymce.min.js';
-		if (is_file($path)) {
-			return $config->urls->modules . 'Inputfield/InputfieldTinyMCE/tinymce-6.8.2/tinymce.min.js';
+		// Version nicht hartcodieren -- ein PW-Core-Update auf eine neue TinyMCE-Version würde
+		// sonst kommentarlos dazu führen, dass das Feld auf eine einfache Textarea zurückfällt.
+		$matches = glob($config->paths->modules . 'Inputfield/InputfieldTinyMCE/tinymce-*/tinymce.min.js');
+		if (empty($matches)) {
+			return '';
 		}
-		return '';
+		$relative = str_replace($config->paths->modules, '', $matches[0]);
+		return $config->urls->modules . $relative;
 	}
 
 	protected function shellContextForTemplate(string $template, string $title, array $extra = []): array {
