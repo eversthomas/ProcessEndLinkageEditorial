@@ -102,7 +102,12 @@ class ImageFieldAdapter extends AbstractFieldAdapter {
 			return ['value' => null, 'errors' => $errors];
 		}
 
-		return ['value' => ['action' => 'update', 'remove' => $remove, 'add' => $added], 'errors' => []];
+		$rollback = [];
+		foreach ($added as $filename) {
+			$rollback[] = ['type' => 'file', 'path' => $page->filesManager()->path() . $filename];
+		}
+
+		return ['value' => ['action' => 'update', 'remove' => $remove, 'add' => $added], 'errors' => [], 'rollback' => $rollback];
 	}
 
 	public function writeValue(Field $field, Page $page, mixed $sanitizedValue): void {

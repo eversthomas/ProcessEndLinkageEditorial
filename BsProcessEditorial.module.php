@@ -37,6 +37,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$this->set('editorial_modes', []);
 		$this->set('editorial_datatypes', []);
 		$this->set('role_templates', []);
+		$this->set('role_template_actions', []);
 		$this->set('editorial_nav', '');
 		$this->set('theme_accent', '#1f6b4a');
 		$this->set('theme_rail_bg', '#ffffff');
@@ -265,6 +266,20 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$modes = is_array($previous['editorial_modes'] ?? null) ? $previous['editorial_modes'] : [];
 		$datatypes = is_array($previous['editorial_datatypes'] ?? null) ? $previous['editorial_datatypes'] : [];
 		$roleTemplates = is_array($previous['role_templates'] ?? null) ? $previous['role_templates'] : [];
+		$roleTemplateActions = is_array($previous['role_template_actions'] ?? null) ? $previous['role_template_actions'] : [];
+
+		// Bekannte Rolle/Template-Kombinationen aus der vorherigen Konfiguration, um perm__-Feldnamen
+		// eindeutig aufzulösen (kein String-Split, der bei Unterstrichen in Rollen-/Templatenamen
+		// mehrdeutig wäre — stattdessen exakter Abgleich gegen die bereits bekannten Paare).
+		$permKeyMap = [];
+		foreach ($roleTemplates as $r => $tpls) {
+			if (!is_array($tpls)) {
+				continue;
+			}
+			foreach ($tpls as $t) {
+				$permKeyMap['perm__' . $r . '__' . $t] = [(string) $r, (string) $t];
+			}
+		}
 
 		foreach ($values as $key => $value) {
 			$key = (string) $key;
@@ -293,6 +308,17 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 					}
 					$roleTemplates[$role] = array_values(array_filter(array_map('strval', $value)));
 				}
+				unset($values[$key]);
+				continue;
+			}
+			if (isset($permKeyMap[$key])) {
+				[$permRole, $permTpl] = $permKeyMap[$key];
+				$actions = is_array($value) ? $value : ($value ? [(string) $value] : []);
+				$actions = array_values(array_intersect(array_map('strval', $actions), ['create', 'edit', 'publish']));
+				if (!isset($roleTemplateActions[$permRole]) || !is_array($roleTemplateActions[$permRole])) {
+					$roleTemplateActions[$permRole] = [];
+				}
+				$roleTemplateActions[$permRole][$permTpl] = $actions;
 				unset($values[$key]);
 			}
 		}
@@ -363,10 +389,22 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			));
 		}
 
+		// Verwaiste Aktions-Einträge (Rolle/Template nicht mehr zugeordnet) verwerfen — kein
+		// Rest über eine später wieder entfernte Rolle/Template-Kombination behalten.
+		$cleanRoleActions = [];
+		foreach ($cleanRoles as $role => $tpls) {
+			foreach ($tpls as $tpl) {
+				if (isset($roleTemplateActions[$role][$tpl]) && is_array($roleTemplateActions[$role][$tpl])) {
+					$cleanRoleActions[$role][$tpl] = array_values($roleTemplateActions[$role][$tpl]);
+				}
+			}
+		}
+
 		$values['editorial_modes'] = $cleanModes;
 		$values['editorial_datatypes'] = $cleanDatatypes;
 		$values['editorial_templates'] = $templates;
 		$values['role_templates'] = $cleanRoles;
+		$values['role_template_actions'] = $cleanRoleActions;
 		$values['allow_demo_login'] = !empty($values['allow_demo_login']) ? 1 : 0;
 		$values['session_timeout_minutes'] = max(0, (int) ($values['session_timeout_minutes'] ?? 60));
 
@@ -926,6 +964,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$fsRoles->collapsed = Inputfield::collapsedNo;
 
 		$roleMap = is_array($data['role_templates'] ?? null) ? $data['role_templates'] : [];
+		$roleActionMap = is_array($data['role_template_actions'] ?? null) ? $data['role_template_actions'] : [];
 		$tplOptions = [];
 		foreach ($selected as $name) {
 			$tplOptions[$name] = $name;
@@ -947,6 +986,26 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$rf->value = $roleMap[$role->name] ?? [];
 			$fsRoles->add($rf);
 			$roleFieldCount++;
+
+			// Feinere Rechte je Template dieser Rolle: fehlt eine explizite Einstellung, gelten
+			// alle drei Aktionen als erlaubt (siehe TemplateAccess::allowedActions()) — bestehende
+			// Installationen ändern sich dadurch nicht, wenn diese Checkboxen nie angefasst werden.
+			foreach (($roleMap[$role->name] ?? []) as $roleTpl) {
+				$roleTpl = (string) $roleTpl;
+				if ($roleTpl === '' || !isset($tplOptions[$roleTpl])) {
+					continue;
+				}
+				/** @var InputfieldCheckboxes $pf */
+				$pf = $modules->get('InputfieldCheckboxes');
+				$pf->name = 'perm__' . $role->name . '__' . $roleTpl;
+				$pf->label = '„' . $role->name . '“ darf bei „' . $roleTpl . '“';
+				$pf->addOption('create', 'Anlegen');
+				$pf->addOption('edit', 'Bearbeiten');
+				$pf->addOption('publish', 'Veröffentlichen');
+				$pf->optionColumns = 1;
+				$pf->value = $roleActionMap[$role->name][$roleTpl] ?? ['create', 'edit', 'publish'];
+				$fsRoles->add($pf);
+			}
 		}
 
 		// —— 4. Erweitert ——

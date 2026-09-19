@@ -62,7 +62,11 @@ class FileFieldAdapter extends AbstractFieldAdapter {
 				$errors[] = 'Upload fehlgeschlagen.';
 				return ['value' => null, 'errors' => $errors];
 			}
-			return ['value' => ['action' => 'add', 'files' => $filenames], 'errors' => []];
+			$rollback = [];
+			foreach ($filenames as $filename) {
+				$rollback[] = ['type' => 'file', 'path' => $page->filesManager()->path() . $filename];
+			}
+			return ['value' => ['action' => 'add', 'files' => $filenames], 'errors' => [], 'rollback' => $rollback];
 		}
 
 		if ($field->get('required')) {

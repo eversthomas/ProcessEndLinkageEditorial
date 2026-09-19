@@ -61,6 +61,7 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 
 		$prepared = [];
 		$errors = [];
+		$rollback = [];
 		$index = 0;
 		foreach ($rows as $rawRow) {
 			if (!is_array($rawRow)) {
@@ -75,10 +76,14 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 					break;
 				}
 				// Neues Item braucht sofort eine gespeicherte Page-ID, sonst schlägt ein
-				// Bild-Upload im selben Item fehl (ImageFieldAdapter verlangt $page->id) —
-				// gleiches Muster wie die Vorab-Speicherung der Hauptseite in ProcessWireAdapter::saveRecord().
+				// Bild-Upload im selben Item fehl (ImageFieldAdapter verlangt $page->id) und
+				// zwei ungespeicherte Items (beide id===0) würden sich im Container gegenseitig
+				// überschreiben (RepeaterPageArray verschlüsselt Items über die Page-ID).
+				// Scheitert die Gesamtvalidierung später, macht ProcessWireAdapter::rollback()
+				// dieses frühe Speichern wieder rückgängig (siehe 'rollback'-Eintrag unten).
 				$item = $container->getNewItem();
 				$item->save();
+				$rollback[] = ['type' => 'page', 'id' => $item->id];
 			} else {
 				unset($existingById[$itemId]);
 				// Items aus dem Container kommen mit aktivierter Output-Formatierung — vor dem
@@ -99,6 +104,9 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 				if ($isImage) {
 					$this->restoreFiles($subField->name, $filesBackup);
 				}
+				if (!empty($result['rollback'])) {
+					array_push($rollback, ...$result['rollback']);
+				}
 				if ($result['errors']) {
 					$errors[] = 'Element ' . ($index + 1) . ': ' . $result['errors'][0];
 				} else {
@@ -110,6 +118,12 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 			$index++;
 		}
 
+		// Entfernte Items kommen (wie alle Container-Items) mit aktivierter Output-Formatierung —
+		// ohne of(false) bricht writeValue()/Page::save() beim Entfernen aus dem Container.
+		foreach ($existingById as $removedItem) {
+			$removedItem->of(false);
+		}
+
 		return [
 			'value' => [
 				'container' => $container,
@@ -118,6 +132,7 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 				'removed' => array_values($existingById),
 			],
 			'errors' => $errors,
+			'rollback' => $rollback,
 		];
 	}
 
@@ -139,6 +154,14 @@ class RepeaterFieldAdapter extends AbstractFieldAdapter {
 			}
 		}
 		if ($container) {
+			// $item->save() oben setzt als PW-interner Nebeneffekt die Output-Formatierung der
+			// Hauptseite ($page, nicht $item!) wieder auf "an" zurück — reproduzierbar nachgewiesen,
+			// betrifft nur den Fall, dass mindestens ein bereits bestehendes Geschwister-Item
+			// gespeichert wird. Ohne dieses erneute of(false) hält PW den nächsten set() für einen
+			// Versuch, einen formatierten Wert zu speichern, und markiert die Seite als "corrupted"
+			// (Page::statusCorrupted) — sichtbar geworden erst beim Entfernen eines Items, weil nur
+			// dann der neu zusammengesetzte Container vom zuletzt gespeicherten DB-Stand abweicht.
+			$page->of(false);
 			// FieldtypeRepeater::___savePageField() liest beim Speichern die "aktuelle" Feld-Wert-Instanz
 			// erneut von der Page — ohne dieses erneute set() sieht es nicht dieselbe (mutierte) Instanz und
 			// erkennt entfernte Items nicht als entfernt (getItemsRemoved() bliebe leer).

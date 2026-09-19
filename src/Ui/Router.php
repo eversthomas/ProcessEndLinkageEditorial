@@ -129,6 +129,9 @@ class Router {
 					if ($action !== null && $action !== '' && ctype_digit((string) $action) && $method === 'GET') {
 						return $this->redirect($this->url('t/' . $template));
 					}
+					if ($method === 'POST' && !in_array('edit', $this->allowedActionsFor($template), true)) {
+						return $this->renderError(403, 'Für diesen Inhaltstyp dürfen Sie keine Einträge bearbeiten.');
+					}
 					return $method === 'POST'
 						? $this->postForm($template, $id, true)
 						: $this->getForm($template, $id, [], [], true);
@@ -140,9 +143,15 @@ class Router {
 				return $this->getList($template);
 			}
 			if ($action === 'new') {
+				if (!in_array('create', $this->allowedActionsFor($template), true)) {
+					return $this->renderError(403, 'Für diesen Inhaltstyp dürfen Sie keine neuen Einträge anlegen.');
+				}
 				return $method === 'POST' ? $this->postForm($template, null) : $this->getForm($template, null);
 			}
 			if (ctype_digit($action)) {
+				if ($method === 'POST' && !in_array('edit', $this->allowedActionsFor($template), true)) {
+					return $this->renderError(403, 'Für diesen Inhaltstyp dürfen Sie keine Einträge bearbeiten.');
+				}
 				return $method === 'POST' ? $this->postForm($template, $action) : $this->getForm($template, $action);
 			}
 
@@ -186,6 +195,12 @@ class Router {
 		}
 		$this->contentTypes = $types;
 		$this->navTree = $this->navConfig->treeForTemplates($this->allowedTemplates);
+	}
+
+	/** @return string[] */
+	protected function allowedActionsFor(string $template): array {
+		$access = new TemplateAccess($this->module);
+		return $access->allowedActions($this->auth->currentUser(), $template);
 	}
 
 	protected function bindEditorialUser(): void {
@@ -471,7 +486,8 @@ class Router {
 			}
 		}
 
-		$result = $this->adapter->saveRecord($template, $data);
+		$auditAction = $id === null ? 'create' : ($action === 'publish' || $action === 'unpublish' ? $action : 'edit');
+		$result = $this->adapter->saveRecord($template, $data, $auditAction);
 		if (!empty($result['errors'])) {
 			return $this->getForm($template, $id, $data, $result['errors'], $single);
 		}

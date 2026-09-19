@@ -188,11 +188,12 @@ class ProcessWireAdapter implements AdapterInterface {
 		return $this->pageToRecord($page);
 	}
 
-	public function saveRecord(string $template, array $data): array {
+	public function saveRecord(string $template, array $data, string $action = 'edit'): array {
 		$tpl = $this->requireEditorialTemplate($template);
 		$pages = $this->module->wire()->pages;
 		$sanitizer = $this->module->wire()->sanitizer;
 		$id = isset($data['id']) ? (int) $data['id'] : 0;
+		$isNewPage = !$id;
 
 		if ($id) {
 			$page = $pages->get($id);
@@ -235,6 +236,11 @@ class ProcessWireAdapter implements AdapterInterface {
 
 		$validated = [];
 		$errors = [];
+		$rollback = [];
+
+		if ($isNewPage) {
+			$rollback[] = ['type' => 'page', 'id' => $page->id];
+		}
 
 		foreach ($tpl->fields as $field) {
 			$adapter = $this->adapterFor($field);
@@ -243,6 +249,9 @@ class ProcessWireAdapter implements AdapterInterface {
 			}
 			$raw = $this->rawForField($field, $data);
 			$result = $adapter->sanitizeAndValidate($field, $page, $raw);
+			if (!empty($result['rollback'])) {
+				array_push($rollback, ...$result['rollback']);
+			}
 			if ($result['errors']) {
 				$errors[$field->name] = $result['errors'][0];
 			} else {
@@ -251,6 +260,7 @@ class ProcessWireAdapter implements AdapterInterface {
 		}
 
 		if ($errors) {
+			$this->rollback($rollback);
 			return ['record' => null, 'errors' => $errors];
 		}
 
@@ -267,7 +277,40 @@ class ProcessWireAdapter implements AdapterInterface {
 
 		$page->save();
 
+		$user = $this->module->wire()->user;
+		$this->module->wire()->log->save('bpe-audit', sprintf(
+			'%s template=%s id=%s user=%s status=%s',
+			$action,
+			$template,
+			$page->id,
+			($user && $user->id) ? $user->name : 'guest',
+			$status !== '' ? $status : 'published'
+		));
+
 		return ['record' => $this->pageToRecord($page), 'errors' => []];
+	}
+
+	/**
+	 * Räumt spekulativ geschriebene Seiten/Repeater-Items/Dateien auf, wenn eine Gesamt-
+	 * validierung scheitert. Löscht nur, was in genau diesem Request neu entstanden ist —
+	 * niemals einen vorher schon existierenden Datensatz.
+	 *
+	 * @param array<int, array{type: string, id?: int, path?: string}> $entries
+	 */
+	protected function rollback(array $entries): void {
+		$pages = $this->module->wire()->pages;
+		foreach ($entries as $entry) {
+			$type = $entry['type'] ?? '';
+			if ($type === 'page' && !empty($entry['id'])) {
+				$p = $pages->get((int) $entry['id']);
+				if ($p->id) {
+					$p->of(false);
+					$pages->delete($p, true);
+				}
+			} elseif ($type === 'file' && !empty($entry['path']) && is_file($entry['path'])) {
+				@unlink($entry['path']);
+			}
+		}
 	}
 
 	/**

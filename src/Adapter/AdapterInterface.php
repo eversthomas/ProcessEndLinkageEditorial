@@ -33,6 +33,7 @@ interface AdapterInterface {
 	/**
 	 * Speichern. Rückgabe: ['record' => array|null, 'errors' => array]
 	 * errors keyed by field name where possible.
+	 * $action: 'create' | 'edit' | 'publish' | 'unpublish' — für das Audit-Log, sonst ohne Wirkung.
 	 */
-	public function saveRecord(string $template, array $data): array;
+	public function saveRecord(string $template, array $data, string $action = 'edit'): array;
 }
