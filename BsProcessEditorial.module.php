@@ -119,8 +119,62 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		$out = '<div class="bpe-admin">';
 		$out .= $form->render();
+		$out .= $this->renderFooter();
 		$out .= '</div>';
 		return $out;
+	}
+
+	/**
+	 * Fester Footer im Setup-Bildschirm: Autorenschaft + Versions-/Release-Info.
+	 * Das Release-Datum kommt aus release-info.json, die der GitHub-Actions-Release-Workflow
+	 * bei jedem neuen Versions-Tag ins Modulverzeichnis schreibt (siehe .github/workflows/release.yml).
+	 * Passt die Versionsnummer im Code nicht zur zuletzt getaggten Version, gilt der Stand als
+	 * unveröffentlicht (z. B. lokale Entwicklung nach einem Versionssprung, aber vor dem Release-Push).
+	 */
+	protected function renderFooter(): string {
+		$info = self::getModuleInfo();
+		$currentVersion = (int) $info['version'];
+		$release = $this->releaseInfo();
+
+		$versionLabel = 'Version ' . $currentVersion;
+		if ($release['version'] === $currentVersion && $release['date']) {
+			$timestamp = strtotime($release['date']);
+			$formatted = $timestamp !== false ? date('d.m.Y', $timestamp) : $release['date'];
+			$versionLabel .= ' · Release vom ' . htmlspecialchars($formatted, ENT_QUOTES, 'UTF-8');
+		} else {
+			$versionLabel .= ' · unveröffentlicht';
+		}
+
+		return '<style>'
+			. '.bpe-admin-footer{margin-top:2em;padding-top:0.8em;border-top:1px solid #ddd;'
+			. 'display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5em;'
+			. 'font-size:0.85em;color:#777;}'
+			. '.bpe-admin-footer a{color:inherit;text-decoration:underline;}'
+			. '</style>'
+			. '<footer class="bpe-admin-footer">'
+			. '<span class="bpe-admin-footer__author">Tom Evers | '
+			. '<a href="https://endlinkage.de" target="_blank" rel="noopener noreferrer">https://endlinkage.de</a>'
+			. '</span>'
+			. '<span class="bpe-admin-footer__version">' . $versionLabel . '</span>'
+			. '</footer>';
+	}
+
+	/**
+	 * @return array{version: int|null, date: string|null}
+	 */
+	protected function releaseInfo(): array {
+		$path = $this->modulePath() . 'release-info.json';
+		if (!is_file($path)) {
+			return ['version' => null, 'date' => null];
+		}
+		$data = json_decode((string) file_get_contents($path), true);
+		if (!is_array($data)) {
+			return ['version' => null, 'date' => null];
+		}
+		return [
+			'version' => isset($data['version']) ? (int) $data['version'] : null,
+			'date' => isset($data['date']) ? (string) $data['date'] : null,
+		];
 	}
 
 	/**

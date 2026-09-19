@@ -1,0 +1,79 @@
+name: Release
+
+# Erstellt automatisch einen Git-Tag + GitHub-Release, sobald die Versionsnummer in
+# BsProcessEditorial.module.php auf master erhöht wurde. Schreibt zusätzlich
+# release-info.json mit Version + Release-Datum zurück ins Repo — das Modul liest diese
+# Datei zur Laufzeit für den Footer im Setup-Bildschirm (siehe BsProcessEditorial.module.php,
+# renderFooter()/releaseInfo()).
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Modulversion auslesen
+        id: version
+        run: |
+          VERSION=$(grep -oE "'version'[[:space:]]*=>[[:space:]]*[0-9]+" BsProcessEditorial.module.php | grep -oE '[0-9]+')
+          if [ -z "$VERSION" ]; then
+            echo "Konnte Modulversion nicht aus BsProcessEditorial.module.php lesen" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Prüfen, ob Tag bereits existiert
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: release-info.json schreiben
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          printf '{\n  "version": %s,\n  "date": "%s"\n}\n' \
+            "${{ steps.version.outputs.version }}" "$DATE" > release-info.json
+
+      - name: release-info.json committen
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add release-info.json
+          if git diff --cached --quiet; then
+            echo "release-info.json unverändert, kein Commit nötig"
+          else
+            git commit -m "chore: release-info fuer v${{ steps.version.outputs.version }} [skip ci]"
+            git push origin HEAD:master
+          fi
+
+      - name: Tag setzen und pushen
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: GitHub-Release erstellen
+        if: steps.check_tag.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "v${{ steps.version.outputs.version }}" \
+            --generate-notes

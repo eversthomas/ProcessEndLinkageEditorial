@@ -45,6 +45,7 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
   1. **Inhalte & Navigation** — Discovery/Freigabe und visueller Menü-Builder in einer Fläche (Freigabe ergibt sich aus der Baumstruktur, keine separate Auswahl mehr)
   2. **Design & Branding** — Firmenname, Logo, Theme-Tokens (inkl. Hauptmenü-Farben)
   3. **Zugriff & System** — Rollen-Mapping, Demo-Login, URL-Pfad, Sitzungs-Timeout
+- Fester Footer im Setup-Bildschirm: Autorenschaft (Tom Evers | endlinkage.de) + Versionsnummer inkl. Release-Datum (aus `release-info.json`, siehe unten)
 - Template-Discovery + Freigabe (`editorial_templates`, abgeleitet aus der Navigationsstruktur)
 - Darstellungsmodus pro Template: Liste | Einzelseite
 - **Daten-Art** pro Template: Daten (Default) · Blog · News · Termine · Seiten — steuert die redaktionelle Ansicht; nur „Daten“ hat derzeit die spezialisierte Broadsheet-Oberfläche
@@ -174,3 +175,9 @@ Löschen/Zusammenlegen der Planungsdateien lohnt erst vor Open-Source oder wenn 
 - Modulordner-Name darf von `bs-processEditorial` abweichen — Asset-URLs kommen aus dem realen Pfad.
 - Nach fehlgeschlagener Erstinstallation: neu installieren **oder** unter Access die Permission `editorial-access` und Rolle `editorial` prüfen/anlegen.
 - CSS prüfen: View-Source der Login-Seite → Link muss auf den **tatsächlichen** Modulordner zeigen.
+
+### Releases (GitHub Actions)
+
+- `.github/workflows/release.yml` erstellt bei jedem Push auf `master` automatisch Tag `vX` + GitHub-Release, sobald die `version` in `BsProcessEditorial.module.php` erhöht wurde (kein Tag `vX` vorhanden → neuer Release).
+- Der Workflow schreibt dabei `release-info.json` (Version + UTC-Datum) zurück ins Repo — diese Datei liefert dem Setup-Footer im Modul das tatsächliche Release-Datum. Ohne passenden Tag zeigt der Footer „unveröffentlicht".
+- Manuell auslösen: GitHub → Actions → „Release" → „Run workflow".
