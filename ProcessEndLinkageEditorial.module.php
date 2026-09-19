@@ -11,9 +11,9 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo(): array {
 		return [
-			'title' => 'Redaktions-Login & Content-Verwaltung (ProcessEndLinkageEditorial)',
-			'version' => 19,
-			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE, Repeater-Feldern, Publish und gehärtetem Login/Zugriff.',
+			'title' => 'Editorial Login & Content Management (ProcessEndLinkageEditorial)',
+			'version' => 20,
+			'summary' => 'A polished, non-technical editorial interface separate from the PW admin — menu builder, dashboard, TinyMCE, repeater fields, publish workflow and hardened login/access.',
 			'author' => 'Tom Evers',
 			'icon' => 'edit',
 			'autoload' => true,

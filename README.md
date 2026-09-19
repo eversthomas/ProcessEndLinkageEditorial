@@ -1,4 +1,8 @@
-# bs-processEditorial
+# ProcessEndLinkageEditorial
+
+**English summary:** A generic, non-technical **editorial interface** for ProcessWire — its own front end with login, completely separate from the PW admin. Editors manage approved content types (lists, forms, publish/draft) without ever seeing templates, fields, or the ProcessWire admin itself; developers configure what's exposed, the navigation menu, and branding under **Setup → Redaktion**. Highlights: role-based visibility with fine-grained create/edit/publish permissions, repeater field support with an accordion UI, transactional saving with automatic rollback on validation failure, hardened login (rate limiting, session rotation, idle timeout), and an audit log. Built for and documented in German (its target audience — associations, small/medium businesses — is German-speaking), but the code itself is straightforward PHP 8 / ProcessWire 3.x with no build step. The rest of this README is in German.
+
+---
 
 Generische **Redaktionsoberfläche** für ProcessWire — eigenes Frontend mit Login, getrennt vom PW-Admin.
 
