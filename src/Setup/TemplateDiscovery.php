@@ -1,6 +1,6 @@
-<?php namespace ProcessWire\BsProcessEditorial\Setup;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Setup;
 
-use ProcessWire\BsProcessEditorial;
+use ProcessWire\ProcessEndLinkageEditorial;
 use ProcessWire\Template;
 
 /**
@@ -18,9 +18,9 @@ class TemplateDiscovery {
 	public const MODE_LIST = 'list';
 	public const MODE_SINGLE = 'single';
 
-	protected BsProcessEditorial $module;
+	protected ProcessEndLinkageEditorial $module;
 
-	public function __construct(BsProcessEditorial $module) {
+	public function __construct(ProcessEndLinkageEditorial $module) {
 		$this->module = $module;
 	}
 
@@ -38,7 +38,7 @@ class TemplateDiscovery {
 	public function candidates(): array {
 		$templates = $this->module->wire()->templates;
 		$pages = $this->module->wire()->pages;
-		$adapter = new \ProcessWire\BsProcessEditorial\Adapter\ProcessWireAdapter($this->module);
+		$adapter = new \ProcessWire\ProcessEndLinkageEditorial\Adapter\ProcessWireAdapter($this->module);
 		$out = [];
 
 		foreach ($templates as $tpl) {

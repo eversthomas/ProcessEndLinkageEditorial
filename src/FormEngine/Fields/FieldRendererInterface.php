@@ -1,4 +1,4 @@
-<?php namespace ProcessWire\BsProcessEditorial\FormEngine\Fields;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields;
 
 /**
  * Feld-Renderer erhalten nur Schema-Daten — keine PW-Objekte.

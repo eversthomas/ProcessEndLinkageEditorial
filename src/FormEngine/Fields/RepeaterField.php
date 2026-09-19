@@ -1,4 +1,4 @@
-<?php namespace ProcessWire\BsProcessEditorial\FormEngine\Fields;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields;
 
 /**
  * Repeater: rendert jedes Item über die injizierten Item-Feld-Renderer.

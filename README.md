@@ -15,7 +15,7 @@ Generische **Redaktionsoberfläche** für ProcessWire — eigenes Frontend mit L
 
 Stack: PHP 8+ / PW 3.x · Vanilla JS · CSS ohne Build · Lucide (MIT) · TinyMCE aus PW-Core.
 
-URL-App typisch: `/editorial/` · Modulversion: siehe `BsProcessEditorial.module.php`.
+URL-App typisch: `/editorial/` · Modulversion: siehe `ProcessEndLinkageEditorial.module.php`.
 
 ---
 
@@ -78,7 +78,7 @@ text · textarea · html/TinyMCE · email · url · integer · float · datetime
 **Repeater (Core):** Items unterstützen aktuell text, textarea/html, url, image als Item-Felder (weitere Item-Feldtypen bei Bedarf als Erweiterung des bestehenden Adapters). Kein Reorder/Sortieren, keine verschachtelten Repeater. Weitere Standard-Feldtypen außerhalb von Repeater-Items bei Bedarf als einzelne Adapter-Klassen.
 
 ### Architektur-Dateien (Orientierung)
-- `BsProcessEditorial.module.php` — Modul, Setup, Config
+- `ProcessEndLinkageEditorial.module.php` — Modul, Setup, Config
 - `src/Ui/` — Router, Shell, Dashboard, Liste, Nav
 - `src/FormEngine/` — Formular-UI (inkl. `UnsupportedField`)
 - `src/Adapter/` — ProcessWire-Adapter und Feld-Adapter
@@ -103,6 +103,9 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 - Sichtbarkeit der Inhaltstypen über Rollen-Mapping filterbar, **fail-closed** bei unklarer/fehlender Zuordnung
 - System-Templates (`admin`, `user`, `role`, `permission` u. a.) serverseitig gesperrt — auch wenn sie sich ins Navigations-JSON einschleichen würden
 - Branding-Logo: kein SVG, Content-Check (`getimagesize`) für Rasterformate, Legacy-SVG-Purge
+- **Transaktionales Speichern**: neue Seiten, neue Repeater-Items und neu hochgeladene Dateien werden bei einem Validierungsfehler im selben Formular aktiv wieder entfernt (Rollback über `ProcessWireAdapter::rollback()`) — kein Datenrest bei fehlgeschlagenem Speichern
+- **Feinere Rechte**: Anlegen/Bearbeiten/Veröffentlichen einzeln je Rolle + Inhaltstyp einstellbar (`role_template_actions`, Setup → Zugriff & System); ohne explizite Einstellung weiterhin voller Zugriff (kein Bruch bestehender Konfiguration)
+- **Audit-Log**: jede Speicherung/Veröffentlichung wird mit Benutzer, Inhaltstyp, ID und Aktion in einen eigenen PW-Log-Kanal (`bpe-audit`, sichtbar unter Setup → Logs) geschrieben
 
 ### Betrieb (nicht Modul-Code, aber nötig)
 - **HTTPS** für `/editorial/`
@@ -113,14 +116,12 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 ### Später im Modul / Konzept (Roadmap)
 | Thema | Warum | Priorität |
 |-------|--------|-----------|
-| Transaktionales Speichern (Seite/Repeater-Item erst nach Gesamtvalidierung persistieren) | Bei Validierungsfehlern können heute bereits Teile geschrieben sein (Seite, Uploads, neue Repeater-Items) | hoch vor Go-Live |
-| Feinere Rechte (anlegen / löschen / nur bearbeiten) | Weniger Schaden bei kompromittiertem Account | mittel |
-| Eigenes Editorial-Rollensystem (unabhängig von PW-Rollen) | Aktuell dienen PW-Rollen nur als Gruppierungs-Schlüssel für `role_templates`; sauberere Trennung wäre möglich, aber mehr Aufwand | zurückgestellt, siehe „Feinere Rechte“ |
-| Audit-Log (wer speicherte/publishte was) | Nachvollziehbarkeit bei Kunden | mittel |
+| Löschen / Papierkorb für Datensätze | Existiert im Modul noch gar nicht (weder Route noch Adapter-Methode) | hoch, siehe Offen-Liste |
+| Eigenes Editorial-Rollensystem (unabhängig von PW-Rollen) | Aktuell dienen PW-Rollen weiterhin als Gruppierungs-Schlüssel für `role_templates`/`role_template_actions`; sauberere Trennung wäre möglich, aber mehr Aufwand | zurückgestellt |
 | **2FA (TOTP o. ä.)** | Extra Schutz für Publish-Zugang; oft Kundenanforderung | mittel–hoch je nach Kunde |
 | Weitere Upload-Härtung an Feld-Adaptern (falls nötig über WireUpload hinaus) | Logo-Pfad ist abgesichert; Bild/Datei laufen über PW `WireUpload` | niedrig–mittel |
 
-*(Login-Rate-Limit und Sitzungs-Timeout sind seit 14.09.2026 umgesetzt, siehe „Bereits vorhanden" oben.)*
+*(Login-Rate-Limit, Sitzungs-Timeout seit 14.09.2026, Transaktionales Speichern/Feinere Rechte/Audit-Log seit 19.09.2026 umgesetzt, siehe „Bereits vorhanden" oben.)*
 
 **Brauchen wir ein Sicherheitskonzept?** Ja — als kurze Checkliste (Ist/Soll/Go-Live), kein Roman. Liegt sinnvoll **vor erstem Kunden-Produktivbetrieb**, parallel zu Rechte/Löschen.
 
@@ -130,20 +131,18 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 
 ## Offen — Reihenfolge für den nächsten Chat
 
-1. **Transaktionales Speichern** — Seite/Repeater-Item erst nach vollständiger Validierung persistieren (aktuell schreibt `ProcessWireAdapter`/`RepeaterFieldAdapter` teils schon währenddessen); laut zwei unabhängigen externen Reviews (13.09.2026) der wichtigste verbleibende Punkt vor Go-Live
-2. **Listen: Suche / Filter / Sortierung**
-3. **Löschen / Papierkorb** für Datensätze
-4. **Medienbibliothek** (statt nur Upload am Feld)
-5. **Autosave** + robusteres Speichern-Feedback
-6. **Zeitplanung** veröffentlichen (aktuell Stub)
-7. **Rechte feiner** (anlegen/löschen vs. nur bearbeiten) — dabei auch die zurückgestellte Grundsatzfrage klären: eigenes Editorial-Rollensystem statt PW-Rollen als Gruppierungs-Schlüssel?
-8. **Sicherheit Go-Live:** kurze Checkliste (Ist/Soll) — Rate-Limit und Session-Timeout sind seit 14.09.2026 erledigt
-9. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
-10. **Workflow** jenseits Publish/Entwurf
-11. **Daten-Arten** Blog/News/Termine/Seiten — eigene Ansichten (Design steht als Mockup bereit)
-12. **Weitere Feldtypen** bei Bedarf (auch als Repeater-Item-Feld, z. B. pageReference/select in Items)
-13. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests, dabei auch PHPUnit-Grundgerüst (aktuell keine automatisierten Tests)
-14. Repo öffentlich / Doku für Dritte (wenn gewünscht)
+1. **Listen: Suche / Filter / Sortierung**
+2. **Löschen / Papierkorb** für Datensätze
+3. **Medienbibliothek** (statt nur Upload am Feld)
+4. **Autosave** + robusteres Speichern-Feedback
+5. **Zeitplanung** veröffentlichen (aktuell Stub)
+6. **Sicherheit Go-Live:** kurze Checkliste (Ist/Soll) — Rate-Limit, Session-Timeout, Transaktionales Speichern, Feinere Rechte und Audit-Log sind erledigt
+7. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
+8. **Workflow** jenseits Publish/Entwurf
+9. **Daten-Arten** Blog/News/Termine/Seiten — eigene Ansichten (Design steht als Mockup bereit)
+10. **Weitere Feldtypen** bei Bedarf (auch als Repeater-Item-Feld, z. B. pageReference/select in Items)
+11. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests, dabei auch PHPUnit-Grundgerüst (aktuell keine automatisierten Tests)
+12. Screenshots/Kurzbeschreibung für den Eintrag im offiziellen PW-Modulverzeichnis vorbereiten, dann einreichen
 
 ---
 
@@ -162,7 +161,7 @@ Löschen/Zusammenlegen der Planungsdateien lohnt erst vor Open-Source oder wenn 
 
 ## Kurz testen
 
-1. Module → BsProcessEditorial installiert / Cache ok  
+1. Module → ProcessEndLinkageEditorial installiert / Cache ok  
 2. Setup → Redaktion: Tabs durchgehen (Inhalte & Navigation · Design & Branding · Zugriff & System), speichern, Branding setzen  
 3. User mit Rolle `editorial` oder Superuser → `/editorial/`  
 4. Template mit Daten-Art „Daten“: Broadsheet-Design prüfen; anderes Template (z. B. Blog): generische Ansicht  
@@ -178,6 +177,6 @@ Löschen/Zusammenlegen der Planungsdateien lohnt erst vor Open-Source oder wenn 
 
 ### Releases (GitHub Actions)
 
-- `.github/workflows/release.yml` erstellt bei jedem Push auf `master` automatisch Tag `vX` + GitHub-Release, sobald die `version` in `BsProcessEditorial.module.php` erhöht wurde (kein Tag `vX` vorhanden → neuer Release).
+- `.github/workflows/release.yml` erstellt bei jedem Push auf `master` automatisch Tag `vX` + GitHub-Release, sobald die `version` in der `.module.php`-Hauptdatei (per Glob gefunden, aktuell `ProcessEndLinkageEditorial.module.php`) erhöht wurde (kein Tag `vX` vorhanden → neuer Release).
 - Der Workflow schreibt dabei `release-info.json` (Version + UTC-Datum) zurück ins Repo — diese Datei liefert dem Setup-Footer im Modul das tatsächliche Release-Datum. Ohne passenden Tag zeigt der Footer „unveröffentlicht".
 - Manuell auslösen: GitHub → Actions → „Release" → „Run workflow".

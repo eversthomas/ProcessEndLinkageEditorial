@@ -1,4 +1,4 @@
-<?php namespace ProcessWire\BsProcessEditorial\Ui;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Ui;
 
 /**
  * Lucide-Icons (MIT) als Inline-SVG — kuratiertes Subset, Namen entwicklerwählbar.

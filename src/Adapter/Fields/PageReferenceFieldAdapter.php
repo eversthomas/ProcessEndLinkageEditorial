@@ -1,4 +1,4 @@
-<?php namespace ProcessWire\BsProcessEditorial\Adapter\Fields;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields;
 
 use ProcessWire\Field;
 use ProcessWire\FieldtypePage;

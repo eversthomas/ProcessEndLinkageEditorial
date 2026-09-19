@@ -1,7 +1,7 @@
-<?php namespace ProcessWire\BsProcessEditorial\Ui;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Ui;
 
-use ProcessWire\BsProcessEditorial\Adapter\AdapterInterface;
-use ProcessWire\BsProcessEditorial\Setup\NavConfig;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\AdapterInterface;
+use ProcessWire\ProcessEndLinkageEditorial\Setup\NavConfig;
 
 /**
  * Inhaltsbaum: Gruppen + Inhaltstypen (keine Einzelsätze — die gehören in die Liste).

@@ -1,13 +1,13 @@
-<?php namespace ProcessWire\BsProcessEditorial\Adapter;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Adapter;
 
-use ProcessWire\BsProcessEditorial;
+use ProcessWire\ProcessEndLinkageEditorial;
 
 /**
  * Liefert den ProcessWire-Adapter für die Redaktion.
  */
 class AdapterFactory {
 
-	public static function make(BsProcessEditorial $module): AdapterInterface {
+	public static function make(ProcessEndLinkageEditorial $module): AdapterInterface {
 		return new ProcessWireAdapter($module);
 	}
 }

@@ -1,6 +1,6 @@
-<?php namespace ProcessWire\BsProcessEditorial\Setup;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Setup;
 
-use ProcessWire\BsProcessEditorial;
+use ProcessWire\ProcessEndLinkageEditorial;
 
 /**
  * Entwickler-konfigurierbare Menühierarchie für die Redaktion.
@@ -13,9 +13,9 @@ use ProcessWire\BsProcessEditorial;
  */
 class NavConfig {
 
-	protected BsProcessEditorial $module;
+	protected ProcessEndLinkageEditorial $module;
 
-	public function __construct(BsProcessEditorial $module) {
+	public function __construct(ProcessEndLinkageEditorial $module) {
 		$this->module = $module;
 	}
 

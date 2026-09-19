@@ -1,9 +1,9 @@
 <?php namespace ProcessWire;
 
 /**
- * BsProcessEditorial — Redaktionsoberfläche + Setup unter ProcessWire → Setup.
+ * ProcessEndLinkageEditorial — Redaktionsoberfläche + Setup unter ProcessWire → Setup.
  */
-class BsProcessEditorial extends Process implements ConfigurableModule {
+class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 
 	const BASE_PATH = 'editorial';
 	const SESSION_KEY = 'bpe_auth';
@@ -11,10 +11,10 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo(): array {
 		return [
-			'title' => 'Redaktions-Login & Content-Verwaltung (bs-processEditorial)',
-			'version' => 18,
+			'title' => 'Redaktions-Login & Content-Verwaltung (ProcessEndLinkageEditorial)',
+			'version' => 19,
 			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE, Repeater-Feldern, Publish und gehärtetem Login/Zugriff.',
-			'author' => 'BezugsSysteme',
+			'author' => 'Tom Evers',
 			'icon' => 'edit',
 			'autoload' => true,
 			'singular' => true,
@@ -71,7 +71,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	public function ready(): void {
 		$this->ensureSetupPage();
-		$auth = new \ProcessWire\BsProcessEditorial\Auth\EditorialAuth($this);
+		$auth = new \ProcessWire\ProcessEndLinkageEditorial\Auth\EditorialAuth($this);
 		$auth->ensureAccessInfrastructure();
 	}
 
@@ -216,7 +216,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		if (isset($modes[$template]) && in_array($modes[$template], ['list', 'single'], true)) {
 			return $modes[$template];
 		}
-		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
+		$discovery = new \ProcessWire\ProcessEndLinkageEditorial\Setup\TemplateDiscovery($this);
 		return $discovery->suggestMode($template);
 	}
 
@@ -325,7 +325,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 		// Baummitgliedschaft ist jetzt Quelle der Freigabe ("im Baum" = "freigegeben"),
 		// nicht mehr eine separate editorial_templates-Auswahl (siehe Setup-Tab „Inhalte & Navigation").
-		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
+		$navConfig = new \ProcessWire\ProcessEndLinkageEditorial\Setup\NavConfig($this);
 		$navRaw = $values['editorial_nav'] ?? '';
 		if (is_string($navRaw) && trim($navRaw) !== '') {
 			$decoded = json_decode($navRaw, true);
@@ -350,7 +350,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		// egal was im Navigations-JSON steht (Discovery blendet sie nur in der Vorschlagsliste aus).
 		$templates = array_values(array_filter(
 			$templates,
-			fn(string $t) => !in_array($t, \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery::SKIP, true)
+			fn(string $t) => !in_array($t, \ProcessWire\ProcessEndLinkageEditorial\Setup\TemplateDiscovery::SKIP, true)
 		));
 
 		try {
@@ -362,7 +362,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$this->error($e->getMessage());
 		}
 
-		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
+		$discovery = new \ProcessWire\ProcessEndLinkageEditorial\Setup\TemplateDiscovery($this);
 		$cleanModes = [];
 		$cleanDatatypes = [];
 		foreach ($templates as $tpl) {
@@ -611,7 +611,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	 * @return string[]
 	 */
 	public function allowedTemplatesForUser(?\ProcessWire\User $user): array {
-		$access = new \ProcessWire\BsProcessEditorial\Auth\TemplateAccess($this);
+		$access = new \ProcessWire\ProcessEndLinkageEditorial\Auth\TemplateAccess($this);
 		return $access->allowedTemplates($user);
 	}
 
@@ -675,7 +675,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		}
 		$registered = true;
 		spl_autoload_register(function (string $class): void {
-			$prefix = 'ProcessWire\\BsProcessEditorial\\';
+			$prefix = 'ProcessWire\\ProcessEndLinkageEditorial\\';
 			if (!str_starts_with($class, $prefix)) {
 				return;
 			}
@@ -688,7 +688,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	}
 
 	public function handleRequest(HookEvent $event): string {
-		$router = new \ProcessWire\BsProcessEditorial\Ui\Router($this);
+		$router = new \ProcessWire\ProcessEndLinkageEditorial\Ui\Router($this);
 		return $router->dispatch($event);
 	}
 
@@ -717,14 +717,14 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		return ($root === '' ? '' : $root) . '/' . $base . '/';
 	}
 
-	public function adapter(): \ProcessWire\BsProcessEditorial\Adapter\AdapterInterface {
-		return \ProcessWire\BsProcessEditorial\Adapter\AdapterFactory::make($this);
+	public function adapter(): \ProcessWire\ProcessEndLinkageEditorial\Adapter\AdapterInterface {
+		return \ProcessWire\ProcessEndLinkageEditorial\Adapter\AdapterFactory::make($this);
 	}
 
 	public function ___install(): void {
 		$this->registerAutoloader();
 		parent::___install();
-		$auth = new \ProcessWire\BsProcessEditorial\Auth\EditorialAuth($this);
+		$auth = new \ProcessWire\ProcessEndLinkageEditorial\Auth\EditorialAuth($this);
 		$auth->ensureAccessInfrastructure();
 	}
 
@@ -800,8 +800,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	 */
 	protected function buildConfigFields(array $data): array {
 		$modules = $this->wire()->modules;
-		$discovery = new \ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery($this);
-		$navConfig = new \ProcessWire\BsProcessEditorial\Setup\NavConfig($this);
+		$discovery = new \ProcessWire\ProcessEndLinkageEditorial\Setup\TemplateDiscovery($this);
+		$navConfig = new \ProcessWire\ProcessEndLinkageEditorial\Setup\NavConfig($this);
 
 		// —— Aktuellen Baum laden — er ist jetzt Quelle der Freigabe ("im Baum" = "freigegeben") ——
 		$prevNav = $this->get('editorial_nav');
@@ -863,7 +863,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			. '/">Redaktion öffnen</a></p>';
 		$fsNav->add($f);
 
-		$builder = new \ProcessWire\BsProcessEditorial\Setup\NavBuilder($this);
+		$builder = new \ProcessWire\ProcessEndLinkageEditorial\Setup\NavBuilder($this);
 		/** @var InputfieldMarkup $f */
 		$f = $modules->get('InputfieldMarkup');
 		$f->name = 'editorial_nav_builder';

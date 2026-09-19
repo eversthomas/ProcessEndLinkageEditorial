@@ -1,10 +1,11 @@
 name: Release
 
-# Erstellt automatisch einen Git-Tag + GitHub-Release, sobald die Versionsnummer in
-# BsProcessEditorial.module.php auf master erhöht wurde. Schreibt zusätzlich
-# release-info.json mit Version + Release-Datum zurück ins Repo — das Modul liest diese
-# Datei zur Laufzeit für den Footer im Setup-Bildschirm (siehe BsProcessEditorial.module.php,
-# renderFooter()/releaseInfo()).
+# Erstellt automatisch einen Git-Tag + GitHub-Release, sobald die Versionsnummer in der
+# .module.php-Hauptdatei auf master erhöht wurde. Schreibt zusätzlich release-info.json mit
+# Version + Release-Datum zurück ins Repo — das Modul liest diese Datei zur Laufzeit für den
+# Footer im Setup-Bildschirm (siehe ProcessEndLinkageEditorial.module.php,
+# renderFooter()/releaseInfo()). Die Hauptdatei wird per Glob gefunden (nicht hartcodiert),
+# damit eine künftige Modul-Umbenennung diesen Workflow nicht erneut bricht.
 
 on:
   push:
@@ -27,9 +28,14 @@ jobs:
       - name: Modulversion auslesen
         id: version
         run: |
-          VERSION=$(grep -oE "'version'[[:space:]]*=>[[:space:]]*[0-9]+" BsProcessEditorial.module.php | grep -oE '[0-9]+')
+          MODULE_FILE=$(find . -maxdepth 1 -name "*.module.php" | head -n 1)
+          if [ -z "$MODULE_FILE" ]; then
+            echo "Keine .module.php-Hauptdatei im Repo-Root gefunden" >&2
+            exit 1
+          fi
+          VERSION=$(grep -oE "'version'[[:space:]]*=>[[:space:]]*[0-9]+" "$MODULE_FILE" | grep -oE '[0-9]+')
           if [ -z "$VERSION" ]; then
-            echo "Konnte Modulversion nicht aus BsProcessEditorial.module.php lesen" >&2
+            echo "Konnte Modulversion nicht aus $MODULE_FILE lesen" >&2
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"

@@ -1,20 +1,20 @@
-<?php namespace ProcessWire\BsProcessEditorial\Adapter;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Adapter;
 
-use ProcessWire\BsProcessEditorial;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\AbstractFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\CheckboxFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\DatetimeFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\EmailFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\FileFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\ImageFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\NumberFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\PageReferenceFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\RepeaterFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\SelectFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\TextareaFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\TextFieldAdapter;
-use ProcessWire\BsProcessEditorial\Adapter\Fields\UrlFieldAdapter;
-use ProcessWire\BsProcessEditorial\Setup\TemplateDiscovery;
+use ProcessWire\ProcessEndLinkageEditorial;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\AbstractFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\CheckboxFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\DatetimeFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\EmailFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\FileFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\ImageFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\NumberFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\PageReferenceFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\RepeaterFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\SelectFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\TextareaFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\TextFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\Fields\UrlFieldAdapter;
+use ProcessWire\ProcessEndLinkageEditorial\Setup\TemplateDiscovery;
 use ProcessWire\Field;
 use ProcessWire\Page;
 use ProcessWire\Template;
@@ -28,12 +28,12 @@ class ProcessWireAdapter implements AdapterInterface {
 	/** Sicherheitsdeckel für listRecords() — echte Pagination/Suche ist ein separates Vorhaben. */
 	protected const LIST_LIMIT = 500;
 
-	protected BsProcessEditorial $module;
+	protected ProcessEndLinkageEditorial $module;
 
 	/** @var AbstractFieldAdapter[] */
 	protected array $fieldAdapters;
 
-	public function __construct(BsProcessEditorial $module, ?array $fieldAdapters = null) {
+	public function __construct(ProcessEndLinkageEditorial $module, ?array $fieldAdapters = null) {
 		$this->module = $module;
 		if ($fieldAdapters !== null) {
 			$this->fieldAdapters = $fieldAdapters;

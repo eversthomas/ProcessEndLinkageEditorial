@@ -5,7 +5,7 @@
  * Ein Template-Knoten im Baum = für die Redaktion freigegeben ("im Baum" = "freigegeben").
  * Darstellung/Daten-Art werden direkt am Knoten gepflegt (mode__{tpl}/datatype__{tpl}
  * als eigenständige <select>-Felder, keine ProcessWire-Inputfields mehr — siehe
- * BsProcessEditorial::___execute()). Zusätzlich: "Neue Inhalte hinzufügen"-Bereich
+ * ProcessEndLinkageEditorial::___execute()). Zusätzlich: "Neue Inhalte hinzufügen"-Bereich
  * (ersetzt die frühere Discovery-Tabelle) und eine schematische Live-Vorschau.
  */
 (function () {

@@ -1,6 +1,6 @@
-<?php namespace ProcessWire\BsProcessEditorial\Setup;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Setup;
 
-use ProcessWire\BsProcessEditorial;
+use ProcessWire\ProcessEndLinkageEditorial;
 
 /**
  * Visueller Menü-Builder für Setup → Redaktion (schreibt editorial_nav JSON).
@@ -11,10 +11,10 @@ use ProcessWire\BsProcessEditorial;
  */
 class NavBuilder {
 
-	protected BsProcessEditorial $module;
+	protected ProcessEndLinkageEditorial $module;
 	protected NavConfig $navConfig;
 
-	public function __construct(BsProcessEditorial $module) {
+	public function __construct(ProcessEndLinkageEditorial $module) {
 		$this->module = $module;
 		$this->navConfig = new NavConfig($module);
 	}

@@ -1,6 +1,6 @@
-<?php namespace ProcessWire\BsProcessEditorial\Ui;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Ui;
 
-use ProcessWire\BsProcessEditorial\Adapter\AdapterInterface;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\AdapterInterface;
 
 /**
  * Dashboard-Übersicht: Broadsheet (Daten) oder Legacy-Kacheln.

@@ -1,4 +1,4 @@
-<?php namespace ProcessWire\BsProcessEditorial\Adapter;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Adapter;
 
 /**
  * Vertrag zwischen Editorial-UI und Datenquelle.

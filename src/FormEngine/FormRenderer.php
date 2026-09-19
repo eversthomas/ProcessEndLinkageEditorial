@@ -1,17 +1,17 @@
-<?php namespace ProcessWire\BsProcessEditorial\FormEngine;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\FormEngine;
 
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\CheckboxField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\DatetimeField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\FieldRendererInterface;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\FileField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\ImageField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\PageReferenceField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\RepeaterField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\SelectField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\TextareaField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\TextField;
-use ProcessWire\BsProcessEditorial\FormEngine\Fields\UnsupportedField;
-use ProcessWire\BsProcessEditorial\Ui\Icons;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\CheckboxField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\DatetimeField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\FieldRendererInterface;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\FileField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\ImageField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\PageReferenceField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\RepeaterField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\SelectField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\TextareaField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\TextField;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields\UnsupportedField;
+use ProcessWire\ProcessEndLinkageEditorial\Ui\Icons;
 
 /**
  * Form-Engine: Schema → Formular. Hauptfläche + Details-Sidebar inkl. Publish.

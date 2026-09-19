@@ -1,4 +1,4 @@
-<?php namespace ProcessWire\BsProcessEditorial\FormEngine\Fields;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields;
 
 class ImageField extends AbstractFieldRenderer {
 

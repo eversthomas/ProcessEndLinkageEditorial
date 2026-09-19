@@ -1,11 +1,11 @@
-<?php namespace ProcessWire\BsProcessEditorial\Ui;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Ui;
 
-use ProcessWire\BsProcessEditorial;
-use ProcessWire\BsProcessEditorial\Adapter\AdapterInterface;
-use ProcessWire\BsProcessEditorial\Auth\EditorialAuth;
-use ProcessWire\BsProcessEditorial\Auth\TemplateAccess;
-use ProcessWire\BsProcessEditorial\FormEngine\FormRenderer;
-use ProcessWire\BsProcessEditorial\Setup\NavConfig;
+use ProcessWire\ProcessEndLinkageEditorial;
+use ProcessWire\ProcessEndLinkageEditorial\Adapter\AdapterInterface;
+use ProcessWire\ProcessEndLinkageEditorial\Auth\EditorialAuth;
+use ProcessWire\ProcessEndLinkageEditorial\Auth\TemplateAccess;
+use ProcessWire\ProcessEndLinkageEditorial\FormEngine\FormRenderer;
+use ProcessWire\ProcessEndLinkageEditorial\Setup\NavConfig;
 use ProcessWire\HookEvent;
 
 /**
@@ -13,7 +13,7 @@ use ProcessWire\HookEvent;
  */
 class Router {
 
-	protected BsProcessEditorial $module;
+	protected ProcessEndLinkageEditorial $module;
 	protected EditorialAuth $auth;
 	protected AdapterInterface $adapter;
 	protected NavConfig $navConfig;
@@ -27,7 +27,7 @@ class Router {
 	/** @var array<int, array<string, mixed>> */
 	protected array $navTree = [];
 
-	public function __construct(BsProcessEditorial $module) {
+	public function __construct(ProcessEndLinkageEditorial $module) {
 		$this->module = $module;
 		$this->auth = new EditorialAuth($module);
 		$this->adapter = $module->adapter();

@@ -1,4 +1,4 @@
-<?php namespace ProcessWire\BsProcessEditorial\FormEngine\Fields;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\FormEngine\Fields;
 
 abstract class AbstractFieldRenderer implements FieldRendererInterface {
 

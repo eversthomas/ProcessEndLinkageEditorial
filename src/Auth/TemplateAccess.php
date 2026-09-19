@@ -1,6 +1,6 @@
-<?php namespace ProcessWire\BsProcessEditorial\Auth;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Auth;
 
-use ProcessWire\BsProcessEditorial;
+use ProcessWire\ProcessEndLinkageEditorial;
 use ProcessWire\User;
 
 /**
@@ -8,9 +8,9 @@ use ProcessWire\User;
  */
 class TemplateAccess {
 
-	protected BsProcessEditorial $module;
+	protected ProcessEndLinkageEditorial $module;
 
-	public function __construct(BsProcessEditorial $module) {
+	public function __construct(ProcessEndLinkageEditorial $module) {
 		$this->module = $module;
 	}
 

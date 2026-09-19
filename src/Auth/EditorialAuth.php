@@ -1,6 +1,6 @@
-<?php namespace ProcessWire\BsProcessEditorial\Auth;
+<?php namespace ProcessWire\ProcessEndLinkageEditorial\Auth;
 
-use ProcessWire\BsProcessEditorial;
+use ProcessWire\ProcessEndLinkageEditorial;
 use ProcessWire\NullPage;
 use ProcessWire\Permission;
 use ProcessWire\Role;
@@ -17,10 +17,10 @@ class EditorialAuth {
 	public const PERMISSION = 'editorial-access';
 	public const ROLE = 'editorial';
 
-	protected BsProcessEditorial $module;
+	protected ProcessEndLinkageEditorial $module;
 	protected ?string $throttleMessage = null;
 
-	public function __construct(BsProcessEditorial $module) {
+	public function __construct(ProcessEndLinkageEditorial $module) {
 		$this->module = $module;
 	}
 
@@ -95,7 +95,7 @@ class EditorialAuth {
 
 		if ($user->id && $session->authenticate($user, $password) && $this->canUseEditorial($user)) {
 			session_regenerate_id(true);
-			$session->set(BsProcessEditorial::SESSION_KEY, [
+			$session->set(ProcessEndLinkageEditorial::SESSION_KEY, [
 				'user_id' => $user->id,
 				'name' => $user->name,
 				'login_at' => time(),
@@ -110,7 +110,7 @@ class EditorialAuth {
 			$expectedPass = (string) $this->module->get('login_pass');
 			if ($username === $expectedUser && $password === $expectedPass) {
 				session_regenerate_id(true);
-				$session->set(BsProcessEditorial::SESSION_KEY, [
+				$session->set(ProcessEndLinkageEditorial::SESSION_KEY, [
 					'name' => $username,
 					'login_at' => time(),
 					'last_seen' => time(),
@@ -161,15 +161,15 @@ class EditorialAuth {
 	/** Aktivitätszeitpunkt aktualisieren (gleitender Idle-Timeout). Nur wenn bereits eingeloggt. */
 	public function touch(): void {
 		$session = $this->module->wire()->session;
-		$data = $session->get(BsProcessEditorial::SESSION_KEY);
+		$data = $session->get(ProcessEndLinkageEditorial::SESSION_KEY);
 		if (is_array($data)) {
 			$data['last_seen'] = time();
-			$session->set(BsProcessEditorial::SESSION_KEY, $data);
+			$session->set(ProcessEndLinkageEditorial::SESSION_KEY, $data);
 		}
 	}
 
 	public function logout(): void {
-		$this->module->wire()->session->remove(BsProcessEditorial::SESSION_KEY);
+		$this->module->wire()->session->remove(ProcessEndLinkageEditorial::SESSION_KEY);
 	}
 
 	public function canUseEditorial(User $user): bool {
@@ -226,7 +226,7 @@ class EditorialAuth {
 
 	/** @return array<string, mixed>|null */
 	protected function sessionData(): ?array {
-		$data = $this->module->wire()->session->get(BsProcessEditorial::SESSION_KEY);
+		$data = $this->module->wire()->session->get(ProcessEndLinkageEditorial::SESSION_KEY);
 		if (!is_array($data)) {
 			return null;
 		}
