@@ -48,6 +48,8 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 		$this->set('theme_spacing', 'normal');
 		$this->set('brand_name', '');
 		$this->set('brand_logo', '');
+		$this->set('editorial_credit_name', 'Tom Evers');
+		$this->set('editorial_credit_url', 'https://endlinkage.de');
 		$this->set('allow_demo_login', 0);
 		$this->set('editorial_require_2fa', 0);
 		$this->set('session_timeout_minutes', 60);
@@ -440,6 +442,11 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 		if (!array_key_exists('brand_logo', $values)) {
 			$values['brand_logo'] = (string) ($previous['brand_logo'] ?? '');
 		}
+
+		// Credit-Zeile im Redaktions-UI: leer = ganz ausgeblendet (wichtig für andere Entwickler/
+		// Agenturen, die dieses Modul für eigene Kunden einsetzen, ohne unseren Namen zu zeigen).
+		$values['editorial_credit_name'] = trim((string) ($values['editorial_credit_name'] ?? ''));
+		$values['editorial_credit_url'] = trim((string) ($values['editorial_credit_url'] ?? ''));
 
 		return $values;
 	}
@@ -957,6 +964,24 @@ class ProcessEndLinkageEditorial extends Process implements ConfigurableModule {
 		$f->addOption('generous', 'Großzügig');
 		$spacing = (string) ($data['theme_spacing'] ?? 'normal');
 		$f->value = in_array($spacing, ['compact', 'normal', 'generous'], true) ? $spacing : 'normal';
+		$fsDesign->add($f);
+
+		/** @var InputfieldText $f */
+		$f = $modules->get('InputfieldText');
+		$f->name = 'editorial_credit_name';
+		$f->label = 'Entwickler-Credit: Name';
+		$f->description = 'Erscheint als kleiner Hinweis im Navigationsbereich der Redaktion (nicht im '
+			. 'Kunden-Branding oben). Leer lassen, um die Zeile komplett auszublenden — z. B. wenn eine '
+			. 'andere Agentur dieses Modul für ihre eigenen Kunden einsetzt.';
+		$f->value = $data['editorial_credit_name'] ?? '';
+		$fsDesign->add($f);
+
+		/** @var InputfieldText $f */
+		$f = $modules->get('InputfieldText');
+		$f->name = 'editorial_credit_url';
+		$f->label = 'Entwickler-Credit: Link';
+		$f->description = 'Optional. Ohne Name (Feld oben leer) wird auch dieser Link nicht angezeigt.';
+		$f->value = $data['editorial_credit_url'] ?? '';
 		$fsDesign->add($f);
 
 		// —— 3. Zugriff/Rollen ——

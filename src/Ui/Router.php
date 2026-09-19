@@ -710,6 +710,8 @@ class Router {
 			'brandName' => $this->module->brandName(),
 			'brandLogoUrl' => $this->module->brandLogoUrl(),
 			'designSkin' => $designSkin,
+			'creditName' => (string) $this->module->get('editorial_credit_name'),
+			'creditUrl' => (string) $this->module->get('editorial_credit_url'),
 		], $vars));
 	}
 

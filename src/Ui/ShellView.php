@@ -24,6 +24,8 @@ class ShellView {
 		$brandLogoUrl = $vars['brandLogoUrl'] ?? null;
 		$brandInitial = mb_strtoupper(mb_substr($brandName, 0, 1));
 		$primaryAction = $vars['primaryAction'] ?? null; // ['label' => ..., 'url' => ...]
+		$creditName = trim((string) ($vars['creditName'] ?? ''));
+		$creditUrl = trim((string) ($vars['creditUrl'] ?? ''));
 		$designSkin = (string) ($vars['designSkin'] ?? 'legacy');
 		if ($designSkin !== 'daten') {
 			$designSkin = 'legacy';
@@ -86,11 +88,15 @@ class ShellView {
 						<p class="bpe-navpanel__account">Angemeldet als <strong><?= $this->e($userName) ?></strong><?php if ($isDemo): ?> · Demo<?php endif; ?></p>
 					<?php endif; ?>
 					<a class="bpe-navpanel__logout" href="<?= $this->e($baseUrl . 'logout/') ?>">Abmelden</a>
-					<p class="bpe-navpanel__credit">
-						<span>Tom Evers</span>
-						<span aria-hidden="true"> · </span>
-						<a href="https://bezugssysteme.de" target="_blank" rel="noopener noreferrer">bezugssysteme.de</a>
-					</p>
+					<?php if ($creditName !== ''): ?>
+						<p class="bpe-navpanel__credit">
+							<span><?= $this->e($creditName) ?></span>
+							<?php if ($creditUrl !== ''): ?>
+								<span aria-hidden="true"> · </span>
+								<a href="<?= $this->e($creditUrl) ?>" target="_blank" rel="noopener noreferrer"><?= $this->e(preg_replace('#^https?://#', '', $creditUrl)) ?></a>
+							<?php endif; ?>
+						</p>
+					<?php endif; ?>
 				</div>
 			</aside>
 			<div class="bpe-navpanel__scrim" data-bpe-nav-close></div>

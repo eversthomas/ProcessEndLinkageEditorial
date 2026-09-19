@@ -9,10 +9,14 @@ use ProcessWire\Template;
  */
 class TemplateDiscovery {
 
-	/** System-Templates, die nie redaktionell freigegeben werden dürfen (auch serverseitig durchgesetzt, siehe ProcessWireAdapter). */
+	/**
+	 * Echte PW-System-Templates, die nie redaktionell freigegeben werden dürfen (auch serverseitig
+	 * durchgesetzt, siehe ProcessWireAdapter). Bewusst KEINE site-spezifischen Namenskonventionen
+	 * (z. B. "basic-page") — das Modul soll mit beliebigen Template-Namen jeder PW-Installation
+	 * funktionieren, nicht nur mit denen, die während der Entwicklung getestet wurden.
+	 */
 	public const SKIP = [
 		'admin', 'user', 'role', 'permission', 'language', 'language-gateway',
-		'basic-page', // typischer Struktur-Container (wie Home), keine redaktionelle Datensatz-Sammlung
 	];
 
 	public const MODE_LIST = 'list';
@@ -47,7 +51,7 @@ class TemplateDiscovery {
 				continue;
 			}
 			$count = (int) $pages->count("template={$tpl->name}, include=all");
-			$mode = $this->suggestModeForCount($count, $tpl->name);
+			$mode = $this->suggestModeForCount($count);
 			$out[] = [
 				'name' => $tpl->name,
 				'label' => $this->label($tpl),
@@ -83,14 +87,15 @@ class TemplateDiscovery {
 	public function suggestMode(string $templateName): string {
 		$pages = $this->module->wire()->pages;
 		$count = (int) $pages->count("template={$templateName}, include=all");
-		return $this->suggestModeForCount($count, $templateName);
+		return $this->suggestModeForCount($count);
 	}
 
-	public function suggestModeForCount(int $count, string $templateName = ''): string {
-		// Bekannte Einzel-Seiten-Templates
-		if (in_array($templateName, ['home'], true)) {
-			return self::MODE_SINGLE;
-		}
+	/**
+	 * Bewusst nur über die Seitenanzahl entschieden, nicht über den Template-Namen — das Modul
+	 * soll unabhängig davon funktionieren, wie ein Entwickler seine Templates genannt hat
+	 * (z. B. "home", "homepage", "startseite" sind alle gleich plausibel).
+	 */
+	public function suggestModeForCount(int $count): string {
 		// Genau eine Seite → typischerweise Homepages / Singleton-Inhalte
 		if ($count === 1) {
 			return self::MODE_SINGLE;
