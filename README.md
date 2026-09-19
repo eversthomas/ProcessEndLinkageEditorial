@@ -1,6 +1,6 @@
 # ProcessEndLinkageEditorial
 
-**English summary:** A generic, non-technical **editorial interface** for ProcessWire — its own front end with login, completely separate from the PW admin. Editors manage approved content types (lists, forms, publish/draft) without ever seeing templates, fields, or the ProcessWire admin itself; developers configure what's exposed, the navigation menu, and branding under **Setup → Redaktion**. Highlights: role-based visibility with fine-grained create/edit/publish permissions, repeater field support with an accordion UI, transactional saving with automatic rollback on validation failure, hardened login (rate limiting, session rotation, idle timeout), and an audit log. Built for and documented in German (its target audience — associations, small/medium businesses — is German-speaking), but the code itself is straightforward PHP 8 / ProcessWire 3.x with no build step. The rest of this README is in German.
+**English summary:** A generic, non-technical **editorial interface** for ProcessWire — its own front end with login, completely separate from the PW admin. Editors manage approved content types (lists, forms, publish/draft) without ever seeing templates, fields, or the ProcessWire admin itself; developers configure what's exposed, the navigation menu, and branding under **Setup → Redaktion**. Highlights: role-based visibility with fine-grained create/edit permissions, repeater field support with an accordion UI, transactional saving with automatic rollback on both validation and write failures, hardened login (rate limiting that only counts real failed attempts, session rotation, idle timeout, optional TOTP 2FA built on PW's own `Tfa` core class), and an audit log. Built for and documented in German (its target audience — associations, small/medium businesses — is German-speaking), but the code itself is straightforward PHP 8 / ProcessWire 3.x with no build step. The rest of this README is in German.
 
 ---
 
@@ -47,8 +47,8 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 ### Setup / Entwickler
 - Setup-Formular in **3 Tabs** (ProcessWire `WireTab`):
   1. **Inhalte & Navigation** — Discovery/Freigabe und visueller Menü-Builder in einer Fläche (Freigabe ergibt sich aus der Baumstruktur, keine separate Auswahl mehr)
-  2. **Design & Branding** — Firmenname, Logo, Theme-Tokens (inkl. Hauptmenü-Farben)
-  3. **Zugriff & System** — Rollen-Mapping, Demo-Login, URL-Pfad, Sitzungs-Timeout
+  2. **Design & Branding** — Firmenname, Logo, Theme-Tokens (inkl. Hauptmenü-Farben), Entwickler-Credit im Navigationsbereich (Name + Link frei editierbar/leerbar — wichtig, falls eine andere Agentur dieses Modul für eigene Kunden einsetzt)
+  3. **Zugriff & System** — Rollen-Mapping, Demo-Login, URL-Pfad, Sitzungs-Timeout, optionale 2FA-Erzwingung
 - Fester Footer im Setup-Bildschirm: Autorenschaft (Tom Evers | endlinkage.de) + Versionsnummer inkl. Release-Datum (aus `release-info.json`, siehe unten)
 - Template-Discovery + Freigabe (`editorial_templates`, abgeleitet aus der Navigationsstruktur)
 - Darstellungsmodus pro Template: Liste | Einzelseite
@@ -107,9 +107,11 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 - Sichtbarkeit der Inhaltstypen über Rollen-Mapping filterbar, **fail-closed** bei unklarer/fehlender Zuordnung
 - System-Templates (`admin`, `user`, `role`, `permission` u. a.) serverseitig gesperrt — auch wenn sie sich ins Navigations-JSON einschleichen würden
 - Branding-Logo: kein SVG, Content-Check (`getimagesize`) für Rasterformate, Legacy-SVG-Purge
-- **Transaktionales Speichern**: neue Seiten, neue Repeater-Items und neu hochgeladene Dateien werden bei einem Validierungsfehler im selben Formular aktiv wieder entfernt (Rollback über `ProcessWireAdapter::rollback()`) — kein Datenrest bei fehlgeschlagenem Speichern
-- **Feinere Rechte**: Anlegen/Bearbeiten/Veröffentlichen einzeln je Rolle + Inhaltstyp einstellbar (`role_template_actions`, Setup → Zugriff & System); ohne explizite Einstellung weiterhin voller Zugriff (kein Bruch bestehender Konfiguration)
+- **Transaktionales Speichern**: neue Seiten, neue Repeater-Items und neu hochgeladene Dateien werden aktiv wieder entfernt (Rollback über `ProcessWireAdapter::rollback()`) — sowohl bei einem Validierungsfehler als auch bei einer Exception während des eigentlichen Schreibens (`writeValue()`/`page->save()`); kein Datenrest bei fehlgeschlagenem Speichern
+- **Feinere Rechte**: Anlegen/Bearbeiten einzeln je Rolle + Inhaltstyp einstellbar (`role_template_actions`, Setup → Zugriff & System); Veröffentlichen ist bewusst an Bearbeiten gekoppelt (kein eigenständiges, nirgends durchgesetztes Schein-Recht) — ein echter Freigabe-Workflow ist als Konzept vorgemerkt, siehe Roadmap; ohne explizite Einstellung weiterhin voller Zugriff (kein Bruch bestehender Konfiguration)
 - **Audit-Log**: jede Speicherung/Veröffentlichung wird mit Benutzer, Inhaltstyp, ID und Aktion in einen eigenen PW-Log-Kanal (`bpe-audit`, sichtbar unter Setup → Logs) geschrieben
+- **Login-Rate-Limit zählt nur echte Fehlversuche**: Zähler erhöht sich ausschließlich bei falschem Passwort/Code, wird nach erfolgreichem Login zurückgesetzt — mehrfaches korrektes An-/Abmelden sperrt nicht mehr aus
+- **Optionale 2FA (TOTP)**: Schalter in Setup → Zugriff & System erzwingt einen zweiten Faktor beim Editorial-Login, sofern ein Benutzer das in seinem normalen PW-Profil eingerichtet hat. Baut vollständig auf PW-Bordmitteln auf (Kern-Klasse `Tfa`, kein eigener TOTP-Code) — erfordert ein separat installiertes Tfa-Modul (empfohlen `TfaTotp`, Link direkt im Setup-Hinweis). Setup-UI prüft aktiv, ob ein Tfa-Modul überhaupt installiert ist, und warnt sonst sichtbar
 
 ### Betrieb (nicht Modul-Code, aber nötig)
 - **HTTPS** für `/editorial/`
@@ -121,32 +123,29 @@ Der Redaktionsbereich **ändert echte Inhalte** — Sicherheit ist Pflicht vor K
 | Thema | Warum | Priorität |
 |-------|--------|-----------|
 | Löschen / Papierkorb für Datensätze | Existiert im Modul noch gar nicht (weder Route noch Adapter-Methode) | hoch, siehe Offen-Liste |
+| Echter Freigabe-Workflow (Veröffentlichen unabhängig von Bearbeiten) | Aktuell bewusst zusammengelegt (siehe „Bereits vorhanden"); ein eigenständiges Recht bräuchte eine Lösung dafür, bei einem reinen Publish-Klick andere Feldänderungen herauszufiltern | zurückgestellt |
 | Eigenes Editorial-Rollensystem (unabhängig von PW-Rollen) | Aktuell dienen PW-Rollen weiterhin als Gruppierungs-Schlüssel für `role_templates`/`role_template_actions`; sauberere Trennung wäre möglich, aber mehr Aufwand | zurückgestellt |
-| **2FA (TOTP o. ä.)** | Extra Schutz für Publish-Zugang; oft Kundenanforderung | mittel–hoch je nach Kunde |
 | Weitere Upload-Härtung an Feld-Adaptern (falls nötig über WireUpload hinaus) | Logo-Pfad ist abgesichert; Bild/Datei laufen über PW `WireUpload` | niedrig–mittel |
 
-*(Login-Rate-Limit, Sitzungs-Timeout seit 14.09.2026, Transaktionales Speichern/Feinere Rechte/Audit-Log seit 19.09.2026 umgesetzt, siehe „Bereits vorhanden" oben.)*
+*(Login-Rate-Limit, Sitzungs-Timeout seit 14.09.2026; Transaktionales Speichern/Feinere Rechte/Audit-Log seit 19.09.2026; Rollback bei Schreibfehlern, Rate-Limit-Reset bei Erfolg und optionale 2FA seit der aktuellen Version umgesetzt, siehe „Bereits vorhanden" oben.)*
 
 **Brauchen wir ein Sicherheitskonzept?** Ja — als kurze Checkliste (Ist/Soll/Go-Live), kein Roman. Liegt sinnvoll **vor erstem Kunden-Produktivbetrieb**, parallel zu Rechte/Löschen.
-
-**Brauchen wir 2FA?** Nicht für den nächsten Dev-Sprint. Für produktive Kundeninstanzen mit öffentlichen oder sensiblen Inhalten: **ja, einplanen** (z. B. TOTP nach erfolgreichem Passwort; optional PW-Module/`TwoFactorAuth`-Ökosystem prüfen). 2FA ersetzt nicht Rate-Limit und HTTPS.
 
 ---
 
 ## Offen — Reihenfolge für den nächsten Chat
 
-1. **Listen: Suche / Filter / Sortierung**
-2. **Löschen / Papierkorb** für Datensätze
-3. **Medienbibliothek** (statt nur Upload am Feld)
-4. **Autosave** + robusteres Speichern-Feedback
-5. **Zeitplanung** veröffentlichen (aktuell Stub)
-6. **Sicherheit Go-Live:** kurze Checkliste (Ist/Soll) — Rate-Limit, Session-Timeout, Transaktionales Speichern, Feinere Rechte und Audit-Log sind erledigt
-7. **2FA** (TOTP) für Editorial-Login — vor/mit Kunden-Produktiv
-8. **Workflow** jenseits Publish/Entwurf
-9. **Daten-Arten** Blog/News/Termine/Seiten — eigene Ansichten (Design steht als Mockup bereit)
-10. **Weitere Feldtypen** bei Bedarf (auch als Repeater-Item-Feld, z. B. pageReference/select in Items)
-11. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests, dabei auch PHPUnit-Grundgerüst (aktuell keine automatisierten Tests)
-12. Screenshots/Kurzbeschreibung für den Eintrag im offiziellen PW-Modulverzeichnis vorbereiten, dann einreichen
+1. **2FA im Echtbetrieb testen:** `TfaTotp` installieren, mit einem echten Benutzer einrichten, kompletten Login-mit-Code-Ablauf durchspielen (bisher nur mit simuliertem/fehlendem Tfa-Modul verifiziert)
+2. **Listen: Suche / Filter / Sortierung**
+3. **Löschen / Papierkorb** für Datensätze
+4. **Medienbibliothek** (statt nur Upload am Feld)
+5. **Autosave** + robusteres Speichern-Feedback
+6. **Zeitplanung** veröffentlichen (aktuell Stub)
+7. **Workflow** jenseits Publish/Entwurf (echter Freigabe-Schritt, siehe Roadmap-Tabelle)
+8. **Daten-Arten** Blog/News/Termine/Seiten — eigene Ansichten (Design steht als Mockup bereit)
+9. **Weitere Feldtypen** bei Bedarf (auch als Repeater-Item-Feld, z. B. pageReference/select in Items)
+10. Aufteilung großer Klassen (`Router`, Modul-Datei) / Adapter-Tests, dabei auch PHPUnit-Grundgerüst (aktuell keine automatisierten Tests)
+11. Screenshots/Kurzbeschreibung für den Eintrag im offiziellen PW-Modulverzeichnis vorbereiten, dann einreichen
 
 ---
 
