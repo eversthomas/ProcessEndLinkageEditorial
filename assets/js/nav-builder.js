@@ -137,6 +137,25 @@
     return select;
   }
 
+  /**
+   * Labels für alle aktuell im Baum verwendeten Templates — dynamisch statt aus dem
+   * beim Seitenaufruf fixen `state.templates` (das kennt frisch per "+ Hinzufügen"
+   * eingehängte Templates noch nicht, siehe collectTreeTemplates()). Fällt für neue
+   * Templates auf das Label aus `state.candidates` zurück.
+   */
+  function templateLabels(state) {
+    var map = {};
+    collectTreeTemplates(state.tree).forEach(function (name) {
+      if (state.templates[name]) {
+        map[name] = state.templates[name];
+        return;
+      }
+      var candidate = state.candidates.filter(function (c) { return c.name === name; })[0];
+      map[name] = candidate ? (candidate.label || candidate.name) : name;
+    });
+    return map;
+  }
+
   function templateSelect(templates, value, onChange) {
     var select = el('select');
     var keys = Object.keys(templates);
@@ -364,7 +383,7 @@
     var row = el('div', { className: 'bpe-navbuilder__tpl' });
     row.appendChild(el('label', null, [
       'Template',
-      templateSelect(state.templates, node.template || '', function (v) {
+      templateSelect(templateLabels(state), node.template || '', function (v) {
         node.template = v;
         if (!node.label || node.label === node.id) {
           node.label = state.templates[v] || v;

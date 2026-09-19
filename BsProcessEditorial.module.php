@@ -11,8 +11,8 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo(): array {
 		return [
-			'title' => 'Redaktion (bs-processEditorial)',
-			'version' => 17,
+			'title' => 'Redaktions-Login & Content-Verwaltung (bs-processEditorial)',
+			'version' => 18,
 			'summary' => 'Filigrane Redaktions-UX mit Menühierarchie, Dashboard, TinyMCE, Repeater-Feldern, Publish und gehärtetem Login/Zugriff.',
 			'author' => 'BezugsSysteme',
 			'icon' => 'edit',
@@ -137,10 +137,16 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 		$release = $this->releaseInfo();
 
 		$versionLabel = 'Version ' . $currentVersion;
-		if ($release['version'] === $currentVersion && $release['date']) {
+		if ($release['date']) {
 			$timestamp = strtotime($release['date']);
 			$formatted = $timestamp !== false ? date('d.m.Y', $timestamp) : $release['date'];
-			$versionLabel .= ' · Release vom ' . htmlspecialchars($formatted, ENT_QUOTES, 'UTF-8');
+			$formatted = htmlspecialchars($formatted, ENT_QUOTES, 'UTF-8');
+			if ($release['version'] === $currentVersion) {
+				$versionLabel .= ' · Release vom ' . $formatted;
+			} else {
+				// Lokaler Stand neuer als der letzte bekannte Release (z. B. Versionssprung vor dem Push).
+				$versionLabel .= ' · in Entwicklung (letzter Release: v' . (int) $release['version'] . ' vom ' . $formatted . ')';
+			}
 		} else {
 			$versionLabel .= ' · unveröffentlicht';
 		}
@@ -163,7 +169,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 	 * @return array{version: int|null, date: string|null}
 	 */
 	protected function releaseInfo(): array {
-		$path = $this->modulePath() . 'release-info.json';
+		$path = $this->modulePath() . '/release-info.json';
 		if (!is_file($path)) {
 			return ['version' => null, 'date' => null];
 		}
@@ -802,7 +808,7 @@ class BsProcessEditorial extends Process implements ConfigurableModule {
 			$candidates[] = $item;
 		}
 
-		$this->wire()->config->scripts->add($this->moduleUrl() . 'assets/js/nav-builder.js?v=11');
+		$this->wire()->config->scripts->add($this->moduleUrl() . 'assets/js/nav-builder.js?v=12');
 
 		// —— 1. Inhalte & Navigation ——
 		/** @var InputfieldFieldset $fsNav */

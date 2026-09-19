@@ -29,7 +29,7 @@ Einstieg für Weiterentwicklung: dieses README (Offen-Liste unten), bei Architek
 
 ---
 
-## Umgesetzt (Stand 14.09.2026)
+## Umgesetzt (Stand 19.09.2026)
 
 ### Kern & Zugang
 - Process-Modul, Autoload, Setup-Seite **Setup → Redaktion**
