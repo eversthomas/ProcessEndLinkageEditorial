@@ -290,18 +290,28 @@ class ProcessWireAdapter implements AdapterInterface {
 			return ['record' => null, 'errors' => $errors];
 		}
 
-		foreach ($validated as $item) {
-			$item['adapter']->writeValue($item['field'], $page, $item['value']);
-		}
+		try {
+			foreach ($validated as $item) {
+				$item['adapter']->writeValue($item['field'], $page, $item['value']);
+			}
 
-		$status = (string) ($data['status'] ?? '');
-		if ($status === 'unpublished') {
-			$page->addStatus(Page::statusUnpublished);
-		} elseif ($status === 'published') {
-			$page->removeStatus(Page::statusUnpublished);
-		}
+			$status = (string) ($data['status'] ?? '');
+			if ($status === 'unpublished') {
+				$page->addStatus(Page::statusUnpublished);
+			} elseif ($status === 'published') {
+				$page->removeStatus(Page::statusUnpublished);
+			}
 
-		$page->save();
+			$page->save();
+		} catch (\Throwable $e) {
+			// Anders als ein Validierungsfehler (oben, vor dem Schreiben) ist hier bereits reale
+			// Persistierung im Gange (writeValue()/page->save()) — dieselbe $rollback-Liste greift
+			// trotzdem, weil neue Seiten/Items/Dateien schon während der Validierung entstehen,
+			// nicht erst hier.
+			$this->module->wire()->log->save('bpe-editorial', 'saveRecord: Fehler beim Schreiben - ' . $e->getMessage());
+			$this->rollback($rollback);
+			return ['record' => null, 'errors' => ['_form' => 'Speichern fehlgeschlagen. Bitte erneut versuchen.']];
+		}
 
 		$user = $this->module->wire()->user;
 		$this->module->wire()->log->save('bpe-audit', sprintf(

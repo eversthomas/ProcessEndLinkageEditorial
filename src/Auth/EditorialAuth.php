@@ -92,13 +92,14 @@ class EditorialAuth {
 		$session = $this->module->wire()->session;
 		$sanitizer = $this->module->wire()->sanitizer;
 
-		if (!$this->allowLoginAttempt($username)) {
+		if ($this->isThrottled($username)) {
 			return self::RESULT_FAILED;
 		}
 
 		$user = $users->get('name=' . $sanitizer->selectorValue($username));
 
 		if ($user->id && $session->authenticate($user, $password) && $this->canUseEditorial($user)) {
+			$this->clearThrottle($username);
 			if ($this->requireTfa() && $user->hasTfa()) {
 				$this->beginTfaPending($user);
 				return self::RESULT_NEEDS_CODE;
@@ -118,6 +119,7 @@ class EditorialAuth {
 			$expectedUser = (string) $this->module->get('login_user');
 			$expectedPass = (string) $this->module->get('login_pass');
 			if ($username === $expectedUser && $password === $expectedPass) {
+				$this->clearThrottle($username);
 				session_regenerate_id(true);
 				$session->set(ProcessEndLinkageEditorial::SESSION_KEY, [
 					'name' => $username,
@@ -129,6 +131,7 @@ class EditorialAuth {
 			}
 		}
 
+		$this->registerFailedAttempt($username);
 		return self::RESULT_FAILED;
 	}
 
@@ -145,7 +148,7 @@ class EditorialAuth {
 		}
 
 		$username = (string) $pending['name'];
-		if (!$this->allowLoginAttempt($username)) {
+		if ($this->isThrottled($username)) {
 			return self::RESULT_FAILED;
 		}
 
@@ -175,9 +178,11 @@ class EditorialAuth {
 		$settings = $tfaModule->getUserSettings($user);
 		$code = trim($code);
 		if ($code === '' || !$tfaModule->isValidUserCode($user, $code, $settings)) {
+			$this->registerFailedAttempt($username);
 			return self::RESULT_FAILED;
 		}
 
+		$this->clearThrottle($username);
 		$this->cancelTfaPending();
 		$session = $this->module->wire()->session;
 		session_regenerate_id(true);
@@ -236,13 +241,19 @@ class EditorialAuth {
 	 * bewusst nicht über $session->login() geht) ist das Hook-Timing nicht garantiert.
 	 * Algorithmus bewusst identisch zu SessionLoginThrottle (bewährt): wachsende Wartezeit je
 	 * Fehlversuch, gedeckelt, pro Benutzername (kein IP-Tracking nötig für dieses Szenario).
+	 * In drei Schritte aufgeteilt (Prüfen / Fehlversuch zählen / zurücksetzen), damit nur echte
+	 * Fehlversuche zählen und ein erfolgreicher Login die Drosselung nicht mitzieht.
 	 */
-	protected function allowLoginAttempt(string $username): bool {
+	protected function throttleCacheKey(string $username): string {
+		return 'bpe-login-throttle-' . $this->module->wire()->sanitizer->pageName($username, true);
+	}
+
+	/** Prüft nur, ob aktuell gedrosselt wird — zählt selbst keinen Versuch. */
+	protected function isThrottled(string $username): bool {
 		$cache = $this->module->wire()->cache;
 		$seconds = 5;
 		$maxSeconds = 60;
-		$key = 'bpe-login-throttle-' . $this->module->wire()->sanitizer->pageName($username, true);
-		$data = $cache->get($key);
+		$data = $cache->get($this->throttleCacheKey($username));
 		$attempts = is_array($data) ? (int) ($data['attempts'] ?? 0) : 0;
 		$lastAttempt = is_array($data) ? (int) ($data['last'] ?? 0) : 0;
 		$now = time();
@@ -252,16 +263,32 @@ class EditorialAuth {
 			if (($now - $lastAttempt) < $requireSeconds) {
 				$wait = $requireSeconds - ($now - $lastAttempt);
 				$this->throttleMessage = "Zu viele Versuche. Bitte {$wait} Sekunde(n) warten und erneut versuchen.";
-				return false;
+				return true;
 			}
 		}
+		return false;
+	}
+
+	/** Zählt einen echten Fehlversuch (falsches Passwort oder falscher 2FA-Code). */
+	protected function registerFailedAttempt(string $username): void {
+		$cache = $this->module->wire()->cache;
+		$maxSeconds = 60;
+		$key = $this->throttleCacheKey($username);
+		$data = $cache->get($key);
+		$attempts = is_array($data) ? (int) ($data['attempts'] ?? 0) : 0;
+		$lastAttempt = is_array($data) ? (int) ($data['last'] ?? 0) : 0;
+		$now = time();
 
 		$attempts++;
 		if (($now - $lastAttempt) > $maxSeconds) {
 			$attempts = 1;
 		}
 		$cache->save($key, ['attempts' => $attempts, 'last' => $now], $maxSeconds + 60);
-		return true;
+	}
+
+	/** Setzt die Drosselung nach erfolgreicher Anmeldung/Code-Prüfung zurück. */
+	protected function clearThrottle(string $username): void {
+		$this->module->wire()->cache->delete($this->throttleCacheKey($username));
 	}
 
 	/** Aktivitätszeitpunkt aktualisieren (gleitender Idle-Timeout). Nur wenn bereits eingeloggt. */
